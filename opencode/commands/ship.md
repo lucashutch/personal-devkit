@@ -1,11 +1,11 @@
 ---
-description: Format, lint, branch, commit, push, and PR
+description: Ship changes after repo quality gates pass
 agent: build
 ---
 I want you to use your `bash` tool to perform the following pipeline in order:
 
-1. Run the project's formatting and linting commands.
-2. If everything passes, create and switch to a new feature branch.
-3. Stage all changes and commit them. Read the diff to write a clear, succinct commit message.
-4. Push the new branch to the remote repository.
-5. Create a Pull Request (using the `gh` CLI)
+1. Ensure the repository's quality gates pass.
+2. Ensure you are on a feature branch; create one if needed.
+3. Commit any unstaged changes (prefer amends for small changes). Read the diff to write a clear, succinct commit message.
+4. Push to the remote repository, using force-with-lease if needed.
+5. Create a draft Pull Request using the `gh` CLI.
