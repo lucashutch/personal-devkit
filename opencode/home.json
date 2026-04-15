@@ -1,0 +1,24 @@
+{
+    "$schema": "https://opencode.ai/config.json",
+    "provider": {
+        "opencode": {
+            "whitelist": [
+                "big-pickle",
+                "gpt-5.4-nano",
+                "gpt-5-nano",
+                "mimo-v2-pro-free",
+                "minimax-m2.5-free",
+                "nemotron-3-super-free",
+                "qwen3.6-plus-free"
+            ]
+        },
+        "openai": {
+            "whitelist": [
+                "codex-mini-latest",
+                "gpt-5.3-codex",
+                "gpt-5.4",
+                "gpt-5.4-mini"
+            ]
+        }
+    }
+}
