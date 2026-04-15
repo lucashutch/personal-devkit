@@ -1,0 +1,8 @@
+{
+  "name": "limitwatch-quota-plugin",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tui": "./index.tsx"
+  }
+}
