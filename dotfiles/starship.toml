@@ -1,0 +1,72 @@
+# Disable the blank line at the start of the prompt
+add_newline = false
+
+format = """
+$line_break\
+$status $cmd_duration $memory_usage $python\
+$line_break\
+[](#9A348E)\
+$username\
+[](bg:#DA627D fg:#9A348E)\
+$directory\
+[](fg:#DA627D bg:#FCA17D)\
+$git_branch\
+[ ](fg:#FCA17D)\
+$fill\
+$line_break\
+$character
+"""
+
+[username]
+show_always = true
+style_user = "bg:#9A348E"
+style_root = "bg:#9A348E"
+format = '[$user ]($style)'
+disabled = false
+
+[directory]
+style = "bg:#DA627D"
+format = "[ $path ]($style)"
+truncation_length = 2
+truncation_symbol = '.../'
+truncate_to_repo = false
+
+[git_branch]
+symbol = ""
+style = "fg:bright-black bg:#FCA17D"
+format = '[$symbol $branch]($style)'
+
+[fill]
+symbol = " "
+
+[character]
+success_symbol = "[❯](green)"
+error_symbol = "[❯](green)"
+
+[status]
+style = "bright-black"
+symbol = '🔴'
+success_symbol = '🟢'
+format = '[$symbol]($style)'
+map_symbol = true
+disabled = false
+
+[cmd_duration]
+format = "[$duration]($style)"
+style = "bright-black"
+show_milliseconds = true
+min_time = 1
+
+[memory_usage]
+disabled = false
+threshold = -1
+format = "$symbol[$ram(|$ram_pct)]($style)"
+style = "bright-black"
+
+[python]
+symbol = "🐍 "
+format = '[$symbol$virtualenv]($style) '
+style = "bright-black"
+detect_extensions = []
+detect_files = []
+detect_folders = []
