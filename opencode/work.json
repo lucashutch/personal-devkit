@@ -3,10 +3,5 @@
     "disabled_providers": [
         "opencode"
     ],
-    "small_model": "github-copilot/gpt-5-mini",
-    "agent": {
-        "explore": {
-            "model": "github-copilot/gpt-5.4-mini"
-        }
-    }
+    "small_model": "github-copilot/gpt-5-mini"
 }
