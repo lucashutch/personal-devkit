@@ -1,7 +1,8 @@
 {
-  "$schema": "https://opencode.ai/tui.json",
-  "keybinds": {
-    "input_submit": "ctrl+return",
-    "input_newline": "return,alt+return,shift+return,ctrl+j"
-  }
+    "$schema": "https://opencode.ai/tui.json",
+    "plugin": ["file:/home/lucas/.config/opencode/plugins/limitwatch-quota-plugin"],
+    "keybinds": {
+        "input_submit": "ctrl+return",
+        "input_newline": "return,alt+return,shift+return,ctrl+j"
+    }
 }
