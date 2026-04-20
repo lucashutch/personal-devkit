@@ -1,4 +1,6 @@
+/** @jsxImportSource @opentui/solid */
 import { createSignal } from "solid-js"
+import type { TuiPlugin, TuiPluginModule } from "@opencode-ai/plugin/tui"
 
 const DEFAULT_COMMAND = "limitwatch show --json"
 
@@ -8,19 +10,6 @@ const SERVICE_PREFIXES: Record<string, string> = {
   google: "G",
 }
 
-function resolveLimitwatchCommand() {
-  const configured = process.env.LIMITWATCH_COMMAND?.trim()
-  if (configured) return configured
-
-  const binary =
-    Bun.which("limitwatch") ??
-    (process.env.HOME ? `${process.env.HOME}/.local/bin/limitwatch` : null) ??
-    "/usr/local/bin/limitwatch" ??
-    "/usr/bin/limitwatch"
-
-  return `${binary} show --json`
-}
-
 function normalizeText(value: unknown) {
   return String(value ?? "").replace(/\r\n/g, "\n").trim()
 }
@@ -28,7 +17,6 @@ function normalizeText(value: unknown) {
 function formatQuota(quota: any) {
   const label = quota.display_name || quota.name || quota.source_type || "Quota"
   const service = formatService(quota)
-
   const usedPct =
     typeof quota.used_pct === "number"
       ? quota.used_pct
@@ -38,18 +26,12 @@ function formatQuota(quota: any) {
 
   if (typeof quota.remaining === "number" && typeof quota.limit === "number") {
     const pct = usedPct?.toFixed(1) ?? "?"
-    return `${service} ${label}: ${pct}% used (${quota.remaining}/${quota.limit})`
+    return `${service ? `${service} ` : ""}${label}: ${pct}% used (${quota.remaining}/${quota.limit})`
   }
 
-  if (usedPct !== null) {
-    return `${service} ${label}: ${usedPct.toFixed(1)}% used`
-  }
-
-  if (quota.is_error && quota.message) {
-    return `${service} ${label}: ${quota.message}`
-  }
-
-  return `${service} ${label}`
+  if (usedPct !== null) return `${service ? `${service} ` : ""}${label}: ${usedPct.toFixed(1)}% used`
+  if (quota.is_error && quota.message) return `${service ? `${service} ` : ""}${label}: ${quota.message}`
+  return `${service ? `${service} ` : ""}${label}`
 }
 
 function formatService(quota: any) {
@@ -59,43 +41,41 @@ function formatService(quota: any) {
   if (!source) return ""
 
   const prefix = SERVICE_PREFIXES[key] ?? source.slice(0, 1).toUpperCase()
-  if (key === "github copilot") return `${prefix}`
-  if (key === "google") return `${prefix}`
+  if (key === "github copilot") return prefix
+  if (key === "google") return prefix
   if (key === "openai codex") return prefix
   return `${prefix}(${source.toLowerCase().replace(/\s+/g, "-")})`
 }
 
 function parseQuotaData(output: unknown) {
   const text = normalizeText(output)
-  if (!text) return ["  No quota data"]
+  if (!text) return ["No quota data"]
 
   try {
     const parsed = JSON.parse(text)
-    if (!Array.isArray(parsed)) return ["  " + (text.split("\n").find(Boolean) ?? "No quota data")]
+    if (!Array.isArray(parsed)) return [text.split("\n").find(Boolean) ?? "No quota data"]
 
     const lines: string[] = []
-
     for (const account of parsed as any[]) {
       if (account.error) {
         const who = account.email || account.alias || "Unknown"
-        lines.push(`  ${who}: ${account.error}`)
+        lines.push(`${who}: ${account.error}`)
         continue
       }
 
-      const quotas = account.quotas ?? []
-      for (const quota of quotas) {
+      for (const quota of account.quotas ?? []) {
         lines.push(formatQuota(quota))
       }
     }
 
-    return lines.length > 0 ? lines : ["  No quota data"]
+    return lines.length > 0 ? lines : ["No quota data"]
   } catch {
-    return ["  " + (text.split("\n").map((l) => l.trim()).find(Boolean) ?? "No quota data")]
+    return [text.split("\n").map((l) => l.trim()).find(Boolean) ?? "No quota data"]
   }
 }
 
 async function fetchQuotaLines() {
-  const command = resolveLimitwatchCommand()
+  const command = process.env.LIMITWATCH_COMMAND?.trim() || DEFAULT_COMMAND
   const proc = Bun.spawn(["sh", "-lc", command], {
     stdout: "pipe",
     stderr: "pipe",
@@ -108,15 +88,17 @@ async function fetchQuotaLines() {
   ])
 
   if (exitCode !== 0) {
-    return [`  Error: ${normalizeText(stderr) || `limitwatch exited with code ${exitCode}`}`]
+    return [normalizeText(stderr) || `limitwatch exited with code ${exitCode}`]
   }
 
   return parseQuotaData(stdout)
 }
 
-const tui = async (api: any) => {
+const id = "limitwatch-quota-plugin"
+
+const tui: TuiPlugin = async (api) => {
   const [state, setState] = createSignal({
-    lines: ["  Loading quota..."],
+    lines: ["Loading quota..."],
     updatedAt: 0,
     refreshing: false,
   })
@@ -131,7 +113,7 @@ const tui = async (api: any) => {
       setState({ lines, updatedAt: Date.now(), refreshing: false })
     } catch (error) {
       setState({
-        lines: [`  Error: ${error instanceof Error ? error.message : String(error)}`],
+        lines: [`Error: ${error instanceof Error ? error.message : String(error)}`],
         updatedAt: Date.now(),
         refreshing: false,
       })
@@ -151,35 +133,36 @@ const tui = async (api: any) => {
   api.slots.register({
     order: 600,
     slots: {
-      sidebar_content(_ctx, _props) {
-        try {
-          const muted = api.theme.current.textMuted
-          const current = state()
-          const stamp = current.updatedAt ? ` (updated ${new Date(current.updatedAt).toLocaleTimeString()})` : current.refreshing ? " (refreshing)" : ""
-          return (
-            <box flexDirection="column">
-              <text>Quotas</text>
-              {current.lines.map((line) => (
-                <box>
-                  <text fg={muted}>{line}</text>
-                </box>
-              ))}
-              <box>
-                <text fg={muted}>{"\t\t\t\t\t\t\t"}{stamp}</text>
+      sidebar_content() {
+        const current = state()
+        const stamp = current.updatedAt
+          ? `updated ${new Date(current.updatedAt).toLocaleTimeString()}`
+          : current.refreshing
+            ? "refreshing"
+            : ""
+
+        return (
+          <box flexDirection="column">
+            <text bold>Quotas</text>
+            {current.lines.map((line) => (
+              <text fg={api.theme.current.textMuted}>{line}</text>
+            ))}
+            {stamp ? (
+              <box flexDirection="row">
+                <box flexGrow={1} />
+                <text fg={api.theme.current.textMuted}>{stamp}</text>
               </box>
-            </box>
-          )
-        } catch (error) {
-          return (
-            <box flexDirection="column">
-              <text>Quotas</text>
-              <text fg={api.theme.current.textMuted}>{error instanceof Error ? error.message : String(error)}</text>
-            </box>
-          )
-        }
+            ) : null}
+          </box>
+        )
       },
     },
   })
 }
 
-export default { tui }
+const plugin: TuiPluginModule & { id: string } = {
+  id,
+  tui,
+}
+
+export default plugin

@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./tui": "./index.tsx"
+    "./tui": { "import": "./tui.tsx" }
   }
 }
