@@ -1,6 +1,5 @@
 ---
 description: Ship changes after repo quality gates pass
-agent: build
 ---
 I want you to use your `bash` tool to perform the following pipeline in order:
 

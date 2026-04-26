@@ -1,6 +1,5 @@
 ---
 description: Amend the last commit and force-push safely
-agent: build
 ---
 I want you to use your `bash` tool to perform the following pipeline in order:
 
