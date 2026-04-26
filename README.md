@@ -2,6 +2,8 @@
 
 Personal developer toolkit for OpenCode workflows, terminal configuration, shell helpers, and repo-managed dotfiles.
 
+Feel free to fork this repo or open PRs to fine-tune the prompts and tool descriptions for your own workflow.
+
 ## Included
 
 - `opencode/` — OpenCode agents, commands, plugins, and config
