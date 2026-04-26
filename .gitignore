@@ -25,6 +25,10 @@ ENV/
 .coverage
 coverage/
 
+# Repo-managed shell snippets may be ignored by global *.d rules
+!dotfiles/bashrc.d/
+!dotfiles/bashrc.d/*.sh
+
 # Node / build outputs
 node_modules/
 dist/
