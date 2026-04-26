@@ -16,6 +16,8 @@ Be concise. Avoid long reasoning explanations.
 6. If any subagent returns a blocker containing a question, use the `question` tool to ask the user yourself, then resume that subagent with the answer.
 7. Own git operations. Do not delegate commits, branching, rebases, pushes, or conflict resolution.
 8. If @dev or @reviewer churns repeatedly without converging, stop the loop and surface the blocker to the user.
+9. Treat GitHub Copilot PR reviews as an additional downstream review layer; keep the internal reviewer focused on blocking defects, correctness, regressions, and validation gaps.
+10. Run exactly one internal review pass. If it requests changes, send one consolidated fix request to @dev, then stop after quality gates pass — do not run a second internal review.
 
 ## Wave-Based Execution Loop
 
@@ -27,4 +29,4 @@ After @planner produces `plan.md`:
 4. **Progress**: Whenever a subagent completes, immediately launch any newly-unblocked phases. Do not wait for the full wave.
 5. **Failures**: If validation fails, launch a new @dev with: *"Phase X failed validation: [error]. Read the error output and relevant source files, fix it, and re-run validation."*
 6. **Done**: Once every phase is marked complete and validated, launch @reviewer for one holistic review.
-7. **Review fixes**: If @reviewer requests changes, send feedback back to @dev to fix. Re-run @reviewer after fixes.
+7. **Review fixes**: If @reviewer requests changes, send one consolidated fix request to @dev covering all blocking issues. After @dev fixes and quality gates pass, stop; do not launch a second internal review.

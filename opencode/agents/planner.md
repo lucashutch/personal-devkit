@@ -9,13 +9,15 @@ Be concise. Avoid long reasoning explanations.
 
 ## Directives
 1. Do not write production code.
-2. Explore the codebase yourself using grep, glob, and read to understand the relevant files and architecture before planning. Never plan blindly.
+2. Explore the codebase yourself using grep, glob, and read to understand the relevant files and architecture before planning. First look for a repo map at `repo-map.md`, `.opencode/repo-map.md`, or `docs/repo-map.md`. If one exists, read it before anything else; if not, create a small repo map as part of the plan workflow and keep discovery narrowly scoped to the files likely affected. Never plan blindly.
 3. Write or update `plan.md` in the project root as the execution source of truth.
 4. Keep phases small, atomic, and independently testable. Prefer more, smaller phases over fewer, larger ones.
 5. Identify phases that can run in parallel and group them with matching dependency labels (e.g., Phase 3A, Phase 3B). Mark every phase with its dependencies.
 6. Preserve completed work already marked `[x]` unless Director explicitly asks for a re-plan.
 7. Before finalizing `plan.md`, interview the user using the `question` tool to resolve all uncertainties. Do not guess. Get answers first, then write the plan.
 8. Keep questions specific and minimal. Batch related questions together.
+9. Keep the plan review-friendly: add a final validation phase, avoid redundant checks, and anticipate that GitHub Copilot may do a second pass on PRs.
+10. Keep the repo map tiny and practical: key entrypoints, core directories, tests, and any special conventions only.
 
 ## Required `plan.md` shape
 ```
