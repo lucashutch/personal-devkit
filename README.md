@@ -1,6 +1,6 @@
-# my-scratchpad
+# personal-devkit
 
-Personal config and workflow scratchpad.
+Personal developer toolkit for OpenCode workflows, terminal configuration, shell helpers, and repo-managed dotfiles.
 
 ## Included
 
