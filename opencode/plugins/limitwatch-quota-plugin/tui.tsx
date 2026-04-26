@@ -10,13 +10,16 @@ const SERVICE_PREFIXES: Record<string, string> = {
   google: "G",
 }
 
+type QuotaLine = string | { name: string; value: string }
+
 function normalizeText(value: unknown) {
   return String(value ?? "").replace(/\r\n/g, "\n").trim()
 }
 
-function formatQuota(quota: any) {
-  const label = quota.display_name || quota.name || quota.source_type || "Quota"
+function formatQuota(quota: any): QuotaLine {
+  const label = formatQuotaLabel(quota)
   const service = formatService(quota)
+  const name = `${service ? `${service} ` : ""}${label}`
   const usedPct =
     typeof quota.used_pct === "number"
       ? quota.used_pct
@@ -26,12 +29,34 @@ function formatQuota(quota: any) {
 
   if (typeof quota.remaining === "number" && typeof quota.limit === "number") {
     const pct = usedPct?.toFixed(1) ?? "?"
-    return `${service ? `${service} ` : ""}${label}: ${pct}% used (${quota.remaining}/${quota.limit})`
+    const includeCounts = !isGithubPersonalAccountQuota(quota, label)
+    return {
+      name,
+      value: includeCounts ? `${pct}% (${quota.remaining}/${quota.limit})` : `${pct}%`,
+    }
   }
 
-  if (usedPct !== null) return `${service ? `${service} ` : ""}${label}: ${usedPct.toFixed(1)}% used`
-  if (quota.is_error && quota.message) return `${service ? `${service} ` : ""}${label}: ${quota.message}`
-  return `${service ? `${service} ` : ""}${label}`
+  if (usedPct !== null) return { name, value: `${usedPct.toFixed(1)}%` }
+  if (quota.is_error && quota.message) return `${name}: ${quota.message}`
+  return name
+}
+
+function isGithubPersonalAccountQuota(quota: any, label: string) {
+  const source = String(quota.source_type ?? quota.source ?? "").trim().toLowerCase()
+  return source === "github copilot" && label.toLowerCase().includes("personal")
+}
+
+function formatQuotaLabel(quota: any) {
+  const label = String(quota.display_name || quota.name || quota.source_type || "Quota")
+  const source = String(quota.source_type ?? quota.source ?? "").trim().toLowerCase()
+
+  if (source === "openai codex") {
+    const key = label.toLowerCase()
+    if (key.includes("primary")) return "5H"
+    if (key.includes("secondary")) return "7d"
+  }
+
+  return label
 }
 
 function formatService(quota: any) {
@@ -47,7 +72,7 @@ function formatService(quota: any) {
   return `${prefix}(${source.toLowerCase().replace(/\s+/g, "-")})`
 }
 
-function parseQuotaData(output: unknown) {
+function parseQuotaData(output: unknown): QuotaLine[] {
   const text = normalizeText(output)
   if (!text) return ["No quota data"]
 
@@ -55,7 +80,7 @@ function parseQuotaData(output: unknown) {
     const parsed = JSON.parse(text)
     if (!Array.isArray(parsed)) return [text.split("\n").find(Boolean) ?? "No quota data"]
 
-    const lines: string[] = []
+    const lines: QuotaLine[] = []
     for (const account of parsed as any[]) {
       if (account.error) {
         const who = account.email || account.alias || "Unknown"
@@ -63,9 +88,7 @@ function parseQuotaData(output: unknown) {
         continue
       }
 
-      for (const quota of account.quotas ?? []) {
-        lines.push(formatQuota(quota))
-      }
+      lines.push(...(account.quotas ?? []).map(formatQuota))
     }
 
     return lines.length > 0 ? lines : ["No quota data"]
@@ -98,7 +121,7 @@ const id = "limitwatch-quota-plugin"
 
 const tui: TuiPlugin = async (api) => {
   const [state, setState] = createSignal({
-    lines: ["Loading quota..."],
+    lines: ["Loading quota..."] as QuotaLine[],
     updatedAt: 0,
     refreshing: false,
   })
@@ -145,7 +168,15 @@ const tui: TuiPlugin = async (api) => {
           <box flexDirection="column">
             <text bold>Quotas</text>
             {current.lines.map((line) => (
-              <text fg={api.theme.current.textMuted}>{line}</text>
+              typeof line === "string" ? (
+                <text fg={api.theme.current.textMuted}>{line}</text>
+              ) : (
+                <box flexDirection="row">
+                  <text fg={api.theme.current.textMuted}>{line.name}:</text>
+                  <box flexGrow={1} />
+                  <text fg={api.theme.current.textMuted}>{line.value}</text>
+                </box>
+              )
             ))}
             {stamp ? (
               <box flexDirection="row">
