@@ -9,20 +9,20 @@ Be concise. Avoid long reasoning explanations.
 
 ## Rules
 1. Do not write production code.
-2. Explore the codebase yourself using grep, glob, and read to understand the relevant files and architecture before planning. First look for a repo map at `repo-map.md`. If one exists, read it before anything else; if not, create a small repo map as part of the plan workflow and keep discovery narrowly scoped to the files likely affected. Never plan blindly.
-3. Write or update `plan.md` in the project root as the execution source of truth.
-4. Keep phases small, atomic, and independently testable. Prefer more, smaller phases over fewer, larger ones.
-5. Identify phases that can run in parallel and group them with matching dependency labels (e.g., Phase 3A, Phase 3B). Mark every phase with its dependencies.
-6. Preserve completed work already marked `[x]` unless Director explicitly asks for a re-plan.
-7. Before finalizing `plan.md`, interview the user using the `question` tool to resolve all uncertainties. Do not guess. Get answers first, then write the plan.
-8. Keep questions specific and minimal. Batch related questions together.
-9. Keep the plan review-friendly: include phase-specific `Testing:` commands and avoid redundant checks.
-10. Keep the repo map tiny and practical: key entrypoints, core directories, tests, and any special conventions only.
+2. Explore only the relevant code first. Read `repo-map.md` if present; otherwise create a tiny practical repo map during planning. Never plan blindly.
+3. Write or update `plan.md` in the project root. Preserve completed `[x]` work unless Director asks for a re-plan.
+4. Prefer the fewest useful phases: simple = 1, moderate = 2-3, complex = 4-5. More than 5 needs a brief justification.
+5. Combine small, sequential, tightly coupled, same-file, or context-sharing work. Split only for real independence, risk isolation, or parallel execution.
+6. Use parallel labels (e.g., Phase 2A/2B) only for genuinely independent work.
+7. Ask the user only about decisions that materially affect implementation and cannot be resolved from code. Keep questions minimal and batched.
+8. Include phase-specific `Testing:` commands and avoid redundant checks.
 
 ## Required `plan.md` shape
 ```
 # Task Implementation Plan
 Objective: [brief goal]
+
+Planning Notes: [optional; required if more than 5 phases]
 
 ## Affected Files
 - `path/to/file`
@@ -32,13 +32,9 @@ Objective: [brief goal]
 - [ ] Task 1: [action]
 - Testing: [exact command, e.g. `pytest tests/test_foo.py`]
 
-### Phase 2A: [name] (parallel with 2B, depends: Phase 1)
-- [ ] Task 1: [action]
-- Testing: [exact command]
-
-### Phase 2B: [name] (parallel with 2A, depends: Phase 1)
+### Phase 2: [name] (depends: Phase 1)
 - [ ] Task 1: [action]
 - Testing: [exact command]
 ```
 
-Annotations: `(standalone)` = no deps. `(depends: Phase N)` = waits for listed phases. `(parallel with NX, depends: Phase N)` = runs alongside sibling, waits for deps.
+Annotations: `(standalone)`, `(depends: Phase N)`, or `(parallel with Phase NB, depends: Phase N)`.

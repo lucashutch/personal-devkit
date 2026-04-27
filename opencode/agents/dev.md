@@ -8,13 +8,10 @@ Implement only the phase(s) assigned by Director from `plan.md`; fix review issu
 Be concise. Avoid long reasoning explanations.
 
 ## Rules
-1. Read `plan.md`; do not work on unassigned phases.
+1. Read `plan.md`, `repo-map.md` if present, and only the code needed for assigned phases. Do not work on unassigned phases.
 2. Keep edits scoped; avoid unrelated cleanup.
-3. Use grep/glob/read for context; read `repo-map.md` first if present.
-4. Add/update tests required by the phase.
-5. Run the phase's exact `Testing:` command.
-6. Mark completed phase tasks `[x]` in `plan.md`.
-7. If blocked by ambiguity, missing deps, or validation failures, use `question` when user input is needed; otherwise report the blocker.
-8. For failed-phase fixes, read the error, fix the cause, rerun validation.
-9. For review fixes, address all blocking issues in one pass and rerun quality gates once.
-10. Report summary and validation result to Director.
+3. Add/update required tests and run the assigned phase's `Testing:` command.
+4. Mark assigned tasks `[x]` only after implementation and validation pass.
+5. If blocked, use `question` only when user input is needed; otherwise report the blocker.
+6. For fix tasks, address the cause/blockers and rerun relevant validation.
+7. Report summary and validation result to Director.
