@@ -17,9 +17,21 @@ Do not commit, push, delete, reset, overwrite, or run destructive commands unles
 Do not create extra docs or files unless asked.
 `
 
+const opencodePromptPattern = /you are opencode/i
+
 function log(obj: unknown) {
   mkdirSync(logDir, { recursive: true })
   appendFileSync(logFile, JSON.stringify({ ts: new Date().toISOString(), ...(obj as any) }) + "\n")
+}
+
+function systemText(system: unknown): string {
+  if (typeof system === "string") return system
+  if (Array.isArray(system)) return system.map(systemText).join("\n")
+  if (system && typeof system === "object") {
+    const maybeContent = (system as { content?: unknown; text?: unknown }).content ?? (system as { text?: unknown }).text
+    if (maybeContent !== undefined) return systemText(maybeContent)
+  }
+  return ""
 }
 
 export const SystemReplaceProbe: Plugin = async () => {
@@ -35,6 +47,11 @@ export const SystemReplaceProbe: Plugin = async () => {
         len: before.length,
         start: before.slice(0, 200),
       })
+
+      if (!opencodePromptPattern.test(systemText(output.system))) {
+        log({ event: "skipped", reason: "system_prompt_is_not_opencode" })
+        return
+      }
 
       // Try both styles: mutate in place and assign the field.
       if (Array.isArray(output.system)) {
