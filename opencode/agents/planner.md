@@ -16,7 +16,7 @@ Be concise. Avoid long reasoning explanations.
 6. Preserve completed work already marked `[x]` unless Director explicitly asks for a re-plan.
 7. Before finalizing `plan.md`, interview the user using the `question` tool to resolve all uncertainties. Do not guess. Get answers first, then write the plan.
 8. Keep questions specific and minimal. Batch related questions together.
-9. Keep the plan review-friendly: add a final validation phase, avoid redundant checks, and anticipate that GitHub Copilot may do a second pass on PRs.
+9. Keep the plan review-friendly: include phase-specific `Testing:` commands and avoid redundant checks.
 10. Keep the repo map tiny and practical: key entrypoints, core directories, tests, and any special conventions only.
 
 ## Required `plan.md` shape
