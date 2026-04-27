@@ -19,7 +19,9 @@ function normalizeText(value: unknown) {
 function formatQuota(quota: any): QuotaLine {
   const label = formatQuotaLabel(quota)
   const service = formatService(quota)
-  const name = `${service ? `${service} ` : ""}${label}`
+  const reset = isOpenAiCodexQuota(quota) ? formatResetDuration(quota.reset) : ""
+  const nameLabel = reset ? `${label} (${reset})` : label
+  const name = `${service ? `${service} ` : ""}${nameLabel}`
   const usedPct =
     typeof quota.used_pct === "number"
       ? quota.used_pct
@@ -39,6 +41,26 @@ function formatQuota(quota: any): QuotaLine {
   if (usedPct !== null) return { name, value: `${usedPct.toFixed(1)}%` }
   if (quota.is_error && quota.message) return `${name}: ${quota.message}`
   return name
+}
+
+function formatResetDuration(reset: unknown) {
+  if (!reset) return ""
+
+  const resetAt = new Date(String(reset)).getTime()
+  if (!Number.isFinite(resetAt)) return ""
+
+  const totalMinutes = Math.max(0, Math.ceil((resetAt - Date.now()) / (60 * 1000)))
+  const days = Math.floor(totalMinutes / (24 * 60))
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60)
+  const minutes = totalMinutes % 60
+
+  if (days > 0) return `${days}d ${hours}h ${minutes}m`
+  if (hours > 0) return `${hours}h ${minutes}m`
+  return `${minutes}m`
+}
+
+function isOpenAiCodexQuota(quota: any) {
+  return String(quota.source_type ?? quota.source ?? "").trim().toLowerCase() === "openai codex"
 }
 
 function isGithubPersonalAccountQuota(quota: any, label: string) {
