@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import subprocess
 
-from installers.common import STATUS_SKIPPED, command_exists, error, info, should_skip_tool, version_for
+from program_installers.common import STATUS_SKIPPED, command_exists, error, info, should_skip_tool, version_for
 
 
 def install_starship(options: object) -> int:

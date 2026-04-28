@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from installers.common import (
+from program_installers.common import (
     STATUS_SKIPPED,
     command_exists,
     error,

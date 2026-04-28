@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from installers.common import STATUS_SKIPPED, command_exists, error, info, run_command, should_skip_tool
+from program_installers.common import STATUS_SKIPPED, command_exists, error, info, run_command, should_skip_tool
 
 
 def _code_version(timeout: int = 2) -> str:

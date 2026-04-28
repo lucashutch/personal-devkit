@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from installers.common import (
+from program_installers.common import (
     STATUS_SKIPPED,
     command_exists,
     error,

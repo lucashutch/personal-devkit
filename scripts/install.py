@@ -9,17 +9,17 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from installers.common import (
+from program_installers.common import (
     STATUS_SKIPPED,
     configure_logging,
     fail,
     info,
     prepend_existing_fzf_path,
 )
-from installers.fzf import install_fzf
-from installers.opencode import install_opencode
-from installers.starship import install_starship
-from installers.vscode import install_vscode
+from program_installers.fzf import install_fzf
+from program_installers.opencode import install_opencode
+from program_installers.starship import install_starship
+from program_installers.vscode import install_vscode
 
 
 def script_name() -> str:

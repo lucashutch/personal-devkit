@@ -8,12 +8,12 @@ Feel free to fork this repo or open PRs to fine-tune the prompts and tool descri
 
 - `opencode/` — OpenCode agents, commands, plugins, and config
 - `dotfiles/` — terminal and shell config managed from this repo
-- `scripts/link-config.sh` — symlinks repo-managed config into `~/.config`
+- `scripts/link-config.py` — symlinks repo-managed config into `~/.config`
 
 
 ## Tool installer
 
-`scripts/install.py` is the Linux-only Python 3.11+ entrypoint for installing default developer tools used by this repo: `fzf`, `starship`, `opencode`, and Visual Studio Code. It installs fzf from upstream GitHub into `~/.fzf` and links it into `~/.local/bin` so shell integration stays closer to the current fzf release than distro packages. It installs Visual Studio Code from Microsoft's official apt repository. It installs tools only; it does not call `scripts/link-config.sh`, link files into `~/.config`, or modify repo-managed dotfiles.
+`scripts/install.py` is the Linux-only Python 3.11+ entrypoint for installing default developer tools used by this repo: `fzf`, `starship`, `opencode`, and Visual Studio Code. It installs fzf from upstream GitHub into `~/.fzf` and links it into `~/.local/bin` so shell integration stays closer to the current fzf release than distro packages. It installs Visual Studio Code from Microsoft's official apt repository. It installs tools only; it does not call `scripts/link-config.py`, link files into `~/.config`, or modify repo-managed dotfiles.
 
 ```sh
 scripts/install.py --help
@@ -39,10 +39,10 @@ The installer is intended to be noninteractive and idempotent. Reruns skip selec
 ## Linking config
 
 ```sh
-scripts/link-config.sh --help
-scripts/link-config.sh --opencode
-scripts/link-config.sh --dotfiles
-scripts/link-config.sh --all
+ scripts/link-config.py --help
+ scripts/link-config.py --opencode
+ scripts/link-config.py --dotfiles
+ scripts/link-config.py --all
 ```
 
 Use `--force` to replace existing files/directories/symlinks at the target paths.
@@ -72,7 +72,7 @@ fi
 Then link dotfiles:
 
 ```sh
-scripts/link-config.sh --dotfiles
+ scripts/link-config.py --dotfiles
 ```
 
 Current bash snippets include OpenCode account helpers:
