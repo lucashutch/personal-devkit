@@ -7,18 +7,19 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from installers.common import STATUS_SKIPPED, command_exists, error, info, run_command
+from installers.common import STATUS_SKIPPED, command_exists, error, info, run_command, should_skip_tool
 
 
-def _code_version() -> str:
+def _code_version(timeout: int = 2) -> str:
     try:
         result = run_command(
             ["code", "--version"],
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             check=False,
+            timeout=timeout,
         )
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, subprocess.SubprocessError, subprocess.TimeoutExpired):
         return ""
     return (result.stdout or "").splitlines()[0] if result.stdout else ""
 
@@ -54,12 +55,12 @@ def _verify_code() -> bool:
 
 def install_vscode(options: object) -> int:
     reinstall = bool(getattr(options, "reinstall"))
-    if not reinstall and command_exists("code"):
-        version = _code_version()
-        if version:
-            info(f"Skipping Visual Studio Code; already installed ({version}).")
-        else:
-            info("Skipping Visual Studio Code; already installed.")
+    if should_skip_tool(
+        "code",
+        reinstall=reinstall,
+        display_name="Visual Studio Code",
+        include_version=False,
+    ):
         return STATUS_SKIPPED
 
     required_commands = ["apt-get", "wget", "gpg", "install", "tee"]

@@ -80,7 +80,7 @@ def run_command(command: list[str], **kwargs: object) -> subprocess.CompletedPro
     return subprocess.run(command, text=True, **kwargs)
 
 
-def version_for(tool: str) -> str:
+def version_for(tool: str, *, timeout: int = 10) -> str:
     if tool not in SUPPORTED_TOOLS:
         return ""
     try:
@@ -89,19 +89,28 @@ def version_for(tool: str) -> str:
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             check=False,
+            timeout=timeout,
         )
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, subprocess.SubprocessError, subprocess.TimeoutExpired):
         return ""
     return (result.stdout or "").splitlines()[0] if result.stdout else ""
 
 
-def should_skip_tool(tool: str, *, reinstall: bool) -> bool:
+def should_skip_tool(
+    tool: str,
+    *,
+    reinstall: bool,
+    display_name: str | None = None,
+    include_version: bool = True,
+    version_timeout: int = 10,
+) -> bool:
     if not reinstall and command_exists(tool):
-        version = version_for(tool)
+        name = display_name or tool
+        version = version_for(tool, timeout=version_timeout) if include_version else ""
         if version:
-            info(f"Skipping {tool}; already installed ({version}).")
+            info(f"Skipping {name}; already installed ({version}).")
         else:
-            info(f"Skipping {tool}; already installed.")
+            info(f"Skipping {name}; already installed.")
         return True
     return False
 
@@ -113,8 +122,9 @@ def fzf_supports_bash() -> bool:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             check=False,
+            timeout=10,
         )
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, subprocess.SubprocessError, subprocess.TimeoutExpired):
         return False
     return result.returncode == 0
 

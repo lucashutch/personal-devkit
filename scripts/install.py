@@ -86,17 +86,27 @@ class Summary:
     skipped: list[str] = field(default_factory=list)
     failed: list[str] = field(default_factory=list)
 
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+    CYAN = "\033[36m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    RED = "\033[31m"
+
     @staticmethod
     def join_tools(tools: list[str]) -> str:
         return ", ".join(tools) if tools else "none"
 
+    @classmethod
+    def line(cls, emoji: str, color: str, label: str, tools: list[str]) -> str:
+        return f"{emoji} {color}{label}:{cls.RESET} {cls.join_tools(tools)}"
+
     def print(self) -> None:
-        info(
-            "Summary: "
-            f"installed={self.join_tools(self.installed)}; "
-            f"skipped={self.join_tools(self.skipped)}; "
-            f"failed={self.join_tools(self.failed)}."
-        )
+        info("")
+        info(f"{self.BOLD}{self.CYAN}📦 Installation summary{self.RESET}")
+        info(self.line("✅", self.GREEN, "Installed", self.installed))
+        info(self.line("⏭️", self.YELLOW, "Skipped", self.skipped))
+        info(self.line("❌", self.RED, "Failed", self.failed))
 
 
 def parse_args(argv: list[str]) -> Options | int:
