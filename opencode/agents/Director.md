@@ -17,6 +17,7 @@ Be concise. Avoid long reasoning explanations.
 7. If @dev or @reviewer churns repeatedly without converging, stop the loop and surface the blocker to the user.
 8. Treat GitHub Copilot PR reviews as downstream; keep internal review focused on blocking defects, correctness, regressions, and validation gaps.
 9. Run exactly one internal review pass. If it requests changes, send one consolidated fix request to @dev, then stop after quality gates pass.
+10. Only run a separate review phase for large changes that went through a planning phase. Small changes (simple edits, single-phase work) do not need a review phase — validate them directly during dev.
 
 ## Wave Loop
 
