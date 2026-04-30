@@ -20,6 +20,7 @@ from program_installers.fzf import install_fzf
 from program_installers.opencode import install_opencode
 from program_installers.starship import install_starship
 from program_installers.vscode import install_vscode
+from program_installers.wslu import install_wslu
 
 
 def script_name() -> str:
@@ -54,6 +55,7 @@ def build_parser() -> argparse.ArgumentParser:
     options.add_argument("--starship", action="store_true", help="Select starship")
     options.add_argument("--opencode", action="store_true", help="Select opencode")
     options.add_argument("--vscode", action="store_true", help="Select Visual Studio Code")
+    options.add_argument("--wslu", action="store_true", help="Select wslu (WSL only)")
     options.add_argument("--reinstall", action="store_true", help="Do not skip tools that are already available on PATH")
     options.add_argument("-h", "--help", action="store_true", help="Show this help text")
     return parser
@@ -72,12 +74,14 @@ class Options:
     install_starship: bool = False
     install_opencode: bool = False
     install_vscode: bool = False
+    install_wslu: bool = False
 
     def select_all_tools(self) -> None:
         self.install_fzf = True
         self.install_starship = True
         self.install_opencode = True
         self.install_vscode = True
+        self.install_wslu = True
 
 
 @dataclass
@@ -128,8 +132,9 @@ def parse_args(argv: list[str]) -> Options | int:
     options.install_starship = options.install_starship or parsed.starship
     options.install_opencode = options.install_opencode or parsed.opencode
     options.install_vscode = options.install_vscode or parsed.vscode
+    options.install_wslu = options.install_wslu or parsed.wslu
 
-    selected_any = parsed.all or parsed.fzf or parsed.starship or parsed.opencode or parsed.vscode
+    selected_any = parsed.all or parsed.fzf or parsed.starship or parsed.opencode or parsed.vscode or parsed.wslu
     if not selected_any:
         options.select_all_tools()
     return options
@@ -166,6 +171,8 @@ def main(argv: list[str]) -> int:
         run_tool(summary, "opencode", install_opencode, parsed)
     if parsed.install_vscode:
         run_tool(summary, "vscode", install_vscode, parsed)
+    if parsed.install_wslu:
+        run_tool(summary, "wslu", install_wslu, parsed)
 
     summary.print()
     return 1 if summary.failed else 0
