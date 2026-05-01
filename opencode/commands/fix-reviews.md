@@ -1,5 +1,5 @@
 ---
-description: Address Copilot PR review feedback and ship the fix
+description: Address PR review feedback and ship the fix
 ---
 I want you to use your `bash` tool to perform the following pipeline in order:
 
