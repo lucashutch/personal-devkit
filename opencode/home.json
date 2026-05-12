@@ -21,18 +21,14 @@
                 "kimi-k2.6",
                 "mimo-v2.5-pro",
                 "minimax-m2.7",
-                "qwen3.6-plus",
+                "qwen3.6-plus"
             ]
-        },
-        "nvidia": {
-            "whitelist": [
-                "deepseek-ai/deepseek-v4-flash",
-                "deepseek-ai/deepseek-v4-pro",
-                "google/gemma-4-31b-it",
-                "minimaxai/minimax-m2.7",
-                "moonshotai/kimi-k2.5",
-                "z-ai/glm-5.1"
-            ]
+        }
+    },
+    "small_model": "opencode-go/deepseek-v4-flash",
+    "agent": {
+        "researcher": {
+            "model": "opencode-go/deepseek-v4-flash"
         }
     }
 }
