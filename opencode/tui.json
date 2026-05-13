@@ -1,9 +1,10 @@
 {
     "$schema": "https://opencode.ai/tui.json",
     "theme": "system",
-    "plugin": ["./plugins/limitwatch-quota-plugin"],
+    "plugin": [ "./plugins/limitwatch-quota-plugin" ],
     "keybinds": {
         "input_submit": "ctrl+return",
         "input_newline": "return,alt+return,shift+return,ctrl+j"
-    }
+    },
+    "scroll_speed": 0.5
 }
