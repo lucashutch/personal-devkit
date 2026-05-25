@@ -25,10 +25,5 @@
             ]
         }
     },
-    "small_model": "opencode-go/deepseek-v4-flash",
-    "agent": {
-        "researcher": {
-            "model": "opencode-go/deepseek-v4-flash"
-        }
-    }
+    "small_model": "opencode-go/deepseek-v4-flash"
 }
