@@ -9,20 +9,13 @@
     "provider": {
         "github-copilot": {
             "whitelist": [
-                "claude-opus-4.6",
+                "claude-opus-4.8",
                 "claude-sonnet-4.6",
                 "claude-haiku-4.5",
-                "gpt-5-mini",
                 "gpt-5.4",
                 "gpt-5.5",
                 "gpt-5.4-mini"
             ]
-        }
-    },
-    "small_model": "github-copilot/gpt-5-mini",
-    "agent": {
-        "researcher": {
-            "model": "github-copilot/claude-haiku-4.5"
         }
     },
     "instructions": [
