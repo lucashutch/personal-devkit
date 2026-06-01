@@ -6,5 +6,5 @@
         "input_submit": "ctrl+return",
         "input_newline": "return,alt+return,shift+return,ctrl+j"
     },
-    "scroll_speed": 0.5
+    "scroll_speed": 1
 }
