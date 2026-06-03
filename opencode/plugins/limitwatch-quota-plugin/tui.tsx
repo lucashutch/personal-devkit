@@ -31,6 +31,13 @@ function formatQuota(quota: any): QuotaLine {
 
   if (typeof quota.remaining === "number" && typeof quota.limit === "number") {
     const pct = usedPct?.toFixed(1) ?? "?"
+    if (isGithubCopilotQuota(quota)) {
+      return {
+        name,
+        value: `${formatGithubCopilotCredits(quota)} (${pct}%)`,
+      }
+    }
+
     const includeCounts = !isGithubPersonalAccountQuota(quota, label)
     return {
       name,
@@ -66,6 +73,25 @@ function isOpenAiCodexQuota(quota: any) {
 function isGithubPersonalAccountQuota(quota: any, label: string) {
   const source = String(quota.source_type ?? quota.source ?? "").trim().toLowerCase()
   return source === "github copilot" && label.toLowerCase().includes("personal")
+}
+
+function isGithubCopilotQuota(quota: any) {
+  const source = String(quota.source_type ?? quota.source ?? "").trim().toLowerCase()
+  return source === "github copilot"
+}
+
+function formatGithubCopilotCredits(quota: any) {
+  const used =
+    typeof quota.used === "number"
+      ? quota.used
+      : typeof quota.consumed === "number"
+        ? quota.consumed
+        : typeof quota.remaining === "number" && typeof quota.limit === "number"
+          ? quota.limit - quota.remaining
+          : null
+
+  if (used === null) return "? cr"
+  return `${used.toFixed(1)} cr`
 }
 
 function formatQuotaLabel(quota: any) {
