@@ -11,13 +11,14 @@
             "whitelist": [
                 "claude-opus-4.8",
                 "claude-sonnet-4.6",
-                "claude-haiku-4.5",
-                "gpt-5.4",
+                // "claude-haiku-4.5",
+                // "gpt-5.4",
                 "gpt-5.5",
                 "gpt-5.4-mini"
             ]
         }
     },
+    "small_model": "github-copilot/gpt-5.4-mini"
     "instructions": [
         "AGENTS.md",
         ".vscode/lucas.md"

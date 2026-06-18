@@ -31,5 +31,9 @@
         "explore": {
             "disable": true
         }
-    }
+    },
+    "instructions": [
+        "AGENTS.md",
+        ".vscode/lucas.md"
+    ]
 }
