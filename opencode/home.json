@@ -14,9 +14,10 @@
         "opencode-go": {
             "whitelist": [
                 "deepseek-v4-flash",
-                "glm-5.1",
+                "mimo-v2.5",
+                "glm-5.2",
                 "kimi-k2.6",
-                "mimo-v2.5-pro",
+                "kimi-k2.7-code",
                 "minimax-m3",
                 "qwen3.7-max"
             ]
