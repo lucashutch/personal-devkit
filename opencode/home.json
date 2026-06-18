@@ -20,7 +20,22 @@
                 "kimi-k2.7-code",
                 "minimax-m3",
                 "qwen3.7-max"
-            ]
+            ],
+            "models": {
+                "glm-5.2": {
+                    "variants": {
+                        "none": {
+                            "reasoningEffort": "none"
+                        },
+                        "high": {
+                            "reasoningEffort": "high"
+                        },
+                        "max": {
+                            "reasoningEffort": "max"
+                        }
+                    }
+                }
+            }
         }
     },
     "small_model": "opencode-go/deepseek-v4-flash"
