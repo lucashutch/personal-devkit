@@ -1,0 +1,166 @@
+{
+  "apply_patch": {
+    "properties": {
+      "patchText": {
+        "description": "Patch envelope with file operations",
+        "type": "string"
+      }
+    },
+    "required": [
+      "patchText"
+    ],
+    "type": "object"
+  },
+  "bash": {
+    "properties": {
+      "command": {
+        "description": "Command to execute",
+        "type": "string"
+      },
+      "timeout": {
+        "description": "Optional timeout in milliseconds",
+        "exclusiveMinimum": 0,
+        "type": "integer"
+      },
+      "workdir": {
+        "description": "Working directory; use instead of cd",
+        "type": "string"
+      }
+    },
+    "required": [
+      "command"
+    ],
+    "type": "object"
+  },
+  "edit": {
+    "properties": {
+      "filePath": {
+        "description": "Absolute path to edit",
+        "type": "string"
+      },
+      "newString": {
+        "description": "Replacement text",
+        "type": "string"
+      },
+      "oldString": {
+        "description": "Exact text to replace",
+        "type": "string"
+      },
+      "replaceAll": {
+        "description": "Replace all matches",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "filePath",
+      "oldString",
+      "newString"
+    ],
+    "type": "object"
+  },
+  "glob": {
+    "properties": {
+      "path": {
+        "description": "Directory to search from",
+        "type": "string"
+      },
+      "pattern": {
+        "description": "Glob pattern to match files",
+        "type": "string"
+      }
+    },
+    "required": [
+      "pattern"
+    ],
+    "type": "object"
+  },
+  "grep": {
+    "properties": {
+      "include": {
+        "description": "File glob to include",
+        "type": "string"
+      },
+      "path": {
+        "description": "Directory or file to search",
+        "type": "string"
+      },
+      "pattern": {
+        "description": "Regex pattern to search for",
+        "type": "string"
+      }
+    },
+    "required": [
+      "pattern"
+    ],
+    "type": "object"
+  },
+  "read": {
+    "properties": {
+      "filePath": {
+        "description": "Absolute path to read",
+        "type": "string"
+      },
+      "limit": {
+        "description": "Maximum lines to read",
+        "minimum": 0,
+        "type": "integer"
+      },
+      "offset": {
+        "description": "Line offset for large files",
+        "minimum": 0,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "filePath"
+    ],
+    "type": "object"
+  },
+  "task": {
+    "properties": {
+      "command": {
+        "description": "Triggering command",
+        "type": "string"
+      },
+      "description": {
+        "description": "Short task label",
+        "type": "string"
+      },
+      "prompt": {
+        "description": "Full subagent instructions",
+        "type": "string"
+      },
+      "subagent_type": {
+        "description": "Agent type",
+        "type": "string"
+      },
+      "task_id": {
+        "description": "Existing task to resume",
+        "type": "string"
+      }
+    },
+    "required": [
+      "description",
+      "prompt",
+      "subagent_type"
+    ],
+    "type": "object"
+  },
+  "write": {
+    "properties": {
+      "content": {
+        "description": "File contents",
+        "type": "string"
+      },
+      "filePath": {
+        "description": "Absolute path to write",
+        "type": "string"
+      }
+    },
+    "required": [
+      "content",
+      "filePath"
+    ],
+    "type": "object"
+  }
+}
