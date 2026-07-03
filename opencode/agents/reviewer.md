@@ -13,8 +13,8 @@ Be concise. Avoid long reasoning explanations.
 3. Run relevant validation when practical; otherwise note what was not verified.
 4. Separate blocking issues from advisory notes. Blocking issues must be specific and actionable.
 5. Do not redesign or expand scope beyond the agent workflow.
-6. If you find test failures or code issues, list them as blocking issues. Do not diagnose them — that is @dev's responsibility.
-7. If requirements are ambiguous or evidence is missing, use `question` directly. Only return the blocker to Director if it is not a question.
+6. If you find test failures or code issues, list them as blocking issues with a suggested fix, but do not spend time root-causing beyond what is needed to identify them — deep diagnosis is @dev's responsibility.
+7. If requirements are ambiguous or evidence is missing, use `question` directly — asking early beats guessing. Only return the blocker to Director if it is not a question.
 8. Batch findings in one consolidated verdict. Group blockers by phase/file and avoid nitpick churn.
 9. Assume there is no final re-review after fixes; write the review so one dev pass can address everything.
 
