@@ -1,97 +1,68 @@
 import type { Plugin } from "@opencode-ai/plugin"
+import { appendFileSync, mkdirSync } from "node:fs"
+import { join } from "node:path"
+import { homedir } from "node:os"
+import slimSchemas from "./slim-schemas.json"
+import { slimDescriptions, slimParamDescriptions } from "./slim-tools-data"
 
-const slimDescriptions: Record<string, string> = {
-  bash:
-    "Execute a shell command in the current working directory or optional workdir. Returns stdout and stderr. Optionally provide a timeout in milliseconds.",
+const driftLog = join(homedir(), ".config", "opencode", "plugin-logs", "slim-tools-drift.log")
+const warnedTools = new Set<string>()
 
-  task:
-    "Launch or resume a subagent for work that should be delegated. Provide the agent type, short description, and full prompt.",
-
-  read:
-    "Read a file or directory. Use absolute filePath. Supports offset and limit for large files.",
-
-  edit:
-    "Edit an existing file by exact string replacement. Read first. oldString must match exactly; use replaceAll only when replacing every match.",
-
-  write:
-    "Create or overwrite a file. Prefer edit for existing files.",
-
-  glob:
-    "Find files by glob pattern, sorted by modified time.",
-
-  grep:
-    "Search file contents by regex. Returns matching file paths and line numbers.",
-
-  skill:
-    "Load a specialized skill when it clearly matches the task.",
-
-  question:
-    "Ask the user a clarifying question when blocked.",
-
-  apply_patch:
-    "Edit files with a patch envelope. Include Begin/End Patch, then Add/Delete/Update File sections. Prefix added lines with +, including new files.",
+function warnDrift(toolID: string, snapshot: string, actual: string) {
+  if (warnedTools.has(toolID)) return
+  warnedTools.add(toolID)
+  const msg = `slim-tools: schema drift for '${toolID}' (snapshot: ${snapshot}; opencode: ${actual}); using stock schema. Rerun scripts/update-slim-schemas.ts.`
+  console.warn(msg)
+  try {
+    mkdirSync(join(homedir(), ".config", "opencode", "plugin-logs"), { recursive: true })
+    appendFileSync(driftLog, `${new Date().toISOString()} ${msg}\n`)
+  } catch {}
 }
 
-const slimParamDescriptions: Record<string, Record<string, string>> = {
-  bash: {
-    command: "Command to execute",
-    timeout: "Optional timeout in milliseconds",
-    workdir: "Working directory; use instead of cd",
-    description: "Short description of the command",
-  },
+function patchSchemaNode(node: any, params: Record<string, string>) {
+  if (!node || typeof node !== "object") return
 
-  task: {
-    description: "Short task label",
-    prompt: "Full subagent instructions",
-    subagent_type: "Agent type",
-    task_id: "Existing task to resume",
-    command: "Triggering command",
-  },
-
-  read: {
-    filePath: "Absolute path to read",
-    offset: "Line offset for large files",
-    limit: "Maximum lines to read",
-  },
-
-  edit: {
-    filePath: "Absolute path to edit",
-    oldString: "Exact text to replace",
-    newString: "Replacement text",
-    replaceAll: "Replace all matches",
-  },
-
-  write: {
-    filePath: "Absolute path to write",
-    content: "File contents",
-  },
-
-  glob: {
-    pattern: "Glob pattern to match files",
-    path: "Directory to search from",
-  },
-
-  grep: {
-    pattern: "Regex pattern to search for",
-    path: "Directory or file to search",
-    include: "File glob to include",
-  },
-
-  apply_patch: {
-    patchText: "Patch envelope with file operations",
-  },
-}
-
-function patchJsonSchemaParamDescriptions(
-  tool: any,
-  params: Record<string, string>,
-) {
-  const props = tool?.parameters?.properties
-  if (!props) return
-
-  for (const [name, desc] of Object.entries(params)) {
-    if (props[name]) props[name].description = desc
+  const props = node.properties
+  if (props) {
+    for (const [name, desc] of Object.entries(params)) {
+      if (props[name]) props[name].description = desc
+    }
   }
+
+  for (const key of ["anyOf", "oneOf", "allOf"]) {
+    if (Array.isArray(node[key])) node[key].forEach((sub: any) => patchSchemaNode(sub, params))
+  }
+  if (node.items) patchSchemaNode(node.items, params)
+}
+
+// Built-in tools carry an Effect schema in `parameters` and leave `jsonSchema`
+// undefined; the AI SDK derives the JSON schema from `parameters` later, so
+// mutating it in the hook is invisible. The supported override is supplying a
+// complete `jsonSchema`, so we ship full replacement schemas with slim
+// descriptions. slim-schemas.json is generated from proxy captures by
+// scripts/update-slim-schemas.ts -- do not edit it by hand; rerun the script
+// after opencode upgrades.
+function applySlimSchema(tool: any, toolID: string) {
+  if (tool.jsonSchema) {
+    // A future opencode may pre-populate jsonSchema; patch it instead.
+    patchSchemaNode(tool.jsonSchema, slimParamDescriptions[toolID] ?? {})
+    return
+  }
+  const schema = (slimSchemas as Record<string, any>)[toolID]
+  if (!schema) return
+
+  // Guard against drift: only override when our snapshot still matches the
+  // tool's real parameter names, otherwise keep opencode's stock schema.
+  const fields = tool.parameters?.fields
+  if (fields && typeof fields === "object") {
+    const actual = Object.keys(fields).sort().join(",")
+    const snapshot = Object.keys(schema.properties ?? {}).sort().join(",")
+    if (actual !== snapshot) {
+      warnDrift(toolID, snapshot, actual)
+      return
+    }
+  }
+  tool.jsonSchema = schema
 }
 
 export const SlimToolsPlugin: Plugin = async () => {
@@ -103,9 +74,7 @@ export const SlimToolsPlugin: Plugin = async () => {
         output.description = slimDescriptions[toolID]
       }
 
-      if (slimParamDescriptions[toolID]) {
-        patchJsonSchemaParamDescriptions(output, slimParamDescriptions[toolID])
-      }
+      applySlimSchema(output, toolID)
     },
   }
 }
