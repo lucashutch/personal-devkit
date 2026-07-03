@@ -20,6 +20,7 @@ OPENCODE_ENTRIES = (
     "commands",
     "plugins",
     "agents",
+    "skills",
 )
 
 DOTFILES_ENTRIES = (
