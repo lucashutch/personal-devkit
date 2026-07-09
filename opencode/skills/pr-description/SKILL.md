@@ -1,6 +1,6 @@
 ---
 name: pr-description
-description: Write or update a clean, concise PR title and description covering everything changed on the branch. Use whenever creating a PR or refreshing its description after new commits.
+description: Write/update PR title and body for the full branch diff. Use when creating or refreshing a PR description.
 ---
 # PR description
 

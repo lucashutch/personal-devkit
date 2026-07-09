@@ -12,7 +12,7 @@
         },
         "question": "allow",
         "todowrite": "deny",
-        "skill": "allow",
+        "skill": "deny",
         "webfetch": "deny"
     },
     "agent": {

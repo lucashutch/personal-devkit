@@ -1,6 +1,6 @@
 ---
 name: fix-reviews
-description: Address unresolved PR review comments - fix the code, amend, force-push with lease, and resolve the review threads via gh. Use when the user asks to handle, address, or fix PR review feedback.
+description: Fix PR review comments — code, amend, force-push-with-lease, resolve threads via gh. Use when user says fix reviews / address review feedback.
 ---
 # Fix reviews
 
