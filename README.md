@@ -81,6 +81,7 @@ Current bash snippets include OpenCode account helpers:
 
 - `och` — OpenCode home account
 - `ocw` — OpenCode work account
+- `oct` — OpenCode test account (prompt-capture proxy, experimental providers)
 - `opencode` alias defaults to `ocw`
 
 ## Dotfiles
@@ -94,7 +95,7 @@ Current bash snippets include OpenCode account helpers:
 
 OpenCode config is linked into `~/.config/opencode`, including:
 
-- account configs: `home.json`, `work.json`
+- account configs: `home.json`, `work.json`, `test.json`
 - UI/config files: `opencode.json`, `tui.json`
 - `agents/`
 - `commands/`

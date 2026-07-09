@@ -15,6 +15,7 @@ from program_installers.common import configure_logging, fail, info
 OPENCODE_ENTRIES = (
     "home.json",
     "work.json",
+    "test.json",
     "opencode.json",
     "tui.json",
     "commands",
