@@ -7,8 +7,9 @@ Feel free to fork this repo or open PRs to fine-tune the prompts and tool descri
 ## Included
 
 - `opencode/` — OpenCode agents, commands, plugins, and config
+- `claude/` — Claude Code settings, keybindings, statusline, agents, skills, and commands
 - `dotfiles/` — terminal and shell config managed from this repo
-- `scripts/link-config.py` — symlinks repo-managed config into `~/.config`
+- `scripts/link-config.py` — symlinks repo-managed config into `~/.config` (and `~/.claude`)
 
 
 ## Tool installer
@@ -41,6 +42,7 @@ The installer is intended to be noninteractive and idempotent. Reruns skip selec
 ```sh
  scripts/link-config.py --help
  scripts/link-config.py --opencode
+ scripts/link-config.py --claude
  scripts/link-config.py --dotfiles
  scripts/link-config.py --all
 ```

@@ -1,0 +1,38 @@
+{
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
+  "permissions": {
+    "deny": [
+      "Workflow",
+      "DesignSync",
+      "Monitor",
+      "CronCreate",
+      "CronDelete",
+      "CronList",
+      "ScheduleWakeup",
+      "PushNotification",
+      "ShareOnboardingGuide",
+      "NotebookEdit",
+      "TaskCreate",
+      "TaskGet",
+      "TaskList",
+      "TaskStop",
+      "TaskUpdate",
+      "EnterWorktree",
+      "ExitWorktree",
+      "ReportFindings"
+    ],
+    "defaultMode": "auto"
+  },
+  "model": "fable",
+  "disableBundledSkills": true,
+  "statusLine": {
+    "type": "command",
+    "command": "bash /home/lucas/.claude/statusline-command.sh"
+  },
+  "effortLevel": "low",
+  "theme": "dark"
+}

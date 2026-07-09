@@ -23,6 +23,15 @@ OPENCODE_ENTRIES = (
     "skills",
 )
 
+CLAUDE_ENTRIES = (
+    "settings.json",
+    "keybindings.json",
+    "statusline-command.sh",
+    "commands",
+    "agents",
+    "skills",
+)
+
 DOTFILES_ENTRIES = (
     "starship.toml",
     "ghostty",
@@ -57,8 +66,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     options = parser.add_argument_group("Options")
     options.add_argument("-o", "--opencode", action="store_true", help="Link OpenCode config")
+    options.add_argument("-c", "--claude", action="store_true", help="Link Claude Code config")
     options.add_argument("-d", "--dotfiles", action="store_true", help="Link dotfiles config")
-    options.add_argument("-a", "--all", action="store_true", help="Link OpenCode config and dotfiles")
+    options.add_argument("-a", "--all", action="store_true", help="Link OpenCode, Claude Code, and dotfiles config")
     options.add_argument("--force", action="store_true", help="Replace existing files/directories/symlinks")
     options.add_argument("-h", "--help", action="store_true", help="Show this help text")
     return parser
@@ -68,10 +78,11 @@ def build_parser() -> argparse.ArgumentParser:
 class Options:
     force: bool = False
     link_opencode: bool = False
+    link_claude: bool = False
     link_dotfiles: bool = False
 
     def select_default(self) -> None:
-        if not self.link_opencode and not self.link_dotfiles:
+        if not self.link_opencode and not self.link_claude and not self.link_dotfiles:
             self.link_opencode = True
 
 
@@ -134,8 +145,10 @@ def parse_args(argv: list[str]) -> Options | int:
     options = Options(force=parsed.force)
     if parsed.all:
         options.link_opencode = True
+        options.link_claude = True
         options.link_dotfiles = True
     options.link_opencode = options.link_opencode or parsed.opencode
+    options.link_claude = options.link_claude or parsed.claude
     options.link_dotfiles = options.link_dotfiles or parsed.dotfiles
     options.select_default()
     return options
@@ -244,6 +257,16 @@ def main(argv: list[str]) -> int:
             source_dir=root / "opencode",
             target_dir=home / "opencode",
             entries=OPENCODE_ENTRIES,
+            force=parsed.force,
+        )
+
+    if parsed.link_claude:
+        link_entries(
+            summary,
+            label="claude",
+            source_dir=root / "claude",
+            target_dir=Path.home() / ".claude",
+            entries=CLAUDE_ENTRIES,
             force=parsed.force,
         )
 
