@@ -12,26 +12,15 @@
                 "claude-opus-4.8",
                 "claude-sonnet-5",
                 "claude-haiku-4.5",
+                "gpt-5.4-mini",
                 "gpt-5.5",
-                "gpt-5.4-mini"
+                "gpt-5.6-sol",
+                "gpt-5.6-terra",
+                "gpt-5.6-luna"
             ]
         }
     },
     "small_model": "github-copilot/gpt-5.4-mini",
-    "agent": {
-        "dev-fast": {
-            "description": "Dev on a fast model for mechanical, well-specified phases",
-            "mode": "subagent",
-            "model": "github-copilot/gpt-5.4-mini",
-            "prompt": "{file:./agents/dev.md}"
-        },
-        "dev-deep": {
-            "description": "Dev on a max-reasoning model for hard or architecture-sensitive phases",
-            "mode": "subagent",
-            "model": "github-copilot/claude-opus-4.8",
-            "prompt": "{file:./agents/dev.md}"
-        }
-    },
     "instructions": [
         "AGENTS.md",
         ".vscode/lucas.md"

@@ -14,4 +14,12 @@ ocw() {
   command opencode "$@"
 }
 
+# OpenCode - Test account (prompt-capture proxy, experimental providers)
+oct() {
+  XDG_DATA_HOME="$HOME/.config/opencode/xdg-test" \
+  OPENCODE_CONFIG="$HOME/.config/opencode/test.json" \
+  OPENCODE_EXPERIMENTAL_WEBSOCKETS=true \
+  command opencode "$@"
+}
+
 alias opencode=ocw
