@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Ship the current changes - run repo quality gates, commit on a feature branch, push, and open a draft PR. Use when the user asks to ship, publish, or PR the current work.
+description: Gates, commit, push, draft PR. Use when user says ship / publish / PR.
 ---
 # Ship
 

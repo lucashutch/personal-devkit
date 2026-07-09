@@ -1,6 +1,6 @@
 ---
 name: repo-map
-description: Create or refresh repo-map.md, a compact orientation map of the repository used by planner and dev agents. Use before planning in a repo with no repo-map.md, or when the map is stale after structural changes.
+description: Create/refresh repo-map.md orientation map. Use before planning if missing or stale after structural changes.
 ---
 # Repo map
 
