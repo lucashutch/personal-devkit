@@ -3,7 +3,7 @@ import { appendFileSync, mkdirSync } from "node:fs"
 import { join } from "node:path"
 import { homedir } from "node:os"
 import slimSchemas from "./slim-schemas.json"
-import { slimDescriptions, slimParamDescriptions } from "./slim-tools-data"
+import { slimDescriptions, slimParamDescriptions } from "../lib/slim-tools-data"
 
 const driftLog = join(homedir(), ".config", "opencode", "plugin-logs", "slim-tools-drift.log")
 const warnedTools = new Set<string>()

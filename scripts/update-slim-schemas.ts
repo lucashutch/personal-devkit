@@ -11,7 +11,7 @@
 
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs"
 import { join, dirname } from "node:path"
-import { slimParamDescriptions } from "../opencode/plugins/slim-tools-data"
+import { slimParamDescriptions } from "../opencode/lib/slim-tools-data"
 
 const CAPTURES_DIR = "/home/lucas/9999-personal/context-proxy-forward/proxy-captures"
 const SCHEMAS_PATH = join(dirname(Bun.main), "..", "opencode", "plugins", "slim-schemas.json")
