@@ -30,7 +30,7 @@ function formatQuota(quota: any): QuotaLine {
         : null
 
   if (typeof quota.remaining === "number" && typeof quota.limit === "number") {
-    const pct = usedPct?.toFixed(1) ?? "?"
+    const pct = usedPct === null ? "?" : formatPercentage(quota, usedPct)
     if (isGithubCopilotQuota(quota)) {
       return {
         name,
@@ -45,9 +45,13 @@ function formatQuota(quota: any): QuotaLine {
     }
   }
 
-  if (usedPct !== null) return { name, value: `${usedPct.toFixed(1)}%` }
+  if (usedPct !== null) return { name, value: `${formatPercentage(quota, usedPct)}%` }
   if (quota.is_error && quota.message) return `${name}: ${quota.message}`
   return name
+}
+
+function formatPercentage(quota: any, percentage: number) {
+  return percentage.toFixed(isOpenAiCodexQuota(quota) ? 0 : 1)
 }
 
 function formatResetDuration(reset: unknown) {
