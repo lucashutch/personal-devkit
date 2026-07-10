@@ -1,6 +1,6 @@
 ---
 description: Implementation agent for scoped work, directly or from plan.md phases
-mode: all
+mode: subagent
 permission:
   skill: allow
 ---
