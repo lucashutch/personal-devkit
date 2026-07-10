@@ -14,7 +14,6 @@
         "opencode": {
             "whitelist": [
                 "deepseek-v4-flash-free",
-                "hy3-free",
                 "mimo-v2.5-free",
                 "grok-4.5"
             ]
