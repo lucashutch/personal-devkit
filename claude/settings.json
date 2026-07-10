@@ -6,6 +6,7 @@
   },
   "permissions": {
     "deny": [
+      "Artifact",
       "Workflow",
       "DesignSync",
       "Monitor",
@@ -16,23 +17,32 @@
       "PushNotification",
       "ShareOnboardingGuide",
       "NotebookEdit",
+      "PowerShell",
+      "RemoteTrigger",
+      "EnterPlanMode",
+      "ExitPlanMode",
       "TaskCreate",
       "TaskGet",
       "TaskList",
+      "TaskOutput",
       "TaskStop",
       "TaskUpdate",
+      "Skill",
       "EnterWorktree",
       "ExitWorktree",
       "ReportFindings"
     ],
-    "defaultMode": "auto"
+    "defaultMode": "bypassPermissions"
   },
   "model": "fable",
+  "disableClaudeAiConnectors": true,
   "disableBundledSkills": true,
   "statusLine": {
     "type": "command",
-    "command": "bash /home/lucas/.claude/statusline-command.sh"
+    "command": "bash \"$HOME/.claude/statusline-command.sh\""
   },
   "effortLevel": "low",
-  "theme": "dark"
+  "promptSuggestionEnabled": false,
+  "awaySummaryEnabled": false,
+  "theme": "custom:one-dark"
 }

@@ -31,6 +31,7 @@ CLAUDE_ENTRIES = (
     "commands",
     "agents",
     "skills",
+    "themes",
 )
 
 DOTFILES_ENTRIES = (
