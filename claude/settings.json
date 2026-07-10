@@ -44,5 +44,6 @@
   "effortLevel": "low",
   "promptSuggestionEnabled": false,
   "awaySummaryEnabled": false,
-  "theme": "custom:one-dark"
+  "theme": "custom:one-dark",
+  "skipDangerousModePermissionPrompt": true
 }

@@ -14,6 +14,9 @@
         "bash": {
             "*": "allow"
         },
+        "external_directory": {
+            "/tmp/**": "allow"
+        },
         "question": "allow",
         "todowrite": "deny",
         "skill": "deny",
