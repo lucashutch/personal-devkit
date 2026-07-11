@@ -83,7 +83,13 @@ Current bash snippets include OpenCode account helpers:
 - `ocw` — OpenCode work account
 - `oct` — OpenCode test account (prompt-capture proxy, experimental providers)
 - `opencode` alias defaults to `ocw`
-- `o2h`, `o2w`, `o2t` — OpenCode v2 beta home, work, and test accounts
+- `tokh` — Tokscale using the home OpenCode V1 data
+- `tokw` — Tokscale using the work OpenCode V1 data
+
+The V1 helpers use separate `XDG_CONFIG_HOME` and `XDG_DATA_HOME` trees. This
+keeps each account's complete V1 global config, credentials, sessions, and
+other state isolated from the other V1 accounts and from the future V2 global
+config.
 
 ## Dotfiles
 
@@ -94,13 +100,24 @@ Current bash snippets include OpenCode account helpers:
 
 ## OpenCode
 
-OpenCode config is linked into `~/.config/opencode`, including:
+The default OpenCode config is linked into `~/.config/opencode`, including:
 
-- account configs: `home.json`, `work.json`, `test.json`
 - UI/config files: `opencode.json`, `tui.json`
 - `agents/`
 - `commands/`
 - `plugins/`
+
+V1 account profiles are linked separately:
+
+- `~/.config/opencode-v1-home/opencode/`
+- `~/.config/opencode-v1-work/opencode/`
+- `~/.config/opencode-v1-test/opencode/`
+
+Each profile has a complete V1 `opencode.json` plus shared repo-managed TUI,
+agent, command, plugin, and skill files. The profile sources live under
+`opencode/v1/`. See [the V1 profile migration guide](opencode/v1/MIGRATION.md)
+when setting up another computer or preserving existing V1 authentication and
+session history.
 
 ## Notes
 

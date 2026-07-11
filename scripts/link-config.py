@@ -13,10 +13,19 @@ from program_installers.common import configure_logging, fail, info
 
 
 OPENCODE_ENTRIES = (
-    "home.json",
-    "work.json",
-    "test.json",
     "opencode.json",
+    "tui.json",
+    "commands",
+    "plugins",
+    "agents",
+    "skills",
+)
+
+OPENCODE_V1_PROFILES = ("home", "work", "test")
+
+# Every V1 profile has a complete global config, while these repo-managed
+# assets remain shared between profiles.
+OPENCODE_V1_SHARED_ENTRIES = (
     "tui.json",
     "commands",
     "plugins",
@@ -261,6 +270,24 @@ def main(argv: list[str]) -> int:
             entries=OPENCODE_ENTRIES,
             force=parsed.force,
         )
+        for profile in OPENCODE_V1_PROFILES:
+            target_dir = home / f"opencode-v1-{profile}" / "opencode"
+            link_entries(
+                summary,
+                label=f"opencode-v1-{profile}",
+                source_dir=root / "opencode" / "v1" / profile,
+                target_dir=target_dir,
+                entries=("opencode.json",),
+                force=parsed.force,
+            )
+            link_entries(
+                summary,
+                label=f"opencode-v1-{profile}",
+                source_dir=root / "opencode",
+                target_dir=target_dir,
+                entries=OPENCODE_V1_SHARED_ENTRIES,
+                force=parsed.force,
+            )
 
     if parsed.link_claude:
         link_entries(
