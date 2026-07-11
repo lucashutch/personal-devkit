@@ -17,6 +17,7 @@ from program_installers.common import (
     prepend_existing_fzf_path,
 )
 from program_installers.fzf import install_fzf
+from program_installers.npm import install_npm
 from program_installers.opencode import install_opencode
 from program_installers.starship import install_starship
 from program_installers.vscode import install_vscode
@@ -53,6 +54,7 @@ def build_parser() -> argparse.ArgumentParser:
     options.add_argument("--all", action="store_true", help="Select all tools (default when no tool flag is provided)")
     options.add_argument("--fzf", action="store_true", help="Select fzf")
     options.add_argument("--starship", action="store_true", help="Select starship")
+    options.add_argument("--npm", action="store_true", help="Select npm and npx")
     options.add_argument("--opencode", action="store_true", help="Select opencode")
     options.add_argument("--vscode", action="store_true", help="Select Visual Studio Code")
     options.add_argument("--wslu", action="store_true", help="Select wslu (WSL only)")
@@ -72,6 +74,7 @@ class Options:
     reinstall: bool = False
     install_fzf: bool = False
     install_starship: bool = False
+    install_npm: bool = False
     install_opencode: bool = False
     install_vscode: bool = False
     install_wslu: bool = False
@@ -79,6 +82,7 @@ class Options:
     def select_all_tools(self) -> None:
         self.install_fzf = True
         self.install_starship = True
+        self.install_npm = True
         self.install_opencode = True
         self.install_vscode = True
         self.install_wslu = True
@@ -130,17 +134,18 @@ def parse_args(argv: list[str]) -> Options | int:
         options.select_all_tools()
     options.install_fzf = options.install_fzf or parsed.fzf
     options.install_starship = options.install_starship or parsed.starship
+    options.install_npm = options.install_npm or parsed.npm
     options.install_opencode = options.install_opencode or parsed.opencode
     options.install_vscode = options.install_vscode or parsed.vscode
     options.install_wslu = options.install_wslu or parsed.wslu
 
-    selected_any = parsed.all or parsed.fzf or parsed.starship or parsed.opencode or parsed.vscode or parsed.wslu
+    selected_any = parsed.all or parsed.fzf or parsed.starship or parsed.npm or parsed.opencode or parsed.vscode or parsed.wslu
     if not selected_any:
         options.select_all_tools()
     return options
 
 
-def run_tool(summary: Summary, tool: str, installer: object, options: Options) -> None:
+def run_tool(summary: Summary, tool: str, installer: object, options: Options) -> int:
     rc = installer(options)  # type: ignore[operator]
     if rc == 0:
         summary.installed.append(tool)
@@ -148,6 +153,7 @@ def run_tool(summary: Summary, tool: str, installer: object, options: Options) -
         summary.skipped.append(tool)
     else:
         summary.failed.append(tool)
+    return rc
 
 
 def main(argv: list[str]) -> int:
@@ -167,8 +173,14 @@ def main(argv: list[str]) -> int:
         run_tool(summary, "fzf", install_fzf, parsed)
     if parsed.install_starship:
         run_tool(summary, "starship", install_starship, parsed)
+    npm_rc = STATUS_SKIPPED
+    if parsed.install_npm or parsed.install_opencode:
+        npm_rc = run_tool(summary, "npm", install_npm, parsed)
     if parsed.install_opencode:
-        run_tool(summary, "opencode", install_opencode, parsed)
+        if npm_rc in (0, STATUS_SKIPPED):
+            run_tool(summary, "opencode", install_opencode, parsed)
+        else:
+            summary.failed.append("opencode")
     if parsed.install_vscode:
         run_tool(summary, "vscode", install_vscode, parsed)
     if parsed.install_wslu:
