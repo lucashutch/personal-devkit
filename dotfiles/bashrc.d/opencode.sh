@@ -1,49 +1,36 @@
 # OpenCode - Home account
 och() {
-  XDG_DATA_HOME="$HOME/.config/opencode/xdg-home" \
-  OPENCODE_CONFIG="$HOME/.config/opencode/home.json" \
+  XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/opencode-v1-home" \
+  XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/opencode-v1-home" \
   OPENCODE_EXPERIMENTAL_WEBSOCKETS=true \
   command opencode "$@"
 }
 
 # OpenCode - Work account
 ocw() {
-  XDG_DATA_HOME="$HOME/.config/opencode/xdg-work" \
-  OPENCODE_CONFIG="$HOME/.config/opencode/work.json" \
+  XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/opencode-v1-work" \
+  XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/opencode-v1-work" \
   OPENCODE_EXPERIMENTAL_WEBSOCKETS=true \
   command opencode "$@"
 }
 
 # OpenCode - Test account (prompt-capture proxy, experimental providers)
 oct() {
-  XDG_DATA_HOME="$HOME/.config/opencode/xdg-test" \
-  OPENCODE_CONFIG="$HOME/.config/opencode/test.json" \
+  XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/opencode-v1-test" \
+  XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/opencode-v1-test" \
   OPENCODE_EXPERIMENTAL_WEBSOCKETS=true \
   command opencode "$@"
 }
 
 alias opencode=ocw
 
-# OpenCode v2 beta - Home account
-o2h() {
+# Tokscale usage for OpenCode V1 account data.
+tokh() {
   XDG_DATA_HOME="$HOME/.config/opencode/xdg-home" \
-  OPENCODE_CONFIG="$HOME/.config/opencode/home.json" \
-  OPENCODE_EXPERIMENTAL_WEBSOCKETS=true \
-  command opencode2 "$@"
+  command npx tokscale@latest "$@"
 }
 
-# OpenCode v2 beta - Work account
-o2w() {
+tokw() {
   XDG_DATA_HOME="$HOME/.config/opencode/xdg-work" \
-  OPENCODE_CONFIG="$HOME/.config/opencode/work.json" \
-  OPENCODE_EXPERIMENTAL_WEBSOCKETS=true \
-  command opencode2 "$@"
-}
-
-# OpenCode v2 beta - Test account
-o2t() {
-  XDG_DATA_HOME="$HOME/.config/opencode/xdg-test" \
-  OPENCODE_CONFIG="$HOME/.config/opencode/test.json" \
-  OPENCODE_EXPERIMENTAL_WEBSOCKETS=true \
-  command opencode2 "$@"
+  command npx tokscale@latest "$@"
 }
