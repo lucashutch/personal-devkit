@@ -83,6 +83,7 @@ Current bash snippets include OpenCode account helpers:
 - `ocw` — OpenCode work account
 - `oct` — OpenCode test account (prompt-capture proxy, experimental providers)
 - `opencode` alias defaults to `ocw`
+- `o2h`, `o2w`, `o2t` — OpenCode v2 beta home, work, and test accounts
 
 ## Dotfiles
 
