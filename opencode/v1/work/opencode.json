@@ -17,17 +17,28 @@
         "external_directory": {
             "/tmp/**": "allow"
         },
+        "task": "deny",
         "question": "allow",
         "todowrite": "deny",
         "skill": "deny",
         "webfetch": "deny"
     },
     "agent": {
-        "review": { "disable": true },
-        "build": { "disable": true },
-        "plan": { "disable": true },
-        "general": { "disable": true },
-        "explore": { "disable": true }
+        "review": {
+            "disable": true
+        },
+        "build": {
+            "disable": true
+        },
+        "plan": {
+            "disable": true
+        },
+        "general": {
+            "disable": true
+        },
+        "explore": {
+            "disable": true
+        }
     },
     "instructions": [
         "AGENTS.md",

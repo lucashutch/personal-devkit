@@ -1,0 +1,16 @@
+{
+  "presets": {
+    "fast": {
+      "model": "openai/gpt-5.6-terra",
+      "variant": "low"
+    },
+    "standard": {
+      "model": "openai/gpt-5.6-terra",
+      "variant": "high"
+    },
+    "deep": {
+      "model": "openai/gpt-5.6-sol",
+      "variant": "high"
+    }
+  }
+}
