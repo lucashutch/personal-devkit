@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -12,11 +14,9 @@ from pathlib import Path
 from program_installers.common import configure_logging, fail, info
 
 
-OPENCODE_ENTRIES = (
-    "opencode.json",
-    "cli.json",
-    "agents",
-)
+OPENCODE_V2_PROFILES = ("home", "work", "test")
+OPENCODE_V2_SHARED_ENTRIES = ("cli.json", "agents")
+OPENCODE_V2_SERVICE_PORTS = {"home": 4098, "work": 4097, "test": 4099}
 
 OPENCODE_V1_PROFILES = ("home", "work", "test")
 
@@ -168,7 +168,71 @@ def repo_root() -> Path:
 
 def config_home() -> Path:
     raw = os.environ.get("XDG_CONFIG_HOME")
-    return Path(raw).expanduser() if raw else Path.home() / ".config"
+    home = Path(raw).expanduser() if raw else Path.home() / ".config"
+    if home.name in {
+        "opencode-v1-home",
+        "opencode-v1-work",
+        "opencode-v1-test",
+        "opencode-v2-home",
+        "opencode-v2-work",
+        "opencode-v2-test",
+    }:
+        return home.parent
+    return home
+
+
+def profile_xdg_root(variable: str, default: Path, profile: str) -> Path:
+    """Return a V2 profile root without nesting an existing profile suffix."""
+    root = Path(os.environ.get(variable, str(default))).expanduser()
+    if root.name in {
+        "opencode-v1-home",
+        "opencode-v1-work",
+        "opencode-v1-test",
+        "opencode-v2-home",
+        "opencode-v2-work",
+        "opencode-v2-test",
+    }:
+        root = root.parent
+    return root / f"opencode-v2-{profile}"
+
+
+def configure_v2_services(summary: Summary) -> None:
+    """Write fixed, profile-local service endpoints through the V2 CLI."""
+    executable = shutil.which("opencode2")
+    if not executable:
+        info("skipped V2 service configuration: opencode2 is not on PATH")
+        return
+
+    defaults = {
+        "XDG_CONFIG_HOME": Path.home() / ".config",
+        "XDG_DATA_HOME": Path.home() / ".local" / "share",
+        "XDG_STATE_HOME": Path.home() / ".local" / "state",
+        "XDG_CACHE_HOME": Path.home() / ".cache",
+    }
+    for profile, port in OPENCODE_V2_SERVICE_PORTS.items():
+        environment = os.environ.copy()
+        environment.update(
+            {
+                variable: str(profile_xdg_root(variable, default, profile))
+                for variable, default in defaults.items()
+            }
+        )
+        label = f"opencode-v2-{profile}/service"
+        for key, value in (("hostname", "127.0.0.1"), ("port", str(port))):
+            result = subprocess.run(
+                [executable, "service", "set", key, value],
+                env=environment,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode:
+                detail = result.stderr.strip() or result.stdout.strip() or "command failed"
+                record_error(summary, label, f"could not set {key}: {detail}")
+                break
+        else:
+            info(f"configured: {label} -> 127.0.0.1:{port}")
+            summary.worked.append(("newly linked", label))
 
 
 def record_error(summary: Summary, label: str, message: str) -> None:
@@ -259,14 +323,34 @@ def main(argv: list[str]) -> int:
     home = config_home()
 
     if parsed.link_opencode:
-        link_entries(
-            summary,
-            label="opencode",
-            source_dir=root / "opencode" / "v2",
-            target_dir=home / "opencode",
-            entries=OPENCODE_ENTRIES,
-            force=parsed.force,
-        )
+        for profile in OPENCODE_V2_PROFILES:
+            target_dir = home / f"opencode-v2-{profile}" / "opencode"
+            source_dir = root / "opencode" / "v2" / profile
+            link_entries(
+                summary,
+                label=f"opencode-v2-{profile}",
+                source_dir=source_dir,
+                target_dir=target_dir,
+                entries=("opencode.json",),
+                force=parsed.force,
+            )
+            if (source_dir / "plugins").is_dir():
+                link_entries(
+                    summary,
+                    label=f"opencode-v2-{profile}",
+                    source_dir=source_dir,
+                    target_dir=target_dir,
+                    entries=("plugins",),
+                    force=parsed.force,
+                )
+            link_entries(
+                summary,
+                label=f"opencode-v2-{profile}",
+                source_dir=root / "opencode" / "v2" / "shared",
+                target_dir=target_dir,
+                entries=OPENCODE_V2_SHARED_ENTRIES,
+                force=parsed.force,
+            )
         for profile in OPENCODE_V1_PROFILES:
             target_dir = home / f"opencode-v1-{profile}" / "opencode"
             link_entries(
@@ -285,6 +369,8 @@ def main(argv: list[str]) -> int:
                 entries=OPENCODE_V1_SHARED_ENTRIES,
                 force=parsed.force,
             )
+        if not summary.errored:
+            configure_v2_services(summary)
 
     if parsed.link_claude:
         link_entries(

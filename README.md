@@ -85,6 +85,9 @@ Current bash snippets include OpenCode account helpers:
 - `ocw` — OpenCode work account
 - `oct` — OpenCode test account (prompt-capture proxy, experimental providers)
 - `opencode` alias defaults to `ocw`
+- `o2h` — OpenCode V2 home profile (service on `127.0.0.1:4098`)
+- `o2w` — OpenCode V2 work profile (service on `127.0.0.1:4097`)
+- `o2t` — OpenCode V2 test profile (service on `127.0.0.1:4099`)
 - `tokh` — Tokscale using the home OpenCode V1 data
 - `tokw` — Tokscale using the work OpenCode V1 data
 
@@ -102,13 +105,40 @@ config.
 
 ## OpenCode
 
-The minimal native V2 config at `opencode/v2/opencode.json` is linked to
-`~/.config/opencode/opencode.json`. It contains only core settings and uses the
-standard V2 TUI, agents, commands, skills, and plugins. Start it with
-`opencode2`.
+V2 home, work, and test profiles are selected with `o2h`, `o2w`, and `o2t`.
+Each wrapper sets all XDG config, data, state, and cache roots, isolating its
+config, credentials, sessions, database, service registration, logs, and cache
+while retaining the normal persistent V2 server within that profile. Project
+`opencode.json(c)` files still layer over the selected global profile; they do
+not isolate credentials or sessions.
 
-V2 has one global config/state namespace, so the V1 XDG profile helpers remain
-V1-only and must not be used to select V2 accounts.
+Run `scripts/link-config.py --opencode` first. It links profile config to
+`~/.config/opencode-v2-{home,work,test}/opencode/`, with shared CLI settings
+and agents sourced from `opencode/v2/shared/`. It never links runtime-generated
+`service.json` or other credentials/state files. Use the profile wrappers;
+bare `opencode2` is intentionally not configured by this repository.
+
+`scripts/link-config.py --opencode` configures these local-only endpoints when
+`opencode2` is on `PATH`; rerunning it reapplies the same values safely. If the
+binary is not installed yet, it reports that service configuration was skipped.
+To configure manually, then authenticate separately in each profile:
+
+```sh
+o2h service set hostname 127.0.0.1
+o2h service set port 4098
+o2w service set hostname 127.0.0.1
+o2w service set port 4097
+o2t service set hostname 127.0.0.1
+o2t service set port 4099
+o2h service restart  # use start instead if it has never run
+o2w service restart
+o2t service restart
+```
+
+Check isolation with `o2h service status`, `o2w service status`, and `o2t
+service status`. After upgrading `@opencode-ai/cli@next`, verify `opencode2
+service --help`, each profile's `service get`, and restart each service. Quit
+and restart OpenCode after changing its repo-managed configuration.
 
 V1 account profiles are linked separately:
 
