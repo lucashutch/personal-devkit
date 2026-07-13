@@ -1,13 +1,47 @@
 #!/usr/bin/env bash
 
 input=$(cat)
-user=${USER:-$(id -un)}
-host=${HOSTNAME:-$(hostname -s)}
-host=${host%%.*}
+
+# Compact cwd: inside a git repo, show "repo-root-name/relative/path".
+# Outside a git repo: show ~ for $HOME, else "parent/base" (last two segments).
+compact_path() {
+    local p=$1
+    local toplevel
+    toplevel=$(git -C "$p" --no-optional-locks rev-parse --show-toplevel 2>/dev/null)
+    if [ -n "$toplevel" ]; then
+        local repo_name rel
+        repo_name=$(basename "$toplevel")
+        if [ "$p" = "$toplevel" ]; then
+            printf '%s' "$repo_name"
+        else
+            rel=${p#"$toplevel"/}
+            printf '%s/%s' "$repo_name" "$rel"
+        fi
+        return
+    fi
+
+    if [ "$p" = "$HOME" ]; then
+        printf '~'
+        return
+    fi
+    case "$p" in
+        "$HOME"/*)
+            p="~/${p#"$HOME"/}"
+            ;;
+    esac
+    local base parent
+    base=$(basename "$p")
+    parent=$(dirname "$p")
+    parent=$(basename "$parent")
+    if [ "$parent" = "/" ] || [ "$parent" = "." ] || [ "$parent" = "~" ]; then
+        printf '%s' "$p"
+    else
+        printf '%s/%s' "$parent" "$base"
+    fi
+}
 
 if ! command -v jq >/dev/null 2>&1; then
-    printf '\033[01;32m%s@%s\033[00m:\033[01;34m%s\033[00m' \
-        "$user" "$host" "$PWD"
+    printf '\033[01;34m%s\033[00m' "$(compact_path "$PWD")"
     printf ' \033[00;31mstatusline: jq missing\033[00m'
     exit 0
 fi
@@ -27,8 +61,7 @@ mapfile -t fields < <(
 )
 
 if [ "${#fields[@]}" -ne 8 ]; then
-    printf '\033[01;32m%s@%s\033[00m:\033[01;34m%s\033[00m' \
-        "$user" "$host" "$PWD"
+    printf '\033[01;34m%s\033[00m' "$(compact_path "$PWD")"
     printf ' \033[00;31mstatusline: invalid input\033[00m'
     exit 0
 fi
@@ -45,21 +78,16 @@ week_pct=${fields[7]}
 # Git branch (avoid optional locks and fail quietly outside a repository).
 branch=$(git -C "$cwd" --no-optional-locks branch --show-current 2>/dev/null)
 
-# Build progress bar (10 chars wide), preserving the existing rounded display.
+# Context usage, shown as a plain percentage (no bar).
 if [[ $used =~ ^[0-9]+([.][0-9]+)?$ ]]; then
     used_rounded=$(printf '%.0f' "$used")
-    filled=$(((used_rounded + 5) / 10))
-    [ "$filled" -gt 10 ] && filled=10
-    printf -v filled_bar '%*s' "$filled" ''
-    printf -v empty_bar '%*s' "$((10 - filled))" ''
-    bar=${filled_bar// /#}${empty_bar// /-}
 
     token_str=""
     if [[ $total_tokens =~ ^[0-9]+$ ]] && [ "$total_tokens" -gt 0 ]; then
         tokens_k=$(((total_tokens + 500) / 1000))
         token_str=" (${tokens_k}k)"
     fi
-    ctx_str=" [${bar}] ${used_rounded}%${token_str}"
+    ctx_str=" ${used_rounded}%${token_str}"
 else
     ctx_str=""
 fi
@@ -79,8 +107,8 @@ if [[ $week_pct =~ ^[0-9]+([.][0-9]+)?$ ]]; then
     rate_str+="7d:$(printf '%.0f' "$week_pct")%"
 fi
 
-printf '\033[01;32m%s@%s\033[00m:\033[01;34m%s\033[00m' "$user" "$host" "$cwd"
-[ -n "$branch" ] && printf ' \033[02;36mgit:%s\033[00m' "$branch"
+printf '\033[01;34m%s\033[00m' "$(compact_path "$cwd")"
+[ -n "$branch" ] && printf ' \033[02;36m(%s)\033[00m' "$branch"
 [ -n "$model" ] && printf ' \033[00;33m%s\033[00m' "$model"
 [ -n "$effort" ] && printf ' \033[00;35mthinking:%s\033[00m' "$effort"
 [ -n "$ctx_str" ] && printf ' \033[00;36m%s\033[00m' "$ctx_str"
