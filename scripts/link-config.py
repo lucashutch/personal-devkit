@@ -14,6 +14,8 @@ from program_installers.common import configure_logging, fail, info
 
 OPENCODE_ENTRIES = (
     "opencode.json",
+    "cli.json",
+    "agents",
 )
 
 OPENCODE_V1_PROFILES = ("home", "work", "test")

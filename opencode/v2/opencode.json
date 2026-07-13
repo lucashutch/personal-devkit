@@ -13,6 +13,23 @@
         "AGENTS.md",
         ".vscode/lucas.md"
     ],
+    "agents": {
+        "build": {
+            "disabled": true
+        },
+        "explore": {
+            "disabled": true
+        },
+        "general": {
+            "disabled": true
+        },
+        "plan": {
+            "disabled": true
+        },
+        "review": {
+            "disabled": true
+        }
+    },
     "permissions": [
         {
             "action": "shell",

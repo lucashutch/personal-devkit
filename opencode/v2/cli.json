@@ -1,0 +1,18 @@
+{
+  "theme": {
+    "name": "one-dark"
+  },
+  "diffs": {
+    "wrap": "word"
+  },
+  "session": {
+    "sidebar": "auto",
+    "scrollbar": false,
+    "thinking": "show"
+  },
+  "animations": true,
+  "keybinds": {
+    "input_submit": "ctrl+return",
+    "input_newline": "return,shift+return,alt+return,ctrl+j"
+  }
+}
