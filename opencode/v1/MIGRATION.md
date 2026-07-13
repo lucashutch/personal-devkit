@@ -99,7 +99,9 @@ for profile in home work; do
   fi
 
   mkdir -p "$new"
-  rsync -aH --delete "$old" "$new"/
+  # Copy the contents of the XDG data root, not the root directory itself.
+  # The trailing slash is required so V1 finds state at $XDG_DATA_HOME/opencode.
+  rsync -aH --delete "$old/" "$new"/
 done
 ```
 
@@ -172,9 +174,12 @@ saved under a timestamped `.before-state-migration-*` directory. To roll back
 the shell behavior, restore the previous wrapper functions from Git and open a
 new shell. No repository data or credential data needs to be deleted.
 
-## Future V2 migration
+## V2 coexistence
 
 Do not convert any file under `opencode/v1/` to V2-native configuration. Keep
-these files in V1 format while `opencode` is still in use. A future V2-native
-config belongs at `opencode/opencode.json`; V2 currently does not support the
-V1-style profile selection mechanism.
+these files in V1 format while `opencode` is still in use. The V2-native config
+is maintained separately at `opencode/v2/opencode.json`. V2 currently does not
+support the V1-style profile selection mechanism.
+
+After pulling a revision that introduces this split, relink with
+`scripts/link-config.py --opencode --force`.

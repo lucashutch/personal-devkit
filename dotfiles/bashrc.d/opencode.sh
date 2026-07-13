@@ -24,13 +24,18 @@ oct() {
 
 alias opencode=ocw
 
+# OpenCode V2 uses the standard global config and data locations.
+opencode2() {
+  command opencode "$@"
+}
+
 # Tokscale usage for OpenCode V1 account data.
 tokh() {
-  XDG_DATA_HOME="$HOME/.config/opencode/xdg-home" \
+  XDG_DATA_HOME="$HOME/.local/share/opencode-v1-home" \
   command npx tokscale@latest "$@"
 }
 
 tokw() {
-  XDG_DATA_HOME="$HOME/.config/opencode/xdg-work" \
+  XDG_DATA_HOME="$HOME/.local/share/opencode-v1-work" \
   command npx tokscale@latest "$@"
 }

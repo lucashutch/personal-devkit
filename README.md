@@ -102,12 +102,13 @@ config.
 
 ## OpenCode
 
-The default OpenCode config is linked into `~/.config/opencode`, including:
+The minimal native V2 config at `opencode/v2/opencode.json` is linked to
+`~/.config/opencode/opencode.json`. It contains only core settings and uses the
+standard V2 TUI, agents, commands, skills, and plugins. Start it with
+`opencode2`.
 
-- UI/config files: `opencode.json`, `tui.json`
-- `agents/`
-- `commands/`
-- `plugins/`
+V2 has one global config/state namespace, so the V1 XDG profile helpers remain
+V1-only and must not be used to select V2 accounts.
 
 V1 account profiles are linked separately:
 
