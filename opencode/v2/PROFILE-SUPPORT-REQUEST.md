@@ -1,4 +1,4 @@
-# OpenCode V2: home/work profile support request
+# OpenCode V2: profile support follow-up
 
 ## Summary
 
@@ -10,30 +10,28 @@ model list.
 This repository previously used V1 account-specific wrappers. V1 allowed
 profile-specific configuration and data roots, which separated home and work
 provider credentials, sessions, snapshots, logs, databases, and service state.
-V2's documented global configuration and shared-server paths currently make
-that arrangement unavailable.
+V2's XDG-root behavior now makes that arrangement possible, although the docs
+do not prominently describe it as a profile feature.
 
-## Current V2 behavior that creates the problem
+## Verified profile implementation
 
-The V2 docs define one global config path:
+The installed preview CLI respects all four XDG base-directory roots. This
+repository uses wrappers that set `XDG_CONFIG_HOME`, `XDG_DATA_HOME`,
+`XDG_STATE_HOME`, and `XDG_CACHE_HOME` to independent home, work, and test
+roots. Consequently, config, credentials, databases, service discovery, logs,
+and caches are profile-local while each profile retains normal shared-server
+reuse. Local `service set` configuration binds home/work/test to
+`127.0.0.1:4098`, `127.0.0.1:4097`, and `127.0.0.1:4099`, respectively.
+
+The resulting config paths are, for example:
 
 ```text
-~/.config/opencode/opencode.json(c)
+~/.config/opencode-v2-home/opencode/opencode.json
+~/.config/opencode-v2-home/opencode/service.json
 ```
 
-They also document one shared-service registration, service config, and default
-database path:
-
-```text
-~/.local/state/opencode/service.json
-~/.config/opencode/service.json
-~/.local/share/opencode/opencode-next.db
-```
-
-The background server owns sessions, plugins, permissions, credentials, and
-other application state. Therefore, separate executable installations alone do
-not provide separate accounts: both clients discover the same service and use
-the same persistent state.
+Work and test use analogous paths. Runtime service files and credentials are
+intentionally not managed by this repository.
 
 ## Requested outcome
 
