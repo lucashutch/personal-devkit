@@ -21,7 +21,8 @@
         "question": "allow",
         "todowrite": "deny",
         "skill": "deny",
-        "webfetch": "deny"
+        "webfetch": "deny",
+        "websearch": "deny"
     },
     "agent": {
         "review": {

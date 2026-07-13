@@ -34,3 +34,5 @@ node_modules/
 dist/
 build/
 out/
+
+plan.md
