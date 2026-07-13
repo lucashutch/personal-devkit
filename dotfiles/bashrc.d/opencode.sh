@@ -26,7 +26,7 @@ alias opencode=ocw
 
 # OpenCode V2 uses the standard global config and data locations.
 opencode2() {
-  command opencode "$@"
+  command opencode2 "$@"
 }
 
 # Tokscale usage for OpenCode V1 account data.
