@@ -17,17 +17,28 @@
         "external_directory": {
             "/tmp/**": "allow"
         },
+        "task": "deny",
         "question": "allow",
         "todowrite": "deny",
         "skill": "deny",
         "webfetch": "deny"
     },
     "agent": {
-        "review": { "disable": true },
-        "build": { "disable": true },
-        "plan": { "disable": true },
-        "general": { "disable": true },
-        "explore": { "disable": true }
+        "review": {
+            "disable": true
+        },
+        "build": {
+            "disable": true
+        },
+        "plan": {
+            "disable": true
+        },
+        "general": {
+            "disable": true
+        },
+        "explore": {
+            "disable": true
+        }
     },
     "instructions": [
         "AGENTS.md",
@@ -42,9 +53,15 @@
                 "apiKey": "dummy"
             },
             "models": {
-                "claude-opus-4.8": { "name": "Fake Opus 4.8 (capture)" },
-                "claude-fable-5": { "name": "Fake Fable 5 (capture)" },
-                "claude-sonnet-5": { "name": "Fake Sonnet 5 (capture)" }
+                "claude-opus-4.8": {
+                    "name": "Fake Opus 4.8 (capture)"
+                },
+                "claude-fable-5": {
+                    "name": "Fake Fable 5 (capture)"
+                },
+                "claude-sonnet-5": {
+                    "name": "Fake Sonnet 5 (capture)"
+                }
             }
         },
         "prompt-capture-openai": {
@@ -55,8 +72,12 @@
                 "apiKey": "dummy"
             },
             "models": {
-                "gpt-5.5": { "name": "Fake GPT-5.5 (capture)" },
-                "gpt-5.4-mini": { "name": "Fake GPT-5.4 mini (capture)" }
+                "gpt-5.5": {
+                    "name": "Fake GPT-5.5 (capture)"
+                },
+                "gpt-5.4-mini": {
+                    "name": "Fake GPT-5.4 mini (capture)"
+                }
             }
         }
     }

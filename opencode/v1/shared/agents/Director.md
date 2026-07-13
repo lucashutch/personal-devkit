@@ -2,6 +2,7 @@
 description: Primary orchestrator for user requests
 mode: primary
 permission:
+  task: allow
   skill: allow
 ---
 # Director

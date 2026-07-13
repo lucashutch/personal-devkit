@@ -2,6 +2,7 @@
 description: General-purpose builder for normal everyday coding tasks without the Director planning workflow
 mode: primary
 permission:
+  task: allow
   skill: allow
 ---
 # General
