@@ -14,11 +14,6 @@ from program_installers.common import configure_logging, fail, info
 
 OPENCODE_ENTRIES = (
     "opencode.json",
-    "tui.json",
-    "commands",
-    "plugins",
-    "agents",
-    "skills",
 )
 
 OPENCODE_V1_PROFILES = ("home", "work", "test")
@@ -28,8 +23,8 @@ OPENCODE_V1_PROFILES = ("home", "work", "test")
 OPENCODE_V1_SHARED_ENTRIES = (
     "tui.json",
     "commands",
-    "plugins",
     "agents",
+    "plugins",
     "skills",
 )
 
@@ -265,7 +260,7 @@ def main(argv: list[str]) -> int:
         link_entries(
             summary,
             label="opencode",
-            source_dir=root / "opencode",
+            source_dir=root / "opencode" / "v2",
             target_dir=home / "opencode",
             entries=OPENCODE_ENTRIES,
             force=parsed.force,
@@ -283,7 +278,7 @@ def main(argv: list[str]) -> int:
             link_entries(
                 summary,
                 label=f"opencode-v1-{profile}",
-                source_dir=root / "opencode",
+                source_dir=root / "opencode" / "v1" / "shared",
                 target_dir=target_dir,
                 entries=OPENCODE_V1_SHARED_ENTRIES,
                 force=parsed.force,

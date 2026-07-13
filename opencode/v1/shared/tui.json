@@ -1,0 +1,17 @@
+{
+    "$schema": "https://opencode.ai/tui.json",
+    "theme": "one-dark",
+    "plugin": [ "./plugins/limitwatch-quota-plugin" ],
+    "keybinds": {
+        "input_submit": [
+            { "name": "return", "ctrl": true }
+        ],
+        "input_newline": [
+            "return",
+            { "name": "return", "meta": true },
+            { "name": "return", "shift": true },
+            { "name": "j", "ctrl": true }
+        ]
+    },
+    "scroll_speed": 1
+}
