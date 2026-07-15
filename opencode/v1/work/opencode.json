@@ -55,12 +55,32 @@
                 "claude-opus-4.8",
                 "claude-sonnet-5",
                 "claude-haiku-4.5",
-                "gpt-5.4-mini",
-                "gpt-5.5",
                 "gpt-5.6-sol",
                 "gpt-5.6-terra",
                 "gpt-5.6-luna"
-            ]
+            ],
+            "models": {
+                "gpt-5.4-mini": {
+                    "options": {
+                        "textVerbosity": "low"
+                    }
+                },
+                "gpt-5.6-sol": {
+                    "options": {
+                        "textVerbosity": "low"
+                    }
+                },
+                "gpt-5.6-terra": {
+                    "options": {
+                        "textVerbosity": "low"
+                    }
+                },
+                "gpt-5.6-luna": {
+                    "options": {
+                        "textVerbosity": "low"
+                    }
+                }
+            }
         }
     },
     "small_model": "github-copilot/gpt-5.4-mini"
