@@ -1,7 +1,10 @@
 {
     "$schema": "https://opencode.ai/tui.json",
     "theme": "one-dark",
-    "plugin": [ "./plugins/limitwatch-quota-plugin" ],
+    "plugin": [
+        "./plugins/limitwatch-quota-plugin",
+        "./plugins/subagent-sessions-plugin"
+    ],
     "keybinds": {
         "input_submit": [
             { "name": "return", "ctrl": true }

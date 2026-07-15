@@ -1,0 +1,8 @@
+{
+  "name": "subagent-sessions-plugin",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tui": { "import": "./tui.tsx" }
+  }
+}
