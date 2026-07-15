@@ -4,6 +4,7 @@ och() {
   XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/opencode-v1-home" \
   XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}/opencode-v1-home" \
   XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}/opencode-v1-home" \
+  GH_CONFIG_DIR="${GH_CONFIG_DIR:-$HOME/.config/gh}" \
   OPENCODE_EXPERIMENTAL_WEBSOCKETS=true \
   command opencode "$@"
 }
@@ -14,6 +15,7 @@ ocw() {
   XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/opencode-v1-work" \
   XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}/opencode-v1-work" \
   XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}/opencode-v1-work" \
+  GH_CONFIG_DIR="${GH_CONFIG_DIR:-$HOME/.config/gh}" \
   OPENCODE_EXPERIMENTAL_WEBSOCKETS=true \
   command opencode "$@"
 }
@@ -24,6 +26,7 @@ oct() {
   XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/opencode-v1-test" \
   XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}/opencode-v1-test" \
   XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}/opencode-v1-test" \
+  GH_CONFIG_DIR="${GH_CONFIG_DIR:-$HOME/.config/gh}" \
   OPENCODE_EXPERIMENTAL_WEBSOCKETS=true \
   command opencode "$@"
 }
@@ -50,6 +53,7 @@ _opencode_v2() {
   XDG_DATA_HOME="$(_opencode_v2_profile_root "${XDG_DATA_HOME:-$HOME/.local/share}" "$profile")" \
   XDG_STATE_HOME="$(_opencode_v2_profile_root "${XDG_STATE_HOME:-$HOME/.local/state}" "$profile")" \
   XDG_CACHE_HOME="$(_opencode_v2_profile_root "${XDG_CACHE_HOME:-$HOME/.cache}" "$profile")" \
+  GH_CONFIG_DIR="${GH_CONFIG_DIR:-$HOME/.config/gh}" \
   command opencode2 "$@"
 }
 

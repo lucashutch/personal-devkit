@@ -77,8 +77,13 @@ class LinkConfigTests(unittest.TestCase):
                 ROOT / "opencode" / "v2" / "test" / "plugins",
             )
             applications = Path(environment["XDG_DATA_HOME"]) / "applications"
-            self.assertTrue((applications / "opencode-home.desktop").is_file())
-            self.assertTrue((applications / "opencode-work.desktop").is_file())
+            for name in ("opencode-home.desktop", "opencode-work.desktop"):
+                launcher = applications / name
+                self.assertTrue(launcher.is_file())
+                self.assertIn(
+                    f"GH_CONFIG_DIR={config_home}/gh",
+                    launcher.read_text(),
+                )
             self.assertEqual(
                 service_log.read_text().splitlines(),
                 [

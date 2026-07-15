@@ -112,6 +112,9 @@ while retaining the normal persistent V2 server within that profile. Project
 `opencode.json(c)` files still layer over the selected global profile; they do
 not isolate credentials or sessions.
 
+The wrappers set `GH_CONFIG_DIR` to the normal shared GitHub CLI config
+directory, so `gh` keeps one login across OpenCode profiles.
+
 Run `scripts/link-config.py --opencode` first. It links profile config to
 `~/.config/opencode-v2-{home,work,test}/opencode/`, with shared CLI settings
 and agents sourced from `opencode/v2/shared/`. It never links runtime-generated
