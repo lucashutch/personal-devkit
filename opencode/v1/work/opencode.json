@@ -15,7 +15,8 @@
             "*": "allow"
         },
         "external_directory": {
-            "/tmp/**": "allow"
+            "/tmp/**": "allow",
+            "/home/lucas/ncs/**": "allow"
         },
         "task": "deny",
         "question": "allow",
