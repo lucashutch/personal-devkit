@@ -29,6 +29,9 @@ class LinkConfigTests(unittest.TestCase):
             environment = os.environ | {
                 "HOME": temporary_home,
                 "XDG_CONFIG_HOME": str(config_home),
+                "XDG_DATA_HOME": str(Path(temporary_home) / ".local" / "share"),
+                "XDG_STATE_HOME": str(Path(temporary_home) / ".local" / "state"),
+                "XDG_CACHE_HOME": str(Path(temporary_home) / ".cache"),
                 "PATH": f"{binary_directory}:{os.environ['PATH']}",
                 "SERVICE_LOG": str(service_log),
             }
@@ -73,6 +76,9 @@ class LinkConfigTests(unittest.TestCase):
                 (config_home / "opencode-v2-test" / "opencode" / "plugins").resolve(),
                 ROOT / "opencode" / "v2" / "test" / "plugins",
             )
+            applications = Path(environment["XDG_DATA_HOME"]) / "applications"
+            self.assertTrue((applications / "opencode-home.desktop").is_file())
+            self.assertTrue((applications / "opencode-work.desktop").is_file())
             self.assertEqual(
                 service_log.read_text().splitlines(),
                 [
@@ -97,6 +103,9 @@ class LinkConfigTests(unittest.TestCase):
             environment = os.environ | {
                 "HOME": temporary_home,
                 "XDG_CONFIG_HOME": str(base / "opencode-v1-home"),
+                "XDG_DATA_HOME": str(Path(temporary_home) / ".local" / "share"),
+                "XDG_STATE_HOME": str(Path(temporary_home) / ".local" / "state"),
+                "XDG_CACHE_HOME": str(Path(temporary_home) / ".cache"),
                 "PATH": "/nonexistent",
             }
             result = subprocess.run(
