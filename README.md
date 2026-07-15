@@ -14,7 +14,7 @@ Feel free to fork this repo or open PRs to fine-tune the prompts and tool descri
 
 ## Tool installer
 
-`scripts/install.py` is the Linux-only Python 3.11+ entrypoint for installing default developer tools used by this repo: `fzf`, `starship`, `npm`/`npx`, `opencode`, and Visual Studio Code. It installs fzf from upstream GitHub into `~/.fzf` and links it into `~/.local/bin` so shell integration stays closer to the current fzf release than distro packages. It installs npm from the system apt repository and installs Visual Studio Code from Microsoft's official apt repository. Selecting OpenCode also installs its npm prerequisite. The installer installs tools only; it does not call `scripts/link-config.py`, link files into `~/.config`, or modify repo-managed dotfiles.
+`scripts/install.py` is the Linux-only Python 3.11+ entrypoint for installing default developer tools used by this repo: `fzf`, `starship`, `npm`/`npx`, OpenCode CLI and Desktop, and Visual Studio Code. It installs fzf from upstream GitHub into `~/.fzf` and links it into `~/.local/bin` so shell integration stays closer to the current fzf release than distro packages. It installs npm from the system apt repository and installs Visual Studio Code from Microsoft's official apt repository. Selecting OpenCode also installs its npm prerequisite and the official OpenCode Desktop DEB for the host's amd64 or arm64 architecture. The installer installs tools only; it does not call `scripts/link-config.py`, link files into `~/.config`, or modify repo-managed dotfiles.
 
 ```sh
 scripts/install.py --help
@@ -32,7 +32,7 @@ CLI flags:
 - `--fzf` — select `fzf` only, unless combined with other tool flags.
 - `--starship` — select `starship` only, unless combined with other tool flags.
 - `--npm` — select npm and its bundled `npx` command only, unless combined with other tool flags.
-- `--opencode` — select `opencode` only, unless combined with other tool flags.
+- `--opencode` — select OpenCode CLI and Desktop, unless combined with other tool flags.
 - `--vscode` — select Visual Studio Code only, unless combined with other tool flags.
 - `--reinstall` — do not skip a selected tool that is already present on `PATH`.
 - `-h`, `--help` — print usage text.
@@ -91,7 +91,7 @@ Current bash snippets include OpenCode account helpers:
 - `tokh` — Tokscale using the home OpenCode V1 data
 - `tokw` — Tokscale using the work OpenCode V1 data
 
-The V1 helpers use separate `XDG_CONFIG_HOME` and `XDG_DATA_HOME` trees. This
+The V1 helpers use separate XDG config, data, state, and cache trees. This
 keeps each account's complete V1 global config, credentials, sessions, and
 other state isolated from the other V1 accounts and from the future V2 global
 config.
@@ -151,6 +151,10 @@ agent, command, plugin, and skill files. The profile sources live under
 `opencode/v1/`. See [the V1 profile migration guide](opencode/v1/MIGRATION.md)
 when setting up another computer or preserving existing V1 authentication and
 session history.
+
+The same command also installs Home and Work desktop launchers under the XDG
+data directory. They use the V1 XDG roots above, have green and orange icons,
+and locally hide the stock OpenCode desktop entry.
 
 ## Notes
 

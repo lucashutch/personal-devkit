@@ -2,7 +2,10 @@
 import { createSignal } from "solid-js"
 import type { TuiPlugin, TuiPluginModule } from "@opencode-ai/plugin/tui"
 
-const DEFAULT_COMMAND = "limitwatch show --json"
+// OpenCode supplies its own XDG_CONFIG_HOME. Keep Limitwatch pointed at the
+// user's normal config directory unless they explicitly override it.
+const DEFAULT_COMMAND =
+  'env LIMITWATCH_CONFIG_DIR="${LIMITWATCH_CONFIG_DIR:-$HOME/.config/limitwatch}" limitwatch show --json'
 
 const SERVICE_PREFIXES: Record<string, string> = {
   "openai codex": "oAI",

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Link repo-managed config into ~/.config."""
+"""Link repo-managed OpenCode, Claude Code, and desktop configuration."""
 
 from __future__ import annotations
 
@@ -19,6 +19,11 @@ OPENCODE_V2_SHARED_ENTRIES = ("cli.json", "agents")
 OPENCODE_V2_SERVICE_PORTS = {"home": 4098, "work": 4097, "test": 4099}
 
 OPENCODE_V1_PROFILES = ("home", "work", "test")
+OPENCODE_DESKTOP_ENTRIES = (
+    "opencode-home.desktop.in",
+    "opencode-work.desktop.in",
+    "ai.opencode.desktop.desktop.in",
+)
 
 # Every V1 profile has a complete global config, while these repo-managed
 # assets remain shared between profiles.
@@ -181,6 +186,21 @@ def config_home() -> Path:
     return home
 
 
+def xdg_home(variable: str, default: Path) -> Path:
+    """Return an unprofiled XDG base directory."""
+    home = Path(os.environ.get(variable, str(default))).expanduser()
+    if home.name in {
+        "opencode-v1-home",
+        "opencode-v1-work",
+        "opencode-v1-test",
+        "opencode-v2-home",
+        "opencode-v2-work",
+        "opencode-v2-test",
+    }:
+        return home.parent
+    return home
+
+
 def profile_xdg_root(variable: str, default: Path, profile: str) -> Path:
     """Return a V2 profile root without nesting an existing profile suffix."""
     root = Path(os.environ.get(variable, str(default))).expanduser()
@@ -311,6 +331,64 @@ def link_entries(
         summary.worked.append(("newly linked", item_label))
 
 
+def install_desktop_entries(summary: Summary, *, root: Path, force: bool) -> None:
+    """Install profile launchers and their icons into the user's XDG data tree."""
+    config = config_home()
+    data = xdg_home("XDG_DATA_HOME", Path.home() / ".local" / "share")
+    state = xdg_home("XDG_STATE_HOME", Path.home() / ".local" / "state")
+    cache = xdg_home("XDG_CACHE_HOME", Path.home() / ".cache")
+    source_dir = root / "desktop"
+    applications = data / "applications"
+    replacements = {
+        "@XDG_CONFIG_HOME@": str(config),
+        "@XDG_DATA_HOME@": str(data),
+        "@XDG_STATE_HOME@": str(state),
+        "@XDG_CACHE_HOME@": str(cache),
+        "@ICON_HOME@": str(data / "icons" / "hicolor" / "scalable" / "apps"),
+    }
+
+    for template_name in OPENCODE_DESKTOP_ENTRIES:
+        src = source_dir / template_name
+        name = template_name.removesuffix(".in")
+        dst = applications / name
+        label = f"opencode-desktop/{name}"
+        if not src.is_file():
+            record_error(summary, label, f"missing source: {src}")
+            continue
+        content = src.read_text()
+        for token, value in replacements.items():
+            content = content.replace(token, value)
+        if dst.exists() or dst.is_symlink():
+            if dst.is_file() and not dst.is_symlink() and dst.read_text() == content:
+                summary.worked.append(("already linked", label))
+                continue
+            if not force:
+                record_error(summary, label, f"{dst} already exists (use --force to replace)")
+                continue
+            remove_existing(dst)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_text(content)
+        info(f"installed: {dst}")
+        summary.worked.append(("newly linked", label))
+
+    link_entries(
+        summary,
+        label="opencode-desktop-icons",
+        source_dir=source_dir / "icons",
+        target_dir=data / "icons" / "hicolor" / "scalable" / "apps",
+        entries=("opencode-home.png", "opencode-work.png"),
+        force=force,
+    )
+    # These were the first, generic profile icons. Remove only the symlinks we
+    # previously managed; never remove a user's own icon file.
+    for name in ("opencode-home.svg", "opencode-work.svg"):
+        legacy = data / "icons" / "hicolor" / "scalable" / "apps" / name
+        source = source_dir / "icons" / name
+        if legacy.is_symlink() and legacy.resolve(strict=False) == source:
+            legacy.unlink()
+            info(f"removed obsolete icon: {legacy}")
+
+
 def main(argv: list[str]) -> int:
     configure_logging()
 
@@ -369,6 +447,7 @@ def main(argv: list[str]) -> int:
                 entries=OPENCODE_V1_SHARED_ENTRIES,
                 force=parsed.force,
             )
+        install_desktop_entries(summary, root=root, force=parsed.force)
         if not summary.errored:
             configure_v2_services(summary)
 
