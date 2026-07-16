@@ -1,0 +1,28 @@
+# Herdr configuration managed by personal-devkit.
+# See https://herdr.dev/docs/configuration/ for available settings.
+
+[terminal]
+shell_mode = "auto"
+new_cwd = "follow"
+
+[ui]
+# Put agents needing attention at the top of the agent panel.
+agent_panel_sort = "priority"
+pane_borders = true
+pane_gaps = true
+
+[ui.toast]
+delivery = "terminal"
+delay_seconds = 1
+
+[ui.sound]
+enabled = true
+
+[session]
+resume_agents_on_restore = true
+
+[experimental]
+pane_history = true
+
+[advanced]
+scrollback_limit_bytes = 30000000
