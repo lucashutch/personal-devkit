@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 STATUS_SKIPPED = 10
-SUPPORTED_TOOLS = ("fzf", "starship", "npm", "opencode", "code")
+SUPPORTED_TOOLS = ("fzf", "starship", "npm", "opencode", "herdr", "code")
 
 
 class _MaxLevelFilter(logging.Filter):
