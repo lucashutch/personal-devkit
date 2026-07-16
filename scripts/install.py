@@ -17,6 +17,7 @@ from program_installers.common import (
     prepend_existing_fzf_path,
 )
 from program_installers.fzf import install_fzf
+from program_installers.herdr import install_herdr
 from program_installers.npm import install_npm
 from program_installers.opencode import install_opencode
 from program_installers.opencode_desktop import install_opencode_desktop
@@ -57,6 +58,7 @@ def build_parser() -> argparse.ArgumentParser:
     options.add_argument("--starship", action="store_true", help="Select starship")
     options.add_argument("--npm", action="store_true", help="Select npm and npx")
     options.add_argument("--opencode", action="store_true", help="Select OpenCode CLI and Desktop")
+    options.add_argument("--herdr", action="store_true", help="Select Herdr")
     options.add_argument("--vscode", action="store_true", help="Select Visual Studio Code")
     options.add_argument("--wslu", action="store_true", help="Select wslu (WSL only)")
     options.add_argument("--reinstall", action="store_true", help="Do not skip tools that are already available on PATH")
@@ -77,6 +79,7 @@ class Options:
     install_starship: bool = False
     install_npm: bool = False
     install_opencode: bool = False
+    install_herdr: bool = False
     install_vscode: bool = False
     install_wslu: bool = False
 
@@ -85,6 +88,7 @@ class Options:
         self.install_starship = True
         self.install_npm = True
         self.install_opencode = True
+        self.install_herdr = True
         self.install_vscode = True
         self.install_wslu = True
 
@@ -137,10 +141,11 @@ def parse_args(argv: list[str]) -> Options | int:
     options.install_starship = options.install_starship or parsed.starship
     options.install_npm = options.install_npm or parsed.npm
     options.install_opencode = options.install_opencode or parsed.opencode
+    options.install_herdr = options.install_herdr or parsed.herdr
     options.install_vscode = options.install_vscode or parsed.vscode
     options.install_wslu = options.install_wslu or parsed.wslu
 
-    selected_any = parsed.all or parsed.fzf or parsed.starship or parsed.npm or parsed.opencode or parsed.vscode or parsed.wslu
+    selected_any = parsed.all or parsed.fzf or parsed.starship or parsed.npm or parsed.opencode or parsed.herdr or parsed.vscode or parsed.wslu
     if not selected_any:
         options.select_all_tools()
     return options
@@ -183,6 +188,8 @@ def main(argv: list[str]) -> int:
         else:
             summary.failed.append("opencode CLI")
         run_tool(summary, "OpenCode Desktop", install_opencode_desktop, parsed)
+    if parsed.install_herdr:
+        run_tool(summary, "herdr", install_herdr, parsed)
     if parsed.install_vscode:
         run_tool(summary, "vscode", install_vscode, parsed)
     if parsed.install_wslu:
