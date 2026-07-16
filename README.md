@@ -88,7 +88,15 @@ Then link dotfiles:
  scripts/link-config.py --dotfiles
 ```
 
-Current bash snippets include OpenCode account helpers:
+Current bash snippets include:
+
+- PATH setup for Bun, Cargo, Go, npm, pi-node, LM Studio, and ARM toolchains
+- lazy-loaded `nvm`
+- `venv` activation and completion for environments in `~/.venvs`
+- optional CellX Build and nrfutil completions
+- workstation aliases, including Ghostty updates and GPU selection
+- `tailnet` switching for home and work Tailscale accounts
+- OpenCode account helpers:
 
 - `och` — OpenCode home account
 - `ocw` — OpenCode work account
@@ -110,7 +118,8 @@ config.
 - `dotfiles/starship.toml`
 - `dotfiles/ghostty/config`
 - `dotfiles/ghostty/themes/vscode-dark`
-- `dotfiles/bashrc.d/opencode.sh`
+- `dotfiles/bashrc.d/` — modular Bash PATH setup, helpers, completions, aliases,
+  and OpenCode commands
 
 ## OpenCode
 
