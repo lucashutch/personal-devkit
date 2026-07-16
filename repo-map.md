@@ -5,15 +5,17 @@ Stack: TypeScript/TSX OpenCode plugins, JSON configuration, Python 3.11+, Bash
 ## Layout
 - `opencode/v1/{home,work,test}/` — complete account-specific OpenCode V1 configs.
 - `opencode/v1/shared/` — V1 agents, commands, skills, plugins, TUI config, and plugin support data shared by all profiles.
+- `opencode/v1/shared/plugins/herdr-agent-state.js` — official Herdr OpenCode integration shared by every V1 profile.
 - `opencode/v2/{home,work,test}/` — profile-specific V2 global configs.
 - `opencode/v2/shared/` — V2 CLI settings and agents linked into every V2 profile.
 - `claude/` — Claude Code settings, agents, commands, skills, themes, and statusline.
+- `herdr/` — Herdr configuration.
 - `dotfiles/` — Bash snippets, Ghostty configuration, and Starship theme.
 - `scripts/` — Python installers/linker plus TypeScript schema maintenance utility.
 
 ## Entry points
 - `scripts/install.py` — installs the toolkit's supported command-line tools.
-- `scripts/link-config.py` — symlinks repo sources into OpenCode V1/V2, Claude, and dotfile target locations.
+- `scripts/link-config.py` — symlinks repo sources into OpenCode V1/V2, Claude, Herdr, and dotfile target locations.
 - `opencode/v1/shared/plugins/*.ts` — auto-loaded OpenCode V1 plugin modules.
 - `opencode/v1/{home,work,test}/opencode.json` — profile-specific V1 global configs.
 - `opencode/v2/{home,work,test}/opencode.json` — V2 profile-specific global configs.
