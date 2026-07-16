@@ -7,6 +7,7 @@ type ChildSession = {
   id: string
   title: string
   agent?: string
+  modelLabel?: string
   parentID?: string
   time?: { created?: number }
 }
@@ -34,6 +35,19 @@ function chronological(children: ChildSession[]) {
   return [...children].sort((left, right) => (left.time?.created ?? 0) - (right.time?.created ?? 0))
 }
 
+function modelLabel(message: unknown) {
+  if (!message || typeof message !== "object") return undefined
+  const info = message as {
+    providerID?: unknown
+    modelID?: unknown
+    model?: { providerID?: unknown; modelID?: unknown }
+  }
+  const model = info.model ?? info
+  return typeof model.providerID === "string" && typeof model.modelID === "string"
+    ? `${model.providerID}/${model.modelID}`
+    : undefined
+}
+
 const tui: TuiPlugin = async (api) => {
   // A single signal lets every rendered sidebar instance refresh when the host
   // reports a session change, without each instance registering its own listener.
@@ -56,19 +70,36 @@ const tui: TuiPlugin = async (api) => {
     let request = 0
     let knownChildIDs = new Set<string>()
 
+    const withModels = async (children: ChildSession[]) => Promise.all(children.map(async (child) => {
+      try {
+        const result = await api.client.session.messages({ sessionID: child.id })
+        if (result.error) return child
+        // Prefer the latest assistant message: it records the model that actually
+        // produced a response. A pending child only has its user message, which
+        // still records the selected model.
+        const model = [...(result.data ?? [])].reverse()
+          .map((message) => modelLabel(message.info))
+          .find(Boolean)
+        return model ? { ...child, modelLabel: model } : child
+      } catch {
+        return child
+      }
+    }))
+
     createEffect(() => {
       const parentID = props.sessionID
       sessionRevision()
       const currentRequest = ++request
       setState((previous) => ({ ...previous, loading: true, error: undefined }))
 
-      void api.client.session.children({ sessionID: parentID }).then((result) => {
+      void api.client.session.children({ sessionID: parentID }).then(async (result) => {
         if (currentRequest !== request) return
         if (result.error) {
           setState({ children: [], loading: false, error: errorMessage(result.error) })
           return
         }
-        const children = chronological(result.data ?? [])
+        const children = await withModels(chronological(result.data ?? []))
+        if (currentRequest !== request) return
         const hasNewChild = children.some((child) => !knownChildIDs.has(child.id))
         knownChildIDs = new Set(children.map((child) => child.id))
         setState({ children, loading: false })
@@ -95,7 +126,7 @@ const tui: TuiPlugin = async (api) => {
     const listHeight = () => {
       const children = state().children.length
       if (children === 0) return 1
-      return Math.min(children * 2, MAX_VISIBLE_ROWS)
+      return Math.min(children * 3, MAX_VISIBLE_ROWS)
     }
 
     return (
@@ -141,6 +172,9 @@ const tui: TuiPlugin = async (api) => {
                       <text>{truncate(live().title || "Untitled subagent")}</text>
                       <text fg={api.theme.current.textMuted}>
                         {`  ${live().agent ?? "Subagent"} · ${activity().label}`}
+                      </text>
+                      <text fg={api.theme.current.textMuted}>
+                        {`  ${child.modelLabel ?? "Model unavailable"}`}
                       </text>
                     </box>
                   </box>
