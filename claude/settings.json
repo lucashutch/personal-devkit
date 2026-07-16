@@ -4,7 +4,27 @@
     "pr": "",
     "sessionUrl": false
   },
+  "awaySummaryEnabled": false,
+  "disableBundledSkills": true,
+  "disableClaudeAiConnectors": true,
+  "effortLevel": "low",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "bash \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/herdr-agent-state.sh\" session",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ]
+  },
+  "model": "fable",
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "deny": [
       "Artifact",
       "Workflow",
@@ -31,19 +51,13 @@
       "EnterWorktree",
       "ExitWorktree",
       "ReportFindings"
-    ],
-    "defaultMode": "bypassPermissions"
+    ]
   },
-  "model": "fable",
-  "disableClaudeAiConnectors": true,
-  "disableBundledSkills": true,
-  "statusLine": {
-    "type": "command",
-    "command": "bash \"$HOME/.claude/statusline-command.sh\""
-  },
-  "effortLevel": "low",
   "promptSuggestionEnabled": false,
-  "awaySummaryEnabled": false,
-  "theme": "custom:one-dark",
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "statusLine": {
+    "command": "bash \"$HOME/.claude/statusline-command.sh\"",
+    "type": "command"
+  },
+  "theme": "custom:one-dark"
 }

@@ -15,6 +15,27 @@ LINKER = ROOT / "scripts" / "link-config.py"
 
 
 class LinkConfigTests(unittest.TestCase):
+    def test_herdr_links_repo_config(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_home:
+            config_home = Path(temporary_home) / ".config"
+            environment = os.environ | {
+                "HOME": temporary_home,
+                "XDG_CONFIG_HOME": str(config_home),
+                "PATH": "/nonexistent",
+            }
+            result = subprocess.run(
+                [sys.executable, str(LINKER), "--herdr"],
+                cwd=ROOT,
+                env=environment,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            target = config_home / "herdr" / "config.toml"
+            self.assertTrue(target.is_symlink())
+            self.assertEqual(target.resolve(), ROOT / "herdr" / "config.toml")
+
     def test_opencode_links_all_v2_profiles_without_service_files(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_home:
             config_home = Path(temporary_home) / ".config"
@@ -68,6 +89,11 @@ class LinkConfigTests(unittest.TestCase):
                     ROOT / "opencode" / "v2" / "shared" / "agents",
                 )
                 self.assertFalse(target.joinpath("service.json").exists())
+                v1_target = config_home / f"opencode-v1-{profile}" / "opencode"
+                self.assertEqual(
+                    v1_target.joinpath("plugins", "herdr-agent-state.js").resolve(),
+                    ROOT / "opencode" / "v1" / "shared" / "plugins" / "herdr-agent-state.js",
+                )
             self.assertEqual(
                 (config_home / "opencode-v2-work" / "opencode" / "plugins").resolve(),
                 ROOT / "opencode" / "v2" / "work" / "plugins",
