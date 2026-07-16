@@ -71,10 +71,10 @@ opencode2() {
 # Tokscale usage for OpenCode V1 account data.
 tokh() {
   XDG_DATA_HOME="$HOME/.local/share/opencode-v1-home" \
-  command npx tokscale@latest "$@"
+  command npx tokscale@latest --client opencode "$@"
 }
 
 tokw() {
   XDG_DATA_HOME="$HOME/.local/share/opencode-v1-work" \
-  command npx tokscale@latest "$@"
+  command npx tokscale@latest --client opencode --client claude "$@"
 }
