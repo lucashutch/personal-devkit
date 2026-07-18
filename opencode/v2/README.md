@@ -18,12 +18,16 @@ while this CLI release implements it as `context`. The plugin intentionally
 uses the runtime name. Revalidate after every V2 upgrade because this is beta
 API surface.
 
-## Delegate model profiles: blocked
+## Delegate model profiles: test prototype
 
-V2 cannot currently port V1's model-selecting `delegate`/`task` replacement
-through supported plugin APIs. See
-[DELEGATE-PLUGIN-FINDINGS.md](DELEGATE-PLUGIN-FINDINGS.md) for the capability
-assessment, upstream requirements, and a release-revalidation checklist.
+The isolated test profile contains a working model-profile extension for the
+native V2 `subagent` tool. It preserves the native executor while adding
+`fast`, `standard`, `deep`, and `inherit` through the session-context and
+pre-execution hooks. See
+[DELEGATE-PLUGIN-FINDINGS.md](DELEGATE-PLUGIN-FINDINGS.md) for the design,
+capture-proxy validation, limitations, and release-matched findings. It remains
+test-only because native V2 subagents cannot resume a previous child and the
+home/work model mappings have not been selected.
 
 ## TUI plugins: blocked
 

@@ -19,9 +19,9 @@
       "package": "./shared/plugins/delegate-profiles.js",
       "options": {
         "profiles": {
-          "fast": "prompt-capture-openai/gpt-5.6-luna#low",
-          "standard": "prompt-capture-openai/gpt-5.6-terra#medium",
-          "deep": "prompt-capture-openai/gpt-5.6-sol#high"
+          "fast": "prompt-capture-openai/gpt-5.6-luna",
+          "standard": "prompt-capture-openai/gpt-5.6-terra",
+          "deep": "prompt-capture-openai/gpt-5.6-sol"
         }
       }
     },
