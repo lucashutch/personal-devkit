@@ -126,7 +126,10 @@ const tui: TuiPlugin = async (api) => {
     const listHeight = () => {
       const children = state().children.length
       if (children === 0) return 1
-      return Math.min(children * 3, MAX_VISIBLE_ROWS)
+      // Reserve the full list viewport as soon as a child exists. A one-child
+      // list is three rows tall, but its model line can otherwise initially
+      // land below the scroll viewport.
+      return MAX_VISIBLE_ROWS
     }
 
     return (
