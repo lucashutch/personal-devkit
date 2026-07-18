@@ -10,7 +10,7 @@ const runtimeRequire = createRequire(join(
 ))
 const { z } = runtimeRequire("zod") as typeof import("zod")
 
-const modelProfiles = ["fast", "standard", "deep", "inherit"] as const
+const modelProfiles = ["fast", "balanced", "deep", "inherit"] as const
 type ModelProfile = (typeof modelProfiles)[number]
 type ModelChoice = { providerID: string; modelID: string; variant: string }
 type Settings = {
@@ -47,10 +47,10 @@ function parseSettings(value: unknown): Settings {
 
 function resolveModelProfile(
   settings: Settings,
-  modelProfile: string | undefined,
+  modelProfile: string,
   parent: ModelChoice | undefined,
 ): ModelChoice {
-  const selected = modelProfile ?? "inherit"
+  const selected = modelProfile
   if (!modelProfiles.includes(selected as ModelProfile)) throw new Error(`Unknown delegate model profile: ${selected}`)
   if (selected === "inherit") {
     if (!parent) throw new Error("Cannot inherit: parent model/variant was not observed by chat.message")
@@ -121,7 +121,7 @@ function createDelegateExecutor({ client, settings, parentModels }: ExecutorDeps
     prompt: string
     subagent_type: string
     task_id?: string
-    model_profile?: ModelProfile
+    model_profile: ModelProfile
   }, context: ToolContext): Promise<ToolResult> => {
     let taskID = args.task_id
     try {
@@ -142,7 +142,7 @@ function createDelegateExecutor({ client, settings, parentModels }: ExecutorDeps
         ...(taskID ? { sessionId: taskID, parentSessionId: context.sessionID } : {}),
         model: { providerID: selected.providerID, modelID: selected.modelID },
         variant: selected.variant,
-        model_profile: args.model_profile ?? "inherit",
+        model_profile: args.model_profile,
       })
       const progress = (status: string) => context.metadata({
         title: args.description,
@@ -239,7 +239,13 @@ const createPlugin: Plugin = async ({ client }) => {
       prompt: z.string().describe("Complete instructions for the subagent"),
       subagent_type: z.string().describe("Agent to run"),
       task_id: z.string().optional().describe("Existing delegated session to resume"),
-      model_profile: z.enum(modelProfiles).optional().describe("Model profile; omitted inherits the observed parent model"),
+      model_profile: z.enum(modelProfiles).describe(
+        "Execution tier. `fast`: bounded, low-risk lookup, extraction, or mechanical work. "
+        + "`balanced`: default for implementation, analysis, testing, and review. "
+        + "`deep`: difficult, ambiguous, high-stakes, or multi-step reasoning where quality outweighs latency and cost. "
+        + "`inherit`: intentionally use the parent model and reasoning level. "
+        + "Prefer the least expensive tier likely to succeed; a resumed task can be escalated if necessary.",
+      ),
     },
     execute,
   }
