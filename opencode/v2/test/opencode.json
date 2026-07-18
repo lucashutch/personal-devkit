@@ -15,7 +15,14 @@
   ],
   "plugins": [
     "./plugins/hide-opencode-zen.js",
-    "./shared/plugins/slim-tools.js"
+    "./shared/plugins/slim-tools.js",
+    {
+      "package": "./shared/plugins/delegate-profiles.js",
+      "options": {
+        "provider": "prompt-capture-openai",
+        "variants": false
+      }
+    }
   ],
   "providers": {
     "prompt-capture-anthropic": {
