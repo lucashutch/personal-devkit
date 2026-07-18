@@ -15,6 +15,16 @@
   ],
   "plugins": [
     "./plugins/hide-opencode-zen.js",
+    {
+      "package": "./shared/plugins/delegate-profiles.js",
+      "options": {
+        "profiles": {
+          "fast": "prompt-capture-openai/gpt-5.6-luna#low",
+          "standard": "prompt-capture-openai/gpt-5.6-terra#medium",
+          "deep": "prompt-capture-openai/gpt-5.6-sol#high"
+        }
+      }
+    },
     "./shared/plugins/slim-tools.js"
   ],
   "providers": {
