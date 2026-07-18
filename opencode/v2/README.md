@@ -2,7 +2,7 @@
 
 ## Version
 
-- CLI: `@opencode-ai/cli@0.0.0-next-15779`
+- CLI: `@opencode-ai/cli@0.0.0-next-15788`
 - Verified: 2026-07-18
 
 ## Server plugins
@@ -17,6 +17,16 @@ The public plugin documentation currently describes the hook as `request`,
 while this CLI release implements it as `context`. The plugin intentionally
 uses the runtime name. Revalidate after every V2 upgrade because this is beta
 API surface.
+
+## Delegate model profiles
+
+All V2 profiles use a model-profile extension for the native `subagent` tool.
+It preserves the native executor while adding
+`fast`, `standard`, `deep`, and `inherit` through the session-context and
+pre-execution hooks. See
+[DELEGATE-PROFILES.md](DELEGATE-PROFILES.md) for model settings, implementation
+details, beta dependencies, capture-proxy validation, upgrade steps, and known
+limitations.
 
 ## TUI plugins: blocked
 

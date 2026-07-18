@@ -14,7 +14,8 @@
         ".vscode/lucas.md"
     ],
     "plugins": [
-        "./shared/plugins/slim-tools.js"
+        "./shared/plugins/slim-tools.js",
+        "./shared/plugins/delegate-profiles.js"
     ],
     "providers": {
         "openai": {
