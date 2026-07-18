@@ -2,7 +2,7 @@
 
 ## Version
 
-- CLI: `@opencode-ai/cli@0.0.0-next-15779`
+- CLI: `@opencode-ai/cli@0.0.0-next-15788`
 - Verified: 2026-07-18
 
 ## Server plugins
@@ -17,6 +17,13 @@ The public plugin documentation currently describes the hook as `request`,
 while this CLI release implements it as `context`. The plugin intentionally
 uses the runtime name. Revalidate after every V2 upgrade because this is beta
 API surface.
+
+## Delegate model profiles: blocked
+
+V2 cannot currently port V1's model-selecting `delegate`/`task` replacement
+through supported plugin APIs. See
+[DELEGATE-PLUGIN-FINDINGS.md](DELEGATE-PLUGIN-FINDINGS.md) for the capability
+assessment, upstream requirements, and a release-revalidation checklist.
 
 ## TUI plugins: blocked
 
