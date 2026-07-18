@@ -4,7 +4,7 @@
       "model": "openai/gpt-5.6-luna",
       "variant": "low"
     },
-    "standard": {
+    "balanced": {
       "model": "openai/gpt-5.6-terra",
       "variant": "medium"
     },

@@ -46,7 +46,7 @@ const request = {
   description: "Inspect the parser",
   prompt: "Find the parsing edge cases",
   subagent_type: "explore",
-  model_profile: "standard" as const,
+  model_profile: "balanced" as const,
 }
 
 afterEach(() => mock.restore())
@@ -54,7 +54,7 @@ afterEach(() => mock.restore())
 const fixture = {
   presets: {
     fast: { model: "openai/fast-model", variant: "low" },
-    standard: { model: "openai/standard-model", variant: "high" },
+    balanced: { model: "openai/balanced-model", variant: "high" },
     deep: { model: "other-provider/deep.model-1", variant: "high" },
   },
 }
@@ -65,15 +65,12 @@ describe("delegate settings contract", () => {
     expect(resolveModelProfile(parsed, "fast", inherited)).toEqual({
       providerID: "openai", modelID: "fast-model", variant: "low",
     })
-    expect(resolveModelProfile(parsed, "standard", inherited)).toEqual({
-      providerID: "openai", modelID: "standard-model", variant: "high",
+    expect(resolveModelProfile(parsed, "balanced", inherited)).toEqual({
+      providerID: "openai", modelID: "balanced-model", variant: "high",
     })
     expect(resolveModelProfile(parsed, "deep", inherited)).toEqual({
       providerID: "other-provider", modelID: "deep.model-1", variant: "high",
     })
-    expect(resolveModelProfile(parsed, undefined, inherited)).toEqual(
-      resolveModelProfile(parsed, "inherit", inherited),
-    )
     expect(resolveModelProfile(parsed, "inherit", inherited)).toEqual(inherited)
   })
 
@@ -98,10 +95,9 @@ describe("delegate settings contract", () => {
     })).toThrow(/variant/i)
     expect(() => parseSettings({
       presets: { fast: fixture.presets.fast },
-    })).toThrow(/presets\.standard/i)
+    })).toThrow(/presets\.balanced/i)
     expect(() => resolveModelProfile(parseSettings(fixture), "turbo", inherited)).toThrow(/profile/i)
     expect(() => resolveModelProfile(parseSettings(fixture), "inherit", undefined)).toThrow(/parent|inherit/i)
-    expect(() => resolveModelProfile(parseSettings(fixture), undefined, undefined)).toThrow(/parent|inherit/i)
   })
 
   test("localizes the runtime-only prompt variant compatibility adapter", () => {
@@ -173,7 +169,9 @@ describe("delegate runtime contract", () => {
       model_profile: expect.anything(),
     }))
     expect(hooks.tool?.task.args).not.toHaveProperty("strength")
-    expect(hooks.tool?.task.args.model_profile.isOptional()).toBe(true)
+    expect(hooks.tool?.task.args.model_profile.isOptional()).toBe(false)
+    expect(hooks.tool?.task.args.model_profile.options).toEqual(["fast", "balanced", "deep", "inherit"])
+    expect(hooks.tool?.task.args.model_profile.description).toContain("Prefer the least expensive tier likely to succeed")
     expect(hooks.tool?.task.execute).toBeFunction()
   })
 
@@ -191,7 +189,7 @@ describe("delegate runtime contract", () => {
       path: { id: "child-1" },
       body: expect.objectContaining({
         agent: "explore",
-        model: { providerID: "openai", modelID: "standard-model" },
+        model: { providerID: "openai", modelID: "balanced-model" },
         variant: "high",
       }),
       signal: ctx.abort,
@@ -210,9 +208,9 @@ describe("delegate runtime contract", () => {
         task_id: "child-1",
         sessionId: "child-1",
         parentSessionId: "parent-1",
-        model: { providerID: "openai", modelID: "standard-model" },
+        model: { providerID: "openai", modelID: "balanced-model" },
         variant: "high",
-        model_profile: "standard",
+        model_profile: "balanced",
       },
     })
   })
@@ -258,20 +256,6 @@ describe("delegate runtime contract", () => {
     }))
     expect(client.session.prompt).toHaveBeenNthCalledWith(2, expect.objectContaining({
       body: expect.objectContaining({ model: { providerID: "openai", modelID: "gpt-5.4-mini" }, variant: "minimal" }),
-    }))
-  })
-
-  test("omitted model_profile executes identically to inherit", async () => {
-    const client = clientMock()
-    const execute = createDelegateExecutor({
-      client, settings: parseSettings(fixture), parentModels: new Map([["parent-1:message-1", inherited]]),
-    })
-    const { model_profile: _omitted, ...withoutProfile } = request
-    await execute(withoutProfile, context())
-    expect(client.session.prompt).toHaveBeenCalledWith(expect.objectContaining({
-      body: expect.objectContaining({
-        model: { providerID: "openai", modelID: "gpt-5.5" }, variant: "high",
-      }),
     }))
   })
 

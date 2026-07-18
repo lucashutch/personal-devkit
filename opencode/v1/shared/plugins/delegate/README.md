@@ -35,7 +35,7 @@ Every new call supplies:
 | `description` | yes | Short title shown in task metadata. |
 | `prompt` | yes | Complete instructions sent to the subagent. Include all context needed to work independently. |
 | `subagent_type` | yes | Name of the agent that receives the prompt, such as `explore` or `reviewer`. The named agent must exist and be usable in the active profile. |
-| `model_profile` | no | One of `fast`, `standard`, `deep`, or `inherit`. Omission is identical to `inherit`. |
+| `model_profile` | yes | One of `fast`, `balanced`, `deep`, or `inherit`. |
 | `task_id` | no | A previously returned delegated session ID. Supplying it resumes that session instead of creating a child. |
 
 Example new task:
@@ -56,7 +56,7 @@ The result metadata includes `status` and `task_id`; `output` also prints the re
   "description": "Check one more parser case",
   "prompt": "Continue the prior investigation and check nested arrays.",
   "subagent_type": "explore",
-  "model_profile": "standard",
+  "model_profile": "balanced",
   "task_id": "<task_id from the first result>"
 }
 ```
@@ -65,11 +65,18 @@ On resume, `delegate` does not create another session. The new prompt, selected 
 
 ## Model profiles and inheritance
 
-`settings.json` defines the sidecar presets and is the single source of truth — edit it and restart the profile; no code change is needed. Each of `fast`, `standard`, and `deep` takes any well-formed `provider/model` pair and a non-empty variant string; the parser validates shape only, not specific models. There is no default preset: omitting `model_profile` follows exactly the same inheritance path as explicitly passing `inherit`.
+`settings.json` defines the sidecar presets and is the single source of truth — edit it and restart the profile; no code change is needed. Each of `fast`, `balanced`, and `deep` takes any well-formed `provider/model` pair and a non-empty variant string; the parser validates shape only, not specific models. Every delegation must select a profile explicitly, including `inherit` when matching the parent is intentional.
 
-The intended split assigns `fast` to latency-sensitive simple work, `standard` to the everyday quality target, and `deep` to work where maximum quality matters more than speed or cost. These tiers are routing choices, not claims that unlike workloads have directly comparable scores.
+The intended routing is:
 
-`inherit` (explicit or omitted) uses the parent request's model **and variant**, rather than a preset. The plugin observes `chat.message` events and caches these values by message, with a session-level fallback. A newer event missing either value clears the relevant cache rather than reusing stale settings. Consequently, inheritance works only after the running plugin has observed a parent message carrying both values. If no cached value exists (commonly immediately after a restart or for an older session), the call returns an actionable `Cannot inherit` error; send a new parent message or choose an explicit preset.
+- `fast`: bounded, low-risk lookup, extraction, or mechanical work.
+- `balanced`: the default for implementation, analysis, testing, and review.
+- `deep`: difficult, ambiguous, high-stakes, or multi-step reasoning where quality outweighs latency and cost.
+- `inherit`: intentionally use the parent model and reasoning level.
+
+Prefer the least expensive tier likely to succeed; a resumed task can be escalated if necessary. Task length alone does not require `deep`: large but mechanical work may still fit `fast` or `balanced`.
+
+`inherit` uses the parent request's model **and variant**, rather than a preset. The plugin observes `chat.message` events and caches these values by message, with a session-level fallback. A newer event missing either value clears the relevant cache rather than reusing stale settings. Consequently, inheritance works only after the running plugin has observed a parent message carrying both values. If no cached value exists (commonly immediately after a restart or for an older session), the call returns an actionable `Cannot inherit` error; send a new parent message or choose an explicit preset.
 
 OpenCode V1 runtimes accept a top-level prompt `variant`, but older public SDK typings do not declare it. The implementation isolates that compatibility difference in one runtime-supported cast; all other client request construction remains typed.
 
@@ -102,7 +109,7 @@ After linking and restarting a V1 profile:
 1. Confirm the tool list contains exactly one `task` tool and that its schema includes `model_profile` and `task_id` (proving the plugin replaced the built-in).
 2. Run the new-task example above from a primary agent. Confirm completion returns text and a `task_id`, the completed item shows the selected model, and clicking it opens the child session.
 3. Run the resume example with that ID. Confirm it reuses the same ID and continues the prior context.
-4. From a fresh parent message, delegate small tasks with `model_profile: "inherit"` and with `model_profile` omitted; confirm both use the parent's model and variant. Restarting first should instead demonstrate the same documented missing-cache error for either form until a new parent message is observed.
+4. From a fresh parent message, delegate a small task with `model_profile: "inherit"`; confirm it uses the parent's model and variant. Restarting first should instead demonstrate the documented missing-cache error until a new parent message is observed.
 5. Start a longer delegation and cancel it. Confirm the visible/result status becomes `cancelled` and that a child ID is retained if creation had completed.
 6. Delegate to a subagent and ask it to list its tools; confirm `task` is absent (global permission deny) while the primary agent retains it (frontmatter allow).
 
