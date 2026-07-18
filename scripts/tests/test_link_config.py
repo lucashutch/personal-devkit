@@ -88,6 +88,14 @@ class LinkConfigTests(unittest.TestCase):
                     target.joinpath("agents").resolve(),
                     ROOT / "opencode" / "v2" / "shared" / "agents",
                 )
+                self.assertEqual(
+                    target.joinpath("plugins").resolve(),
+                    ROOT / "opencode" / "v2" / profile / "plugins",
+                )
+                self.assertEqual(
+                    target.joinpath("shared").resolve(),
+                    ROOT / "opencode" / "v2" / "shared",
+                )
                 self.assertFalse(target.joinpath("service.json").exists())
                 v1_target = config_home / f"opencode-v1-{profile}" / "opencode"
                 self.assertEqual(
@@ -97,6 +105,16 @@ class LinkConfigTests(unittest.TestCase):
             self.assertEqual(
                 (config_home / "opencode-v2-work" / "opencode" / "plugins").resolve(),
                 ROOT / "opencode" / "v2" / "work" / "plugins",
+            )
+            self.assertEqual(
+                (
+                    config_home
+                    / "opencode-v2-work"
+                    / "opencode"
+                    / "plugins"
+                    / "model-filter.js"
+                ).resolve(),
+                ROOT / "opencode" / "v2" / "work" / "plugins" / "model-filter.js",
             )
             self.assertEqual(
                 (config_home / "opencode-v2-test" / "opencode" / "plugins").resolve(),
@@ -110,6 +128,16 @@ class LinkConfigTests(unittest.TestCase):
                     f"GH_CONFIG_DIR={config_home}/gh",
                     launcher.read_text(),
                 )
+            self.assertEqual(
+                (
+                    config_home
+                    / "opencode-v2-test"
+                    / "opencode"
+                    / "plugins"
+                    / "hide-opencode-zen.js"
+                ).resolve(),
+                ROOT / "opencode" / "v2" / "test" / "plugins" / "hide-opencode-zen.js",
+            )
             self.assertEqual(
                 service_log.read_text().splitlines(),
                 [

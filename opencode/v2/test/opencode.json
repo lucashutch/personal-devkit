@@ -14,12 +14,13 @@
     ".vscode/lucas.md"
   ],
   "plugins": [
-    "./plugins/hide-opencode-zen.js"
+    "./plugins/hide-opencode-zen.js",
+    "./shared/plugins/slim-tools.js"
   ],
   "providers": {
     "prompt-capture-anthropic": {
       "name": "Prompt Capture (Ant)",
-      "package": "@ai-sdk/anthropic",
+      "package": "aisdk:@ai-sdk/anthropic",
       "settings": {
         "baseURL": "http://127.0.0.1:1234/v1",
         "apiKey": "dummy"
@@ -38,7 +39,7 @@
     },
     "prompt-capture-openai": {
       "name": "Prompt Capture (oAI)",
-      "package": "@ai-sdk/openai-compatible",
+      "package": "aisdk:@ai-sdk/openai-compatible",
       "settings": {
         "baseURL": "http://127.0.0.1:1234/v1",
         "apiKey": "dummy"
@@ -52,7 +53,7 @@
         },
         "gpt-5.6-luna": {
           "name": "Fake GPT-5.6 Luna (capture)"
-        },
+        }
       }
     }
   },

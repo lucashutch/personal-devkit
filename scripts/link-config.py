@@ -436,6 +436,14 @@ def main(argv: list[str]) -> int:
                 entries=OPENCODE_V2_SHARED_ENTRIES,
                 force=parsed.force,
             )
+            link_entries(
+                summary,
+                label=f"opencode-v2-{profile}",
+                source_dir=root / "opencode" / "v2",
+                target_dir=target_dir,
+                entries=("shared",),
+                force=parsed.force,
+            )
         for profile in OPENCODE_V1_PROFILES:
             target_dir = home / f"opencode-v1-{profile}" / "opencode"
             link_entries(
