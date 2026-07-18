@@ -14,7 +14,8 @@
     ".vscode/lucas.md"
   ],
   "plugins": [
-    "./plugins/model-filter.js"
+    "./plugins/model-filter.js",
+    "./shared/plugins/slim-tools.js"
   ],
   "agents": {
     "build": {
