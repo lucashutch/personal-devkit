@@ -1,17 +1,19 @@
 import assert from "node:assert/strict"
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import test from "node:test"
 
 import {
   addModelProfile,
   aliasID,
   createDelegateProfilesPlugin,
+  delegateConfigPath,
+  loadSettings,
   parseModelRef,
   parseProfiles,
 } from "./delegate-profiles.js"
 
-const options = {
-  provider: "capture",
-}
 const settings = {
   presets: {
     fast: { model: "openai/luna", variant: "low" },
@@ -31,16 +33,39 @@ test("parseModelRef returns a V2 model reference", () => {
 })
 
 test("parseProfiles requires every preset", () => {
-  assert.deepEqual(parseProfiles(options, settings).standard, {
-    providerID: "capture",
+  assert.deepEqual(parseProfiles(settings).standard, {
+    providerID: "openai",
     id: "terra",
     variant: "medium",
   })
-  assert.deepEqual(parseProfiles({ provider: "capture", variants: false }, settings).deep, {
-    providerID: "capture",
+  assert.deepEqual(parseProfiles(settings).deep, {
+    providerID: "openai",
     id: "sol",
+    variant: "high",
   })
-  assert.throws(() => parseProfiles({}, { presets: { fast: settings.presets.fast } }), /presets.balanced/)
+  const withoutVariants = structuredClone(settings)
+  delete withoutVariants.presets.fast.variant
+  assert.deepEqual(parseProfiles(withoutVariants).fast, {
+    providerID: "openai",
+    id: "luna",
+  })
+  assert.throws(() => parseProfiles({ presets: { fast: settings.presets.fast } }), /presets.balanced/)
+})
+
+test("loadSettings uses the active profile config root", () => {
+  const root = mkdtempSync(join(tmpdir(), "delegate-profiles-"))
+  const previous = process.env.XDG_CONFIG_HOME
+  try {
+    process.env.XDG_CONFIG_HOME = root
+    const path = delegateConfigPath()
+    assert.throws(() => loadSettings(), /not found.*link-config\.py/is)
+    mkdirSync(join(root, "opencode"))
+    writeFileSync(path, JSON.stringify(settings))
+  } finally {
+    if (previous === undefined) delete process.env.XDG_CONFIG_HOME
+    else process.env.XDG_CONFIG_HOME = previous
+    rmSync(root, { recursive: true, force: true })
+  }
 })
 
 test("addModelProfile augments a clone of the native schema", () => {
@@ -62,6 +87,13 @@ test("addModelProfile augments a clone of the native schema", () => {
 })
 
 test("plugin advertises model_profile and routes execution through a hidden alias", async () => {
+  const root = mkdtempSync(join(tmpdir(), "delegate-profiles-"))
+  const previous = process.env.XDG_CONFIG_HOME
+  process.env.XDG_CONFIG_HOME = root
+  const configDir = join(root, "opencode")
+  mkdirSync(configDir)
+  writeFileSync(join(configDir, "delegate_config.json"), JSON.stringify(settings))
+  try {
   const hooks = {}
   const aliases = new Map()
   const disposed = []
@@ -74,9 +106,6 @@ test("plugin advertises model_profile and routes execution through a hidden alia
     request: { headers: {}, body: {} },
   }
   const ctx = {
-    options: {
-      provider: "capture",
-    },
     agent: {
       get: async (id) => id === source.id ? source : aliases.get(id),
       list: async () => ({ data: [source] }),
@@ -129,8 +158,8 @@ test("plugin advertises model_profile and routes execution through a hidden alia
   assert.equal(event.input.agent, expected)
   assert.equal(event.input.model_profile, undefined)
   assert.deepEqual(aliases.get(expected).model, {
-    providerID: "capture",
-    id: "gpt-5.6-sol",
+    providerID: "openai",
+    id: "sol",
     variant: "high",
   })
   assert.equal(aliases.get(expected).hidden, true)
@@ -138,4 +167,9 @@ test("plugin advertises model_profile and routes execution through a hidden alia
 
   await cleanup()
   assert.deepEqual(disposed, ["alias", "execute.before", "context"])
+  } finally {
+    if (previous === undefined) delete process.env.XDG_CONFIG_HOME
+    else process.env.XDG_CONFIG_HOME = previous
+    rmSync(root, { recursive: true, force: true })
+  }
 })

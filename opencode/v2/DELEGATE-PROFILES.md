@@ -14,21 +14,16 @@ interface.
 
 ## Model settings
 
-The V2 model presets live in
-[`shared/plugins/delegate/settings.json`](shared/plugins/delegate/settings.json).
+Each V2 profile carries a `delegate_config.json` beside its `opencode.json`,
+matching V1. The linker places that file in the active profile's config root,
+and the plugin loads it at startup. Update the required preset in the relevant
+profile file, then restart that profile's V2 service.
+Each preset has a required `model` and an optional `variant`; test omits
+variants because its synthetic models do not declare them.
 
-V1 no longer shares this file: each V1 profile carries its own
-`delegate_config.json` beside its `opencode.json` (see
-`../v1/shared/plugins/delegate/README.md`). A model or variant update for V2
-is made here and takes effect after the V2 services restart.
-
-Profile configs may override only the provider while retaining the shared
-model IDs and variants:
-
-- home uses the settings file's `openai` provider;
-- work overrides it with `github-copilot`; and
-- test overrides it with `prompt-capture-openai` and disables variants because
-  the synthetic capture models do not declare them.
+- [home](home/delegate_config.json) uses `openai`;
+- [work](work/delegate_config.json) uses `github-copilot`; and
+- [test](test/delegate_config.json) uses `prompt-capture-openai`.
 
 ## How it works
 

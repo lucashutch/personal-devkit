@@ -1,7 +1,28 @@
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
+import { homedir } from "node:os"
+import { join } from "node:path"
 
 const profileOrder = ["fast", "standard", "deep", "inherit"]
-const settings = JSON.parse(readFileSync(new URL("./delegate/settings.json", import.meta.url), "utf8"))
+
+export function delegateConfigPath() {
+  const configHome = process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config")
+  return join(configHome, "opencode", "delegate_config.json")
+}
+
+export function loadSettings(path = delegateConfigPath()) {
+  if (!existsSync(path)) {
+    throw new Error(
+      `delegate-profiles config not found at ${path}. The active profile has not linked its `
+      + "delegate_config.json; run scripts/link-config.py for this profile and restart OpenCode.",
+    )
+  }
+  try {
+    return JSON.parse(readFileSync(path, "utf8"))
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(`delegate-profiles config ${path}: ${message}`)
+  }
+}
 
 export function parseModelRef(value, label = "model") {
   if (typeof value !== "string") throw new Error(`${label} must be a provider/model string`)
@@ -21,18 +42,11 @@ export function parseModelRef(value, label = "model") {
   return { providerID, id, ...(variant ? { variant } : {}) }
 }
 
-export function parseProfiles(options = {}, configured = settings) {
+export function parseProfiles(configured) {
   const source = configured?.presets
   if (!source || typeof source !== "object" || Array.isArray(source)) {
     throw new Error("delegate-profiles settings.presets must be an object")
   }
-  if (options.provider !== undefined && (typeof options.provider !== "string" || !options.provider.trim())) {
-    throw new Error("delegate-profiles provider must be a non-empty string")
-  }
-  if (options.variants !== undefined && typeof options.variants !== "boolean") {
-    throw new Error("delegate-profiles variants must be a boolean")
-  }
-
   return Object.fromEntries(
     profileOrder.slice(0, 3).map((profile) => {
       // V1 calls the middle tier `balanced`; V2 exposes it as `standard`.
@@ -43,25 +57,17 @@ export function parseProfiles(options = {}, configured = settings) {
       if (!preset || typeof preset !== "object" || Array.isArray(preset)) {
         throw new Error(`delegate-profiles settings.presets.${presetName} must be an object`)
       }
-      if (typeof preset.variant !== "string" || !preset.variant.trim()) {
-        throw new Error(`delegate-profiles settings.presets.${presetName}.variant must be a non-empty string`)
+      if (preset.variant !== undefined && (typeof preset.variant !== "string" || !preset.variant.trim())) {
+        throw new Error(`delegate-profiles settings.presets.${presetName}.variant must be a non-empty string when provided`)
       }
       if (typeof preset.model !== "string") {
         throw new Error(`delegate-profiles settings.presets.${presetName}.model must be a provider/model string`)
       }
       const model = parseModelRef(
-        `${preset.model}#${preset.variant}`,
+        `${preset.model}${preset.variant ? `#${preset.variant}` : ""}`,
         `delegate-profiles settings.presets.${presetName}.model`,
       )
-      const selected = {
-        ...model,
-        ...(options.provider === undefined ? {} : { providerID: options.provider }),
-      }
-      if (options.variants === false) delete selected.variant
-      return [
-        profile,
-        selected,
-      ]
+      return [profile, model]
     }),
   )
 }
@@ -104,7 +110,7 @@ export function createDelegateProfilesPlugin() {
   return {
     id: "personal.delegate-profiles",
     setup: async (ctx) => {
-      const profiles = parseProfiles(ctx.options)
+      const profiles = parseProfiles(loadSettings())
       const registrations = []
       const aliases = new Map()
 
