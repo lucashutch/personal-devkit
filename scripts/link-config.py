@@ -15,7 +15,7 @@ from program_installers.common import configure_logging, fail, info
 
 
 OPENCODE_V2_PROFILES = ("home", "work", "test")
-OPENCODE_V2_SHARED_ENTRIES = ("cli.json", "agents")
+OPENCODE_V2_SHARED_ENTRIES = ("cli.json", "agents", "commands", "skills")
 OPENCODE_V2_SERVICE_PORTS = {"home": 4098, "work": 4097, "test": 4099}
 
 OPENCODE_V1_PROFILES = ("home", "work", "test")

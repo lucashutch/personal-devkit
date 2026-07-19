@@ -28,6 +28,27 @@ pre-execution hooks. See
 details, beta dependencies, capture-proxy validation, upgrade steps, and known
 limitations.
 
+## Agents, commands, and skills
+
+V2 carries the V1 on-demand orchestration setup: General remains the primary
+agent, with Worker, Researcher, and Reviewer as bounded subagents. The lifecycle
+and orchestration skills and their slash commands are linked into every V2
+profile.
+
+The port uses V2's ordered `permissions` rules instead of V1's `permission`
+map. Tool names also differ (`subagent` replaces `task`, and `shell` replaces
+`bash`). Subagents run with their own configured permissions rather than an
+inherited subset of the parent's permissions, so Worker, Researcher, and
+Reviewer explicitly deny further delegation. Skill IDs are path-derived and
+case-sensitive in V2; the lowercase skill directory names are intentional.
+
+V2's native `subagent` tool creates a fresh child session and can run in the
+foreground or background. The orchestration skill therefore treats delegation
+as an explicit context/latency cost and keeps cohesive work in the primary
+session. Skill bodies are loaded on demand rather than injected into the
+initial prompt. Command `subtask` metadata has no execution effect in V2, so
+the ported commands explicitly tell General to load the corresponding skill.
+
 ## TUI plugins: blocked
 
 V2 contains the same TUI slot API used by V1 (`sidebar_content`,
