@@ -416,7 +416,7 @@ def main(argv: list[str]) -> int:
                 label=f"opencode-v2-{profile}",
                 source_dir=source_dir,
                 target_dir=target_dir,
-                entries=("opencode.json", "delegate_config.json"),
+                entries=("opencode.json", "delegate_config.json", "model_config.json"),
                 force=parsed.force,
             )
             if (source_dir / "plugins").is_dir():

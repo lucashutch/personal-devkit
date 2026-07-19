@@ -7,14 +7,14 @@
     "max_bytes": 16384
   },
   "compaction": {
-    "prune": false
+    "prune": true
   },
   "instructions": [
     "AGENTS.md",
     ".vscode/lucas.md"
   ],
   "plugins": [
-    "./plugins/model-filter.js",
+    "./shared/plugins/model-filter.js",
     "./shared/plugins/slim-tools.js",
     "./shared/plugins/delegate-profiles.js"
   ],
@@ -47,6 +47,11 @@
       "effect": "allow"
     },
     {
+      "action": "external_directory",
+      "resource": "/home/lucas/ncs/**",
+      "effect": "allow"
+    },
+    {
       "action": "question",
       "resource": "*",
       "effect": "allow"
@@ -63,6 +68,11 @@
     },
     {
       "action": "webfetch",
+      "resource": "*",
+      "effect": "deny"
+    },
+    {
+      "action": "websearch",
       "resource": "*",
       "effect": "deny"
     }
