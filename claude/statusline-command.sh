@@ -2,6 +2,27 @@
 
 input=$(cat)
 
+# Optionally reuse the complete rendered statusline. Set to 0 to keep it live.
+cache_seconds=${CLAUDE_STATUSLINE_CACHE_SECONDS:-0}
+cache_file=""
+if [[ $cache_seconds =~ ^[0-9]+$ ]] && [ "$cache_seconds" -gt 0 ]; then
+    cache_key=$(jq -r '.session_id // .workspace.current_dir // .cwd // "default"' <<<"$input" 2>/dev/null || printf default)
+    if command -v sha256sum >/dev/null 2>&1; then
+        cache_key=$(printf '%s' "$cache_key" | sha256sum | cut -d' ' -f1)
+    else
+        cache_key=$(printf '%s' "$cache_key" | cksum | cut -d' ' -f1)
+    fi
+    cache_dir=${XDG_CACHE_HOME:-$HOME/.cache}/claude/statusline
+    cache_file=$cache_dir/$cache_key
+    if [ -f "$cache_file" ]; then
+        cache_mtime=$(stat -c %Y "$cache_file" 2>/dev/null || printf 0)
+        if [ $(( $(date +%s) - cache_mtime )) -lt "$cache_seconds" ]; then
+            cat "$cache_file"
+            exit 0
+        fi
+    fi
+fi
+
 # Compact cwd: inside a git repo, show "repo-root-name/relative/path".
 # Outside a git repo: show ~ for $HOME, else "parent/base" (last two segments).
 compact_path() {
@@ -107,9 +128,20 @@ if [[ $week_pct =~ ^[0-9]+([.][0-9]+)?$ ]]; then
     rate_str+="7d:$(printf '%.0f' "$week_pct")%"
 fi
 
-printf '\033[01;34m%s\033[00m' "$(compact_path "$cwd")"
-[ -n "$branch" ] && printf ' \033[02;36m(%s)\033[00m' "$branch"
-[ -n "$model" ] && printf ' \033[00;33m%s\033[00m' "$model"
-[ -n "$effort" ] && printf ' \033[00;35mthinking:%s\033[00m' "$effort"
-[ -n "$ctx_str" ] && printf ' \033[00;36m%s\033[00m' "$ctx_str"
-[ -n "$rate_str" ] && printf ' \033[02;36m%s\033[00m' "$rate_str"
+render_statusline() {
+    printf '\033[01;34m%s\033[00m' "$(compact_path "$cwd")"
+    [ -n "$branch" ] && printf ' \033[02;36m(%s)\033[00m' "$branch"
+    [ -n "$model" ] && printf ' \033[00;33m%s\033[00m' "$model"
+    [ -n "$effort" ] && printf ' \033[00;35mthinking:%s\033[00m' "$effort"
+    [ -n "$ctx_str" ] && printf ' \033[00;36m%s\033[00m' "$ctx_str"
+    [ -n "$rate_str" ] && printf ' \033[02;36m%s\033[00m' "$rate_str"
+}
+
+if [ -n "$cache_file" ]; then
+    mkdir -p "$cache_dir"
+    tmp_cache=$cache_file.$$
+    render_statusline | tee "$tmp_cache"
+    mv "$tmp_cache" "$cache_file"
+else
+    render_statusline
+fi

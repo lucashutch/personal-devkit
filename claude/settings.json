@@ -56,7 +56,7 @@
   "promptSuggestionEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "statusLine": {
-    "command": "bash \"$HOME/.claude/statusline-command.sh\"",
+    "command": "CLAUDE_STATUSLINE_CACHE_SECONDS=180 bash \"$HOME/.claude/statusline-command.sh\"",
     "type": "command"
   },
   "theme": "custom:one-dark"
