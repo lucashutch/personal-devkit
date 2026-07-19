@@ -1,6 +1,6 @@
 ---
 name: repo-map
-description: Create/refresh repo-map.md orientation map. Use before planning if missing or stale after structural changes.
+description: Create or refresh repo-map.md for agent orientation when missing or structurally stale.
 ---
 # Repo map
 
