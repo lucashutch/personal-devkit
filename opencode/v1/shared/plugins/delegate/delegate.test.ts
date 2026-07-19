@@ -1,14 +1,21 @@
-import { afterEach, describe, expect, mock, test } from "bun:test"
+import { afterAll, afterEach, beforeAll, describe, expect, mock, test } from "bun:test"
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 
 import {
   DelegatePlugin,
 } from "../delegate"
-import settings from "./settings.json"
+import homeSettings from "../../../home/delegate_config.json"
+import testSettings from "../../../test/delegate_config.json"
+import workSettings from "../../../work/delegate_config.json"
 
 const {
   createDelegateExecutor,
+  delegateConfigPath,
   delegateDescription,
   discoverDelegateDescription,
+  loadSettings,
   observeParentModel,
   parseSettings,
   resolveModelProfile,
@@ -16,6 +23,22 @@ const {
 } = DelegatePlugin.internals
 
 const inherited = { providerID: "openai", modelID: "gpt-5.5", variant: "high" }
+const originalConfigHome = process.env.XDG_CONFIG_HOME
+let testConfigHome: string
+
+beforeAll(() => {
+  testConfigHome = mkdtempSync(join(tmpdir(), "delegate-config-"))
+  const root = join(testConfigHome, "opencode")
+  mkdirSync(root)
+  writeFileSync(join(root, "delegate_config.json"), JSON.stringify(homeSettings))
+  process.env.XDG_CONFIG_HOME = testConfigHome
+})
+
+afterAll(() => {
+  if (originalConfigHome === undefined) delete process.env.XDG_CONFIG_HOME
+  else process.env.XDG_CONFIG_HOME = originalConfigHome
+  rmSync(testConfigHome, { recursive: true, force: true })
+})
 
 function clientMock() {
   return {
@@ -74,8 +97,31 @@ describe("delegate settings contract", () => {
     expect(resolveModelProfile(parsed, "inherit", inherited)).toEqual(inherited)
   })
 
-  test("the checked-in settings file parses", () => {
-    expect(() => parseSettings(settings)).not.toThrow()
+  test("the checked-in profile settings parse", () => {
+    for (const settings of [homeSettings, workSettings, testSettings]) {
+      expect(() => parseSettings(settings)).not.toThrow()
+    }
+  })
+
+  test("loads delegate_config.json from the active config root", () => {
+    expect(delegateConfigPath()).toBe(join(testConfigHome, "opencode", "delegate_config.json"))
+    expect(resolveModelProfile(loadSettings(), "balanced", inherited)).toEqual({
+      providerID: "openai", modelID: "gpt-5.6-terra", variant: "medium",
+    })
+  })
+
+  test("a missing config file fails with an actionable linker message", () => {
+    const missing = join(testConfigHome, "opencode", "no-such-delegate_config.json")
+    expect(() => loadSettings(missing)).toThrow(/not found.*link-config\.py/is)
+    expect(() => loadSettings(missing)).toThrow(missing)
+  })
+
+  test("a malformed config file fails with the offending path", () => {
+    const malformed = join(testConfigHome, "opencode", "malformed_delegate_config.json")
+    writeFileSync(malformed, "{ not json")
+    expect(() => loadSettings(malformed)).toThrow(malformed)
+    writeFileSync(malformed, JSON.stringify({ presets: { fast: { model: "openai/x", variant: "low" } } }))
+    expect(() => loadSettings(malformed)).toThrow(/presets\.balanced/i)
   })
 
   test("rejects missing and malformed configuration", () => {

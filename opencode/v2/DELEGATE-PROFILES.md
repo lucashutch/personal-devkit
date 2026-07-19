@@ -8,20 +8,19 @@ profiles on `@opencode-ai/cli@0.0.0-next-15788`. It adds a required
 native child-session executor.
 
 The supported profiles are `fast`, `standard`, `deep`, and `inherit`.
-`standard` uses the model stored as `balanced` in the shared V1 settings file;
-the naming adapter keeps the V2 tool vocabulary stable without changing the V1
-tool interface.
+`standard` uses the model stored as `balanced` in the settings file; the
+naming adapter keeps the V2 tool vocabulary stable without changing the tool
+interface.
 
 ## Model settings
 
-The model presets have one source of truth:
-
-[`../v1/shared/plugins/delegate/settings.json`](../v1/shared/plugins/delegate/settings.json)
-
-V2 reaches that file through the repository symlink at
+The V2 model presets live in
 [`shared/plugins/delegate/settings.json`](shared/plugins/delegate/settings.json).
-Do not replace the link with a copied file. A model or variant update should
-therefore affect both plugin generations after their services restart.
+
+V1 no longer shares this file: each V1 profile carries its own
+`delegate_config.json` beside its `opencode.json` (see
+`../v1/shared/plugins/delegate/README.md`). A model or variant update for V2
+is made here and takes effect after the V2 services restart.
 
 Profile configs may override only the provider while retaining the shared
 model IDs and variants:

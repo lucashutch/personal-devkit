@@ -8,7 +8,7 @@
         "max_bytes": 16384
     },
     "compaction": {
-        "prune": false
+        "prune": true
     },
     "permission": {
         "bash": {
