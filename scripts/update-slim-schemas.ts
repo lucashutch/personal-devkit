@@ -1,5 +1,7 @@
 #!/usr/bin/env bun
-// Regenerate or check opencode/plugins/slim-schemas.json against a proxy
+// V1 only: regenerate or check opencode/v1/shared/plugins/slim-schemas.json
+// against a proxy capture. V2's slim-tools patches descriptions in place and
+// has no schema snapshot.
 // capture. The slim-tools plugin replaces tool JSON schemas wholesale, so the
 // snapshot must be refreshed when an opencode upgrade changes tool parameters.
 //
@@ -11,10 +13,10 @@
 
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs"
 import { join, dirname } from "node:path"
-import { slimParamDescriptions } from "../opencode/lib/slim-tools-data"
+import { slimParamDescriptions } from "../opencode/v1/shared/lib/slim-tools-data"
 
 const CAPTURES_DIR = "/home/lucas/9999-personal/context-proxy-forward/proxy-captures"
-const SCHEMAS_PATH = join(dirname(Bun.main), "..", "opencode", "plugins", "slim-schemas.json")
+const SCHEMAS_PATH = join(dirname(Bun.main), "..", "opencode", "v1", "shared", "plugins", "slim-schemas.json")
 const SENTINEL = 9007199254740991
 
 function latestCaptureDir(): string {
