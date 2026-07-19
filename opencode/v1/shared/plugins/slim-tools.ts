@@ -5,7 +5,9 @@ import { homedir } from "node:os"
 import slimSchemas from "./slim-schemas.json"
 import { slimDescriptions, slimParamDescriptions } from "../lib/slim-tools-data"
 
-const driftLog = join(homedir(), ".config", "opencode", "plugin-logs", "slim-tools-drift.log")
+const configHome = process.env.XDG_CONFIG_HOME || join(homedir(), ".config")
+const driftLogDir = join(configHome, "opencode", "plugin-logs")
+const driftLog = join(driftLogDir, "slim-tools-drift.log")
 const warnedTools = new Set<string>()
 
 function warnDrift(toolID: string, snapshot: string, actual: string) {
@@ -14,7 +16,7 @@ function warnDrift(toolID: string, snapshot: string, actual: string) {
   const msg = `slim-tools: schema drift for '${toolID}' (snapshot: ${snapshot}; opencode: ${actual}); using stock schema. Rerun scripts/update-slim-schemas.ts.`
   console.warn(msg)
   try {
-    mkdirSync(join(homedir(), ".config", "opencode", "plugin-logs"), { recursive: true })
+    mkdirSync(driftLogDir, { recursive: true })
     appendFileSync(driftLog, `${new Date().toISOString()} ${msg}\n`)
   } catch {}
 }
