@@ -18,6 +18,18 @@ while this CLI release implements it as `context`. The plugin intentionally
 uses the runtime name. Revalidate after every V2 upgrade because this is beta
 API surface.
 
+## Model filter
+
+V2 currently has no native provider/model whitelist, and per-model `disabled`
+blocklists in `opencode.json` rot as providers add models (new entries appear
+enabled until hand-blocked). Until whitelist support returns, the shared
+`personal.model-filter` plugin (`shared/plugins/model-filter.js`) applies each
+profile's `model_config.json` at the catalog level, following the same
+per-profile config pattern as delegate profiles. Rules are `provider/model`
+strings (`provider/*` matches all models of a provider) in one of two modes:
+`allow` disables everything unlisted; `deny` disables only the listed models.
+Remove the plugin and configs once V2 regains native whitelisting.
+
 ## Delegate model profiles
 
 All V2 profiles use a model-profile extension for the native `subagent` tool.

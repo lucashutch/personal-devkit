@@ -14,7 +14,7 @@
     ".vscode/lucas.md"
   ],
   "plugins": [
-    "./plugins/hide-opencode-zen.js",
+    "./shared/plugins/model-filter.js",
     "./shared/plugins/slim-tools.js",
     "./shared/plugins/delegate-profiles.js"
   ],
