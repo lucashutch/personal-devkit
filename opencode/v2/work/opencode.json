@@ -16,12 +16,7 @@
   "plugins": [
     "./plugins/model-filter.js",
     "./shared/plugins/slim-tools.js",
-    {
-      "package": "./shared/plugins/delegate-profiles.js",
-      "options": {
-        "provider": "github-copilot"
-      }
-    }
+    "./shared/plugins/delegate-profiles.js"
   ],
   "agents": {
     "build": {

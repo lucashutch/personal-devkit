@@ -1,0 +1,7 @@
+{
+  "presets": {
+    "fast": { "model": "prompt-capture-openai/gpt-5.6-luna" },
+    "balanced": { "model": "prompt-capture-openai/gpt-5.6-terra" },
+    "deep": { "model": "prompt-capture-openai/gpt-5.6-sol" }
+  }
+}
