@@ -1,8 +1,8 @@
 import type { Plugin, PluginInput, ToolContext, ToolResult } from "@opencode-ai/plugin"
+import { existsSync, readFileSync } from "node:fs"
 import { createRequire } from "node:module"
 import { homedir } from "node:os"
 import { join } from "node:path"
-import rawSettings from "./delegate/settings.json"
 
 const runtimeRequire = createRequire(join(
   process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"),
@@ -13,8 +13,9 @@ const { z } = runtimeRequire("zod") as typeof import("zod")
 const modelProfiles = ["fast", "balanced", "deep", "inherit"] as const
 type ModelProfile = (typeof modelProfiles)[number]
 type ModelChoice = { providerID: string; modelID: string; variant: string }
+type PresetName = Exclude<ModelProfile, "inherit">
 type Settings = {
-  presets: Record<Exclude<ModelProfile, "inherit">, ModelChoice>
+  presets: Record<PresetName, ModelChoice>
 }
 
 function record(value: unknown, label: string): Record<string, unknown> {
@@ -24,25 +25,49 @@ function record(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
+const presetNames = modelProfiles.slice(0, 3) as readonly PresetName[]
+
+function parsePreset(source: Record<string, unknown>, name: PresetName): ModelChoice {
+  const preset = record(source[name], `presets.${name}`)
+  if (typeof preset.model !== "string") {
+    throw new Error(`delegate presets.${name}.model must be a provider/model string`)
+  }
+  const pieces = preset.model.split("/")
+  if (pieces.length !== 2 || pieces.some((piece) => !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(piece))) {
+    throw new Error(`delegate presets.${name}.model must be an unambiguous provider/model pair`)
+  }
+  if (typeof preset.variant !== "string" || !preset.variant.trim()) {
+    throw new Error(`delegate presets.${name}.variant must be a non-empty string`)
+  }
+  return { providerID: pieces[0], modelID: pieces[1], variant: preset.variant }
+}
+
 function parseSettings(value: unknown): Settings {
   const root = record(value, "settings")
   const source = record(root.presets, "presets")
   const presets = {} as Settings["presets"]
-  for (const name of modelProfiles.slice(0, 3) as readonly Exclude<ModelProfile, "inherit">[]) {
-    const preset = record(source[name], `presets.${name}`)
-    if (typeof preset.model !== "string") {
-      throw new Error(`delegate presets.${name}.model must be a provider/model string`)
-    }
-    const pieces = preset.model.split("/")
-    if (pieces.length !== 2 || pieces.some((piece) => !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(piece))) {
-      throw new Error(`delegate presets.${name}.model must be an unambiguous provider/model pair`)
-    }
-    if (typeof preset.variant !== "string" || !preset.variant.trim()) {
-      throw new Error(`delegate presets.${name}.variant must be a non-empty string`)
-    }
-    presets[name] = { providerID: pieces[0], modelID: pieces[1], variant: preset.variant }
-  }
+  for (const name of presetNames) presets[name] = parsePreset(source, name)
   return { presets }
+}
+
+function delegateConfigPath(): string {
+  const configHome = process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config")
+  return join(configHome, "opencode", "delegate_config.json")
+}
+
+function loadSettings(path: string = delegateConfigPath()): Settings {
+  if (!existsSync(path)) {
+    throw new Error(
+      `delegate config not found at ${path}. The active profile has not linked its `
+      + "delegate_config.json; run scripts/link-config.py for this profile and restart OpenCode.",
+    )
+  }
+  try {
+    return parseSettings(JSON.parse(readFileSync(path, "utf8")))
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(`delegate config ${path}: ${message}`)
+  }
 }
 
 function resolveModelProfile(
@@ -56,7 +81,7 @@ function resolveModelProfile(
     if (!parent) throw new Error("Cannot inherit: parent model/variant was not observed by chat.message")
     return { ...parent }
   }
-  return { ...settings.presets[selected as Exclude<ModelProfile, "inherit">] }
+  return { ...settings.presets[selected as PresetName] }
 }
 
 function withPromptVariant<T extends object>(body: T, variant: string): T & { variant: string } {
@@ -217,7 +242,9 @@ function observeParentModel(parentModels: Map<string, ModelChoice>, input: ChatM
 const delegateInternals = {
   createDelegateExecutor,
   delegateDescription,
+  delegateConfigPath,
   discoverDelegateDescription,
+  loadSettings,
   observeParentModel,
   parseSettings,
   resolveModelProfile,
@@ -225,7 +252,7 @@ const delegateInternals = {
 }
 
 const createPlugin: Plugin = async ({ client }) => {
-  const settings = parseSettings(rawSettings)
+  const settings = loadSettings()
   const parentModels = new Map<string, ModelChoice>()
   const execute = createDelegateExecutor({ client, settings, parentModels })
 

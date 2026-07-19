@@ -451,7 +451,7 @@ def main(argv: list[str]) -> int:
                 label=f"opencode-v1-{profile}",
                 source_dir=root / "opencode" / "v1" / profile,
                 target_dir=target_dir,
-                entries=("opencode.json",),
+                entries=("opencode.json", "delegate_config.json"),
                 force=parsed.force,
             )
             link_entries(

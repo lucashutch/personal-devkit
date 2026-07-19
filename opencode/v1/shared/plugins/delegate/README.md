@@ -16,13 +16,13 @@ Host-side integrations still apply to the shared name: the host appends the live
 
 ## Restricting which agents can delegate
 
-The V1 UI renders only one level of parent→child sessions, so subagents spawning their own subagents produces invisible grandchildren. The repo profiles therefore set `"task": "deny"` in the global `permission` block of each profile `opencode.json`, and opt the primary agents back in via frontmatter (`permission: task: allow` in `General.md` and `Director.md`). Denied agents lose the tool from their tool list entirely, and the host also omits them from the auto-generated description. New subagents inherit the deny by default with nothing to remember.
+The V1 UI renders only one level of parent→child sessions, so subagents spawning their own subagents produces invisible grandchildren. The repo profiles therefore set `"task": "deny"` in the global `permission` block of each profile `opencode.json`, and opt the General primary agent back in via frontmatter. Denied agents lose the tool from their tool list entirely, and the host also omits them from the auto-generated description. New subagents inherit the deny by default with nothing to remember.
 
 ## Discovery and restart
 
 The discoverable plugin entry is `plugins/delegate.ts`; this directory is its sidecar for settings, tests, and documentation. In this repository, run the normal linker with OpenCode enabled so `opencode/v1/shared/plugins` is linked into each selected V1 profile's configuration directory (for example, `~/.config/opencode-v1-home/opencode/plugins`). Do not copy or edit the linked target directly.
 
-OpenCode loads plugins and their settings at startup. Completely quit and restart the relevant V1 OpenCode profile after linking the plugin or changing `settings.json`. The tool then appears as `task` (the plugin registration replaces the built-in tool of the same name).
+OpenCode loads plugins and their settings at startup. Completely quit and restart the relevant V1 OpenCode profile after linking the plugin or changing the profile's `delegate_config.json`. The tool then appears as `task` (the plugin registration replaces the built-in tool of the same name).
 
 At startup, the plugin calls the public V1 `client.app.agents()` API and appends the currently configured usable agents to the tool description. Only entries with mode `subagent` or `all` are advertised; primary-only agents, malformed entries, and entries explicitly marked disabled, unavailable, or not enabled are omitted. Names are accompanied by whitespace-normalized short descriptions when available. If discovery fails or produces no usable agents, registration still succeeds with the stable generic description; restart after agent configuration changes to regenerate it.
 
@@ -34,7 +34,7 @@ Every new call supplies:
 | --- | --- | --- |
 | `description` | yes | Short title shown in task metadata. |
 | `prompt` | yes | Complete instructions sent to the subagent. Include all context needed to work independently. |
-| `subagent_type` | yes | Name of the agent that receives the prompt, such as `explore` or `reviewer`. The named agent must exist and be usable in the active profile. |
+| `subagent_type` | yes | Name of the agent that receives the prompt, such as `Worker`, `Researcher`, or `Reviewer`. The named agent must exist and be usable in the active profile. |
 | `model_profile` | yes | One of `fast`, `balanced`, `deep`, or `inherit`. |
 | `task_id` | no | A previously returned delegated session ID. Supplying it resumes that session instead of creating a child. |
 
@@ -44,7 +44,7 @@ Example new task:
 {
   "description": "Inspect parser edge cases",
   "prompt": "Review the parser and report concrete malformed-input cases. Do not edit files.",
-  "subagent_type": "explore",
+  "subagent_type": "Reviewer",
   "model_profile": "fast"
 }
 ```
@@ -55,7 +55,7 @@ The result metadata includes `status` and `task_id`; `output` also prints the re
 {
   "description": "Check one more parser case",
   "prompt": "Continue the prior investigation and check nested arrays.",
-  "subagent_type": "explore",
+  "subagent_type": "Reviewer",
   "model_profile": "balanced",
   "task_id": "<task_id from the first result>"
 }
@@ -65,7 +65,7 @@ On resume, `delegate` does not create another session. The new prompt, selected 
 
 ## Model profiles and inheritance
 
-`settings.json` defines the sidecar presets and is the single source of truth — edit it and restart the profile; no code change is needed. Each of `fast`, `balanced`, and `deep` takes any well-formed `provider/model` pair and a non-empty variant string; the parser validates shape only, not specific models. Every delegation must select a profile explicitly, including `inherit` when matching the parent is intentional.
+Each profile owns a `delegate_config.json` beside its `opencode.json`. The linker installs it at the active configuration root, and the plugin reads `$XDG_CONFIG_HOME/opencode/delegate_config.json`; no profile names or provider choices are hard-coded in the plugin. Edit the relevant profile file and restart that profile. Each of `fast`, `balanced`, and `deep` takes any well-formed `provider/model` pair and a non-empty variant string; the parser validates shape only, not specific models. Every delegation must select a model profile explicitly, including `inherit` when matching the parent is intentional.
 
 The intended routing is:
 
@@ -88,10 +88,12 @@ Known host limitation: the V1 host drops plugin `context.metadata()` updates whi
 
 Cancelling the parent tool call propagates its abort signal to child creation and prompting. The result and metadata become `cancelled`; if cancellation happened after creation, retain the returned `task_id` for a possible later resume. API failures become `error` results with normalized status/message text and preserve any known `task_id`.
 
-Settings are validated when the plugin starts. Missing/malformed preset objects, a model that is not an unambiguous `provider/model` pair, or an empty variant causes plugin registration to fail with a `delegate ...` error naming the bad field. Recover by fixing the named preset, validating the JSON, and restarting OpenCode:
+The active profile's settings are validated when the plugin starts. A missing `delegate_config.json` fails registration with a message pointing at `scripts/link-config.py` — link the profile and restart. Malformed preset objects, a model that is not an unambiguous `provider/model` pair, or an empty variant causes plugin registration to fail with a `delegate ...` error naming the bad field. Recover by fixing the named preset, validating the JSON, and restarting OpenCode:
 
 ```sh
-python3 -m json.tool opencode/v1/shared/plugins/delegate/settings.json >/dev/null
+for file in opencode/v1/{home,work,test}/delegate_config.json; do
+  python3 -m json.tool "$file" >/dev/null
+done
 ```
 
 ## Compatibility and permission boundaries
