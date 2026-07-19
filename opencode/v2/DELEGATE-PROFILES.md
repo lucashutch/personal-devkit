@@ -151,8 +151,8 @@ After every V2 CLI upgrade:
 
 - Native V2 `subagent` always creates a fresh child. It cannot resume an
   existing delegated session as the V1 replacement can.
-- Native permission checks see the generated hidden alias ID. The current
-  General and Director wildcard rules allow aliases, but per-agent allowlists
+- Native permission checks see the generated hidden alias ID. General's
+  wildcard rule allows aliases, but per-agent allowlists
   must include `delegate-profile--<profile>--<agent>` IDs.
 - The hidden alias remains the stored child session's agent ID, although its
   display name and behavior are cloned from the requested role.
