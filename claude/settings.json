@@ -4,37 +4,7 @@
     "pr": "",
     "sessionUrl": false
   },
-  "awaySummaryEnabled": false,
-  "disableBundledSkills": true,
-  "disableClaudeAiConnectors": true,
-  "effortLevel": "low",
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "command": "bash \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/herdr-agent-state.sh\" session",
-            "timeout": 10,
-            "type": "command"
-          }
-        ],
-        "matcher": "*"
-      },
-      {
-        "hooks": [
-          {
-            "command": "bash '/home/lucas/.claude/hooks/herdr-agent-state.sh' session",
-            "timeout": 10,
-            "type": "command"
-          }
-        ],
-        "matcher": "*"
-      }
-    ]
-  },
-  "model": "fable",
   "permissions": {
-    "defaultMode": "bypassPermissions",
     "deny": [
       "Artifact",
       "Workflow",
@@ -61,13 +31,43 @@
       "EnterWorktree",
       "ExitWorktree",
       "ReportFindings"
+    ],
+    "defaultMode": "bypassPermissions"
+  },
+  "model": "opus",
+  "disableClaudeAiConnectors": true,
+  "disableBundledSkills": true,
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/herdr-agent-state.sh\" session",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/home/lucas/.claude/hooks/herdr-agent-state.sh' session",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   },
-  "promptSuggestionEnabled": false,
-  "skipDangerousModePermissionPrompt": true,
   "statusLine": {
-    "command": "CLAUDE_STATUSLINE_CACHE_SECONDS=180 bash \"$HOME/.claude/statusline-command.sh\"",
-    "type": "command"
+    "type": "command",
+    "command": "CLAUDE_STATUSLINE_CACHE_SECONDS=180 bash \"$HOME/.claude/statusline-command.sh\""
   },
+  "effortLevel": "low",
+  "promptSuggestionEnabled": false,
+  "awaySummaryEnabled": false,
+  "skipDangerousModePermissionPrompt": true,
   "theme": "custom:one-dark"
 }
