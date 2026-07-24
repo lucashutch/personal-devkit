@@ -68,6 +68,7 @@
   "effortLevel": "low",
   "promptSuggestionEnabled": false,
   "awaySummaryEnabled": false,
+  "agent": "General",
   "skipDangerousModePermissionPrompt": true,
   "theme": "custom:one-dark"
 }
