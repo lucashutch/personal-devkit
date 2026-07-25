@@ -8,29 +8,20 @@
     "deny": [
       "Artifact",
       "Workflow",
-      "DesignSync",
-      "Monitor",
-      "CronCreate",
-      "CronDelete",
-      "CronList",
+      "Skill",
+      "ReportFindings",
       "ScheduleWakeup",
-      "PushNotification",
       "ShareOnboardingGuide",
-      "NotebookEdit",
       "PowerShell",
       "RemoteTrigger",
       "EnterPlanMode",
       "ExitPlanMode",
-      "TaskCreate",
-      "TaskGet",
-      "TaskList",
-      "TaskOutput",
-      "TaskStop",
-      "TaskUpdate",
-      "Skill",
-      "EnterWorktree",
-      "ExitWorktree",
-      "ReportFindings"
+      "DesignSync",
+      "CronCreate",
+      "CronDelete",
+      "CronList",
+      "NotebookEdit",
+      "Monitor"
     ],
     "defaultMode": "bypassPermissions"
   },
@@ -70,5 +61,8 @@
   "awaySummaryEnabled": false,
   "agent": "General",
   "skipDangerousModePermissionPrompt": true,
-  "theme": "custom:one-dark"
+  "theme": "custom:one-dark",
+  "env": {
+    "ENABLE_TOOL_SEARCH": "true"
+  }
 }
