@@ -338,6 +338,39 @@ def link_entries(
         summary.worked.append(("newly linked", item_label))
 
 
+def link_opencode_shims(summary: Summary, *, root: Path, force: bool) -> None:
+    """Link the OpenCode profile shim into ~/.local/bin under both binary names.
+
+    Herdr's agent auto-resume spawns a bare `opencode`/`opencode2` argv, so the
+    shim has to win the PATH lookup outside interactive Bash too.
+    """
+    src = root / "dotfiles" / "bashrc.d" / "bin" / "opencode"
+    target_dir = Path.home() / ".local" / "bin"
+
+    if not src.is_file():
+        record_error(summary, "opencode-shim", f"missing source: {src}")
+        return
+
+    target_dir.mkdir(parents=True, exist_ok=True)
+    for name in ("opencode", "opencode2"):
+        dst = target_dir / name
+        label = f"opencode-shim/{name}"
+        if dst.is_symlink() and dst.resolve(strict=False) == src:
+            summary.worked.append(("already linked", label))
+            continue
+        if dst.exists() or dst.is_symlink():
+            if not force:
+                record_error(summary, label, f"{dst} already exists (use --force to replace)")
+                continue
+            remove_existing(dst)
+        try:
+            dst.symlink_to(src)
+        except OSError:
+            record_error(summary, label, f"failed to link {dst} -> {src}")
+            continue
+        summary.worked.append(("newly linked", label))
+
+
 def install_desktop_entries(summary: Summary, *, root: Path, force: bool) -> None:
     """Install profile launchers and their icons into the user's XDG data tree."""
     config = config_home()
@@ -462,6 +495,7 @@ def main(argv: list[str]) -> int:
                 entries=OPENCODE_V1_SHARED_ENTRIES,
                 force=parsed.force,
             )
+        link_opencode_shims(summary, root=root, force=parsed.force)
         install_desktop_entries(summary, root=root, force=parsed.force)
         if not summary.errored:
             configure_v2_services(summary)
