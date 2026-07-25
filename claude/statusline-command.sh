@@ -2,33 +2,51 @@
 
 input=$(cat)
 
-# Optionally reuse the complete rendered statusline. Set to 0 to keep it live.
-cache_seconds=${CLAUDE_STATUSLINE_CACHE_SECONDS:-0}
-cache_file=""
-if [[ $cache_seconds =~ ^[0-9]+$ ]] && [ "$cache_seconds" -gt 0 ]; then
-    cache_key=$(jq -r '.session_id // .workspace.current_dir // .cwd // "default"' <<<"$input" 2>/dev/null || printf default)
-    if command -v sha256sum >/dev/null 2>&1; then
-        cache_key=$(printf '%s' "$cache_key" | sha256sum | cut -d' ' -f1)
-    else
-        cache_key=$(printf '%s' "$cache_key" | cksum | cut -d' ' -f1)
+# Cache only the git lookups (toplevel + branch), keyed by directory. The line
+# itself is always re-rendered so model/context/rate values stay live.
+# CLAUDE_STATUSLINE_GIT_CACHE_SECONDS=0 disables caching entirely.
+git_cache_seconds=${CLAUDE_STATUSLINE_GIT_CACHE_SECONDS:-5}
+git_cache_dir=${XDG_CACHE_HOME:-$HOME/.cache}/claude/statusline
+
+# Echo "<toplevel>\t<branch>" for a directory, using a short-lived cache.
+git_info() {
+    local dir=$1 key cache_file now mtime data
+    if ! [[ $git_cache_seconds =~ ^[0-9]+$ ]] || [ "$git_cache_seconds" -eq 0 ]; then
+        printf '%s\t%s' \
+            "$(git -C "$dir" --no-optional-locks rev-parse --show-toplevel 2>/dev/null)" \
+            "$(git -C "$dir" --no-optional-locks branch --show-current 2>/dev/null)"
+        return
     fi
-    cache_dir=${XDG_CACHE_HOME:-$HOME/.cache}/claude/statusline
-    cache_file=$cache_dir/$cache_key
+
+    if command -v sha256sum >/dev/null 2>&1; then
+        key=$(printf '%s' "$dir" | sha256sum | cut -d' ' -f1)
+    else
+        key=$(printf '%s' "$dir" | cksum | tr -d ' ')
+    fi
+    cache_file=$git_cache_dir/git-$key
     if [ -f "$cache_file" ]; then
-        cache_mtime=$(stat -c %Y "$cache_file" 2>/dev/null || printf 0)
-        if [ $(( $(date +%s) - cache_mtime )) -lt "$cache_seconds" ]; then
+        mtime=$(stat -c %Y "$cache_file" 2>/dev/null || printf 0)
+        now=$(date +%s)
+        if [ $((now - mtime)) -lt "$git_cache_seconds" ]; then
             cat "$cache_file"
-            exit 0
+            return
         fi
     fi
-fi
+
+    data=$(printf '%s\t%s' \
+        "$(git -C "$dir" --no-optional-locks rev-parse --show-toplevel 2>/dev/null)" \
+        "$(git -C "$dir" --no-optional-locks branch --show-current 2>/dev/null)")
+    mkdir -p "$git_cache_dir" 2>/dev/null &&
+        printf '%s' "$data" >"$cache_file.$$" 2>/dev/null &&
+        mv "$cache_file.$$" "$cache_file" 2>/dev/null
+    printf '%s' "$data"
+}
 
 # Compact cwd: inside a git repo, show "repo-root-name/relative/path".
 # Outside a git repo: show ~ for $HOME, else "parent/base" (last two segments).
 compact_path() {
     local p=$1
-    local toplevel
-    toplevel=$(git -C "$p" --no-optional-locks rev-parse --show-toplevel 2>/dev/null)
+    local toplevel=$2
     if [ -n "$toplevel" ]; then
         local repo_name rel
         repo_name=$(basename "$toplevel")
@@ -61,8 +79,14 @@ compact_path() {
     fi
 }
 
+fallback_path() {
+    local dir=$1 top
+    IFS=$'\t' read -r top _ <<<"$(git_info "$dir")"
+    compact_path "$dir" "$top"
+}
+
 if ! command -v jq >/dev/null 2>&1; then
-    printf '\033[01;34m%s\033[00m' "$(compact_path "$PWD")"
+    printf '\033[01;34m%s\033[00m' "$(fallback_path "$PWD")"
     printf ' \033[00;31mstatusline: jq missing\033[00m'
     exit 0
 fi
@@ -82,7 +106,7 @@ mapfile -t fields < <(
 )
 
 if [ "${#fields[@]}" -ne 8 ]; then
-    printf '\033[01;34m%s\033[00m' "$(compact_path "$PWD")"
+    printf '\033[01;34m%s\033[00m' "$(fallback_path "$PWD")"
     printf ' \033[00;31mstatusline: invalid input\033[00m'
     exit 0
 fi
@@ -96,8 +120,8 @@ five_pct=${fields[5]}
 five_reset=${fields[6]}
 week_pct=${fields[7]}
 
-# Git branch (avoid optional locks and fail quietly outside a repository).
-branch=$(git -C "$cwd" --no-optional-locks branch --show-current 2>/dev/null)
+# Git toplevel/branch (avoid optional locks and fail quietly outside a repo).
+IFS=$'\t' read -r toplevel branch <<<"$(git_info "$cwd")"
 
 # Context usage, shown as a plain percentage (no bar).
 if [[ $used =~ ^[0-9]+([.][0-9]+)?$ ]]; then
@@ -129,7 +153,7 @@ if [[ $week_pct =~ ^[0-9]+([.][0-9]+)?$ ]]; then
 fi
 
 render_statusline() {
-    printf '\033[01;34m%s\033[00m' "$(compact_path "$cwd")"
+    printf '\033[01;34m%s\033[00m' "$(compact_path "$cwd" "$toplevel")"
     [ -n "$branch" ] && printf ' \033[02;36m(%s)\033[00m' "$branch"
     [ -n "$model" ] && printf ' \033[00;33m%s\033[00m' "$model"
     [ -n "$effort" ] && printf ' \033[00;35mthinking:%s\033[00m' "$effort"
@@ -137,11 +161,4 @@ render_statusline() {
     [ -n "$rate_str" ] && printf ' \033[02;36m%s\033[00m' "$rate_str"
 }
 
-if [ -n "$cache_file" ]; then
-    mkdir -p "$cache_dir"
-    tmp_cache=$cache_file.$$
-    render_statusline | tee "$tmp_cache"
-    mv "$tmp_cache" "$cache_file"
-else
-    render_statusline
-fi
+render_statusline
