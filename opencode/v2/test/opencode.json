@@ -27,8 +27,8 @@
         "apiKey": "dummy"
       },
       "models": {
-        "claude-opus-4.8": {
-          "name": "Fake Opus 4.8 (capture)"
+        "claude-opus-5": {
+          "name": "Fake Opus 5 (capture)"
         },
         "claude-fable-5": {
           "name": "Fake Fable 5 (capture)"

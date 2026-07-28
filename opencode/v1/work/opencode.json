@@ -55,17 +55,11 @@
             "whitelist": [
                 "claude-opus-5",
                 "claude-sonnet-5",
-                "claude-haiku-4.5",
                 "gpt-5.6-sol",
                 "gpt-5.6-terra",
                 "gpt-5.6-luna"
             ],
             "models": {
-                "gpt-5.4-mini": {
-                    "options": {
-                        "textVerbosity": "low"
-                    }
-                },
                 "gpt-5.6-sol": {
                     "options": {
                         "textVerbosity": "low"
@@ -83,6 +77,5 @@
                 }
             }
         }
-    },
-    "small_model": "github-copilot/gpt-5.4-mini"
+    }
 }

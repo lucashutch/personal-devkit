@@ -1,7 +1,7 @@
 {
   "presets": {
     "fast": { "model": "github-copilot/gpt-5.6-luna", "variant": "low" },
-    "balanced": { "model": "github-copilot/gpt-5.6-terra", "variant": "medium" },
-    "deep": { "model": "github-copilot/gpt-5.6-sol", "variant": "medium" }
+    "balanced": { "model": "github-copilot/gpt-5.6-terra", "variant": "low" },
+    "deep": { "model": "github-copilot/gpt-5.6-sol", "variant": "low" }
   }
 }
