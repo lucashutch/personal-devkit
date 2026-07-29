@@ -15,6 +15,9 @@ set -uo pipefail
 
 PROFILES=(home work test)
 DEFAULT_PROFILE=work
+V1_SERVICE_PORT_HOME=4195
+V1_SERVICE_PORT_WORK=4196
+V1_SERVICE_PORT_TEST=4197
 
 self_name=$(basename -- "$0")
 # The shim may be reached through symlinks in several PATH directories, so
@@ -107,6 +110,80 @@ owns_session() {
   esac
 }
 
+v1_service_port() {
+  case "$1" in
+    home) printf '%s\n' "$V1_SERVICE_PORT_HOME" ;;
+    work) printf '%s\n' "$V1_SERVICE_PORT_WORK" ;;
+    test) printf '%s\n' "$V1_SERVICE_PORT_TEST" ;;
+  esac
+}
+
+ensure_v1_service() {
+  systemctl --user start "opencode-v1-$1.service" || {
+    printf '%s: could not start V1 %s service\n' "$self_name" "$1" >&2
+    return 1
+  }
+}
+
+# `attach` has a narrower argument surface than the default V1 TUI. Keep
+# commands and unsupported TUI flags on their normal standalone path.
+v1_attachable_tui() {
+  local command="${1:-}" arg
+  case "$command" in
+    acp | agent | attach | completion | db | debug | export | github | import | mcp | models | plugin | providers | pr | run | serve | session | stats | uninstall | upgrade | web)
+      return 1
+      ;;
+  esac
+
+  for arg in "$@"; do
+    case "$arg" in
+      --auto | --auto=* | --command | --command=* | --file | --file=* | --format | --format=* | --model | --model=* | --port | --port=* | --hostname | --hostname=* | --mdns | --mdns-domain | --mdns-domain=* | --cors | --cors=* | --prompt | --prompt=* | --pure | --share | --share=* | --title | --title=* | --variant | --variant=* | --thinking | --interactive)
+        return 1
+        ;;
+    esac
+  done
+  return 0
+}
+
+v1_attach_args() {
+  local directory=""
+  attach_args=()
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --dir)
+        [ "$#" -ge 2 ] || return 2
+        directory="$2"
+        shift 2
+        ;;
+      --dir=*)
+        directory="${1#--dir=}"
+        shift
+        ;;
+      --session | -s | --log-level | -p | --password | -u | --username)
+        [ "$#" -ge 2 ] || return 2
+        attach_args+=("$1" "$2")
+        shift 2
+        ;;
+      --session=* | --log-level=* | --password=* | --username=* | --continue | -c | --fork | --print-logs)
+        attach_args+=("$1")
+        shift
+        ;;
+      -*)
+        return 2
+        ;;
+      *)
+        if [ -z "$directory" ]; then
+          directory="$1"
+        else
+          return 2
+        fi
+        shift
+        ;;
+    esac
+  done
+  attach_args+=(--dir "${directory:-$PWD}")
+}
+
 # An empty profile means the caller asked for the un-namespaced global install.
 # V1 is always namespaced, so it falls back to the default profile; bare V2
 # deliberately keeps OpenCode's standard global namespace.
@@ -152,6 +229,15 @@ fi
 export GH_CONFIG_DIR="${GH_CONFIG_DIR:-$HOME/.config/gh}"
 if [ "$generation" = v1 ]; then
   export OPENCODE_EXPERIMENTAL_WEBSOCKETS=true
+fi
+
+if [ "$generation" = v1 ] && v1_attachable_tui "$@"; then
+  ensure_v1_service "$profile" || exit $?
+  v1_attach_args "$@" || {
+    printf '%s: cannot translate V1 TUI arguments to attach mode\n' "$self_name" >&2
+    exit 2
+  }
+  exec "$binary" attach "http://127.0.0.1:$(v1_service_port "$profile")" "${attach_args[@]}"
 fi
 
 exec "$binary" "$@"

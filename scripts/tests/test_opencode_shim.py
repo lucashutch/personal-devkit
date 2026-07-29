@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import signal
 import sqlite3
 import subprocess
 import tempfile
@@ -32,6 +33,7 @@ class OpenCodeShimTests(unittest.TestCase):
         self._temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self._temporary.cleanup)
         self.home = Path(self._temporary.name)
+        self.addCleanup(self.stop_mock_server)
 
         # Live V1 sessions are in opencode.db; the JSON tree is the legacy store.
         write_session_database(
@@ -56,16 +58,48 @@ class OpenCodeShimTests(unittest.TestCase):
         for name in ("opencode", "opencode2"):
             binary = self.bin_dir / name
             binary.write_text(
-                "#!/bin/sh\n"
-                f'printf "binary=%s data=%s\\n" {name} "${{XDG_DATA_HOME-unset}}"\n'
+                "#!/usr/bin/env bash\n"
+                "if [ \"$1\" = serve ]; then\n"
+                "  shift\n"
+                "  while [ \"$#\" -gt 0 ]; do\n"
+                "    if [ \"$1\" = --port ]; then port=\"$2\"; break; fi\n"
+                "    shift\n"
+                "  done\n"
+                "  echo \"$$\" > \"$HOME/mock-opencode-server.pid\"\n"
+                "  python3 -c 'import socket, sys; server = socket.socket(); server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1); server.bind((\"127.0.0.1\", int(sys.argv[1]))); server.listen(); [server.accept()[0].close() for _ in iter(int, 1)]' \"$port\" &\n"
+                "  child=$!\n"
+                "  trap 'kill \"$child\" 2>/dev/null; exit' INT TERM\n"
+                "  wait \"$child\"\n"
+                "  exit\n"
+                "fi\n"
+                f'printf "binary=%s args=%s data=%s\\n" {name} "$*" "${{XDG_DATA_HOME-unset}}"\n'
             )
             binary.chmod(0o755)
+        systemctl = self.bin_dir / "systemctl"
+        systemctl.write_text("#!/bin/sh\nexit 0\n")
+        systemctl.chmod(0o755)
+
+    def stop_mock_server(self) -> None:
+        pid_file = self.home / "mock-opencode-server.pid"
+        if not pid_file.exists():
+            return
+        try:
+            os.killpg(int(pid_file.read_text()), signal.SIGTERM)
+        except ProcessLookupError:
+            pass
 
     def run_shim(self, name: str, *args: str, profile: str | None = None) -> str:
         environment = os.environ | {
             "HOME": str(self.home),
             "PATH": f"{self.bin_dir}:/usr/bin:/bin",
         }
+        for variable in (
+            "XDG_CONFIG_HOME",
+            "XDG_DATA_HOME",
+            "XDG_STATE_HOME",
+            "XDG_CACHE_HOME",
+        ):
+            environment.pop(variable, None)
         if profile is None:
             environment.pop("OPENCODE_PROFILE", None)
         else:
@@ -86,6 +120,7 @@ class OpenCodeShimTests(unittest.TestCase):
     def test_v1_defaults_to_work_profile(self) -> None:
         output = self.run_shim("opencode")
         self.assertIn("binary=opencode", output)
+        self.assertIn("args=attach http://127.0.0.1:4196 --dir", output)
         self.assertIn("opencode-v1-work", output)
 
     def test_requested_v2_profile_is_applied(self) -> None:
@@ -101,6 +136,8 @@ class OpenCodeShimTests(unittest.TestCase):
     def test_session_switches_to_owning_v1_profile(self) -> None:
         output = self.run_shim("opencode", "--session", V1_DB_SESSION, profile="work")
         self.assertIn("binary=opencode", output)
+        self.assertIn(f"--session {V1_DB_SESSION}", output)
+        self.assertIn("http://127.0.0.1:4195", output)
         self.assertIn("opencode-v1-home", output)
 
     def test_legacy_v1_session_store_is_still_matched(self) -> None:
@@ -118,7 +155,13 @@ class OpenCodeShimTests(unittest.TestCase):
     def test_unknown_session_keeps_requested_profile(self) -> None:
         output = self.run_shim("opencode", "-s", "ses_missing", profile="work")
         self.assertIn("binary=opencode", output)
+        self.assertIn("-s ses_missing", output)
         self.assertIn("opencode-v1-work", output)
+
+    def test_v1_commands_keep_the_standalone_path(self) -> None:
+        output = self.run_shim("opencode", "run", "hello", profile="home")
+        self.assertIn("binary=opencode args=run hello", output)
+        self.assertNotIn("attach", output)
 
 
 if __name__ == "__main__":

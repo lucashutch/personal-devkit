@@ -190,6 +190,26 @@ agent, command, plugin, and skill files. The profile sources live under
 when setting up another computer or preserving existing V1 authentication and
 session history.
 
+V1 CLI TUI launches use a lazy per-profile user service instead of starting a
+server in every window. The first `och`, `ocw`, or `oct` launch starts its
+localhost service and attaches to it; later windows attach to the same service.
+The services listen on `4195`, `4196`, and `4197` respectively and are linked
+to `~/.config/systemd/user/` by `scripts/link-config.py --opencode`; they do
+not start at login. Check a profile with `systemctl --user status
+opencode-v1-home.service`. Restart its service after changing its V1 config,
+agents, commands, skills, plugins, or after upgrading the V1 binary:
+
+```sh
+systemctl --user restart opencode-v1-home.service
+systemctl --user restart opencode-v1-work.service
+systemctl --user restart opencode-v1-test.service
+```
+
+Run `scripts/link-config.py --opencode` after changing the managed service
+units; it reloads the user systemd manager. Explicit V1 commands such as
+`opencode run`, `opencode serve`, and `opencode attach` retain their normal
+standalone behavior.
+
 The same command also installs Home and Work desktop launchers under the XDG
 data directory. They use the V1 XDG roots above, have green and orange icons,
 and locally hide the stock OpenCode desktop entry.
