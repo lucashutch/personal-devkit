@@ -1,0 +1,10 @@
+[Unit]
+Description=OpenCode V1 home service
+
+[Service]
+Environment=OPENCODE_PROFILE=home
+Environment=PATH=%h/.npm-global/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=%h/.local/bin/opencode serve --hostname 127.0.0.1 --port 4195
+ExecStartPost=/usr/bin/bash -c 'for attempt in {1..50}; do (exec 3<>/dev/tcp/127.0.0.1/4195) >/dev/null 2>&1 && exit 0; sleep 0.1; done; exit 1'
+Restart=on-failure
+RestartSec=1

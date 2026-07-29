@@ -47,6 +47,9 @@ class LinkConfigTests(unittest.TestCase):
                 "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$SERVICE_LOG\"\n"
             )
             executable.chmod(0o755)
+            systemctl = binary_directory / "systemctl"
+            systemctl.write_text("#!/bin/sh\nexit 0\n")
+            systemctl.chmod(0o755)
             environment = os.environ | {
                 "HOME": temporary_home,
                 "XDG_CONFIG_HOME": str(config_home),
@@ -102,24 +105,22 @@ class LinkConfigTests(unittest.TestCase):
                     v1_target.joinpath("plugins", "herdr-agent-state.js").resolve(),
                     ROOT / "opencode" / "v1" / "shared" / "plugins" / "herdr-agent-state.js",
                 )
-            self.assertEqual(
-                (config_home / "opencode-v2-work" / "opencode" / "plugins").resolve(),
-                ROOT / "opencode" / "v2" / "work" / "plugins",
-            )
-            self.assertEqual(
-                (
-                    config_home
-                    / "opencode-v2-work"
-                    / "opencode"
-                    / "plugins"
-                    / "model-filter.js"
-                ).resolve(),
-                ROOT / "opencode" / "v2" / "work" / "plugins" / "model-filter.js",
-            )
-            self.assertEqual(
-                (config_home / "opencode-v2-test" / "opencode" / "plugins").resolve(),
-                ROOT / "opencode" / "v2" / "test" / "plugins",
-            )
+                unit = config_home / "systemd" / "user" / f"opencode-v1-{profile}.service"
+                self.assertEqual(
+                    unit.resolve(),
+                    ROOT / "systemd" / "user" / f"opencode-v1-{profile}.service",
+                )
+            for profile, plugin in (
+                ("work", "model-filter.js"),
+                ("test", "hide-opencode-zen.js"),
+            ):
+                source = ROOT / "opencode" / "v2" / profile / "plugins"
+                target = config_home / f"opencode-v2-{profile}" / "opencode" / "plugins"
+                if source.is_dir():
+                    self.assertEqual(target.resolve(), source)
+                    self.assertEqual(target.joinpath(plugin).resolve(), source / plugin)
+                else:
+                    self.assertFalse(target.exists())
             applications = Path(environment["XDG_DATA_HOME"]) / "applications"
             for name in ("opencode-home.desktop", "opencode-work.desktop"):
                 launcher = applications / name
@@ -128,16 +129,6 @@ class LinkConfigTests(unittest.TestCase):
                     f"GH_CONFIG_DIR={config_home}/gh",
                     launcher.read_text(),
                 )
-            self.assertEqual(
-                (
-                    config_home
-                    / "opencode-v2-test"
-                    / "opencode"
-                    / "plugins"
-                    / "hide-opencode-zen.js"
-                ).resolve(),
-                ROOT / "opencode" / "v2" / "test" / "plugins" / "hide-opencode-zen.js",
-            )
             self.assertEqual(
                 service_log.read_text().splitlines(),
                 [

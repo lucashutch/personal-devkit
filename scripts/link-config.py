@@ -19,6 +19,9 @@ OPENCODE_V2_SHARED_ENTRIES = ("cli.json", "agents", "commands", "skills")
 OPENCODE_V2_SERVICE_PORTS = {"home": 4098, "work": 4097, "test": 4099}
 
 OPENCODE_V1_PROFILES = ("home", "work", "test")
+OPENCODE_V1_SERVICE_UNITS = tuple(
+    f"opencode-v1-{profile}.service" for profile in OPENCODE_V1_PROFILES
+)
 OPENCODE_DESKTOP_ENTRIES = (
     "opencode-home.desktop.in",
     "opencode-work.desktop.in",
@@ -262,6 +265,36 @@ def configure_v2_services(summary: Summary) -> None:
             summary.worked.append(("newly linked", label))
 
 
+def install_v1_services(summary: Summary, *, root: Path, force: bool) -> None:
+    """Link V1's lazy-start user services and reload the user manager."""
+    link_entries(
+        summary,
+        label="opencode-v1-services",
+        source_dir=root / "systemd" / "user",
+        target_dir=config_home() / "systemd" / "user",
+        entries=OPENCODE_V1_SERVICE_UNITS,
+        force=force,
+    )
+    if summary.errored:
+        return
+
+    executable = shutil.which("systemctl")
+    if not executable:
+        info("skipped V1 service reload: systemctl is not on PATH")
+        return
+    result = subprocess.run(
+        [executable, "--user", "daemon-reload"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode:
+        detail = result.stderr.strip() or result.stdout.strip() or "command failed"
+        record_error(summary, "opencode-v1-services", f"could not reload user services: {detail}")
+        return
+    summary.worked.append(("newly linked", "opencode-v1-services/daemon-reload"))
+
+
 def record_error(summary: Summary, label: str, message: str) -> None:
     fail(message)
     summary.errored.append(f"{label} ({message})")
@@ -497,6 +530,8 @@ def main(argv: list[str]) -> int:
             )
         link_opencode_shims(summary, root=root, force=parsed.force)
         install_desktop_entries(summary, root=root, force=parsed.force)
+        if not summary.errored:
+            install_v1_services(summary, root=root, force=parsed.force)
         if not summary.errored:
             configure_v2_services(summary)
 
