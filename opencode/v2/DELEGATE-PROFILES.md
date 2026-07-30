@@ -111,13 +111,13 @@ o2t run --auto --agent General \
 python3 opencode/v2/test/check-delegate-profile-captures.py "$CAPTURE"
 ```
 
-The checker verifies the provider-facing schema, the exact `Researcher` plus
-`deep` call, the `gpt-5.6-sol` child request, the retained Researcher system
+The checker verifies the provider-facing schema, the exact `WebResearcher` plus
+`deep` call, the `gpt-5.6-sol` child request, the retained WebResearcher system
 prompt, and the native child result returned to the parent.
 
 The released configuration was also validated live through `o2h` with OpenAI
 Luna as the General orchestrator. The final parent session contained three
-completed calls with `agent: Researcher` and profiles `fast`, `standard`, and
+completed calls with `agent: WebResearcher` and profiles `fast`, `standard`, and
 `deep`. Inspection of the three child sessions confirmed:
 
 | Profile | Child model |
@@ -126,7 +126,7 @@ completed calls with `agent: Researcher` and profiles `fast`, `standard`, and
 | `standard` | `openai/gpt-5.6-terra#medium` |
 | `deep` | `openai/gpt-5.6-sol#high` |
 
-Each child was parent-owned, stored the corresponding hidden Researcher alias,
+Each child was parent-owned, stored the corresponding hidden WebResearcher alias,
 and returned the requested result to the parent.
 
 ## Upgrade checklist

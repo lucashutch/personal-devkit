@@ -21,7 +21,7 @@ permissions:
     resource: "*"
     effect: deny
 ---
-# Researcher
+# WebResearcher
 
 Gather information from outside the codebase. Be concise.
 

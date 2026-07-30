@@ -34,7 +34,7 @@ Every new call supplies:
 | --- | --- | --- |
 | `description` | yes | Short title shown in task metadata. |
 | `prompt` | yes | Complete instructions sent to the subagent. Include all context needed to work independently. |
-| `subagent_type` | yes | Name of the agent that receives the prompt, such as `Worker`, `Researcher`, or `Reviewer`. The named agent must exist and be usable in the active profile. |
+| `subagent_type` | yes | Name of the agent that receives the prompt, such as `Worker`, `WebResearcher`, or `Reviewer`. The named agent must exist and be usable in the active profile. |
 | `model_profile` | yes | One of `fast`, `balanced`, `deep`, or `inherit`. |
 | `task_id` | no | A previously returned delegated session ID. Supplying it resumes that session instead of creating a child. |
 

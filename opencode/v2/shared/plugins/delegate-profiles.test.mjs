@@ -76,11 +76,11 @@ test("addModelProfile augments a clone of the native schema", () => {
   }
   const patched = addModelProfile(schema, [
     { id: "Director", mode: "primary", hidden: false },
-    { id: "Researcher", mode: "subagent", hidden: false },
+    { id: "WebResearcher", mode: "subagent", hidden: false },
     { id: "internal", mode: "subagent", hidden: true },
   ])
   assert.equal(schema.properties.model_profile, undefined)
-  assert.deepEqual(patched.properties.agent.enum, ["Researcher"])
+  assert.deepEqual(patched.properties.agent.enum, ["WebResearcher"])
   assert.match(patched.properties.agent.description, /model_profile/)
   assert.deepEqual(patched.properties.model_profile.enum, ["fast", "standard", "deep", "inherit"])
   assert.deepEqual(patched.required, ["agent", "model_profile"])
@@ -98,8 +98,8 @@ test("plugin advertises model_profile and routes execution through a hidden alia
   const aliases = new Map()
   const disposed = []
   const source = {
-    id: "Researcher",
-    name: "Researcher",
+    id: "WebResearcher",
+    name: "WebResearcher",
     mode: "subagent",
     hidden: false,
     permissions: [{ action: "edit", resource: "*", effect: "deny" }],
@@ -146,15 +146,15 @@ test("plugin advertises model_profile and routes execution through a hidden alia
   }
   await hooks.context(context)
   assert.deepEqual(context.tools.subagent.input.properties.model_profile.enum, ["fast", "standard", "deep", "inherit"])
-  assert.deepEqual(context.tools.subagent.input.properties.agent.enum, ["Researcher"])
+  assert.deepEqual(context.tools.subagent.input.properties.agent.enum, ["WebResearcher"])
   assert.match(context.tools.subagent.description, /profile names are not agent names/)
 
   const event = {
     tool: "subagent",
-    input: { agent: "Researcher", description: "Probe", prompt: "Check", model_profile: "deep" },
+    input: { agent: "WebResearcher", description: "Probe", prompt: "Check", model_profile: "deep" },
   }
   await hooks["execute.before"](event)
-  const expected = aliasID("Researcher", "deep")
+  const expected = aliasID("WebResearcher", "deep")
   assert.equal(event.input.agent, expected)
   assert.equal(event.input.model_profile, undefined)
   assert.deepEqual(aliases.get(expected).model, {

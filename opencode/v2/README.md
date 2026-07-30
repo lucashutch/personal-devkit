@@ -43,14 +43,14 @@ limitations.
 ## Agents, commands, and skills
 
 V2 carries the V1 on-demand orchestration setup: General remains the primary
-agent, with Worker, Researcher, and Reviewer as bounded subagents. The lifecycle
+agent, with Worker, WebResearcher, and Reviewer as bounded subagents. The lifecycle
 and orchestration skills and their slash commands are linked into every V2
 profile.
 
 The port uses V2's ordered `permissions` rules instead of V1's `permission`
 map. Tool names also differ (`subagent` replaces `task`, and `shell` replaces
 `bash`). Subagents run with their own configured permissions rather than an
-inherited subset of the parent's permissions, so Worker, Researcher, and
+inherited subset of the parent's permissions, so Worker, WebResearcher, and
 Reviewer explicitly deny further delegation. Skill IDs are path-derived and
 case-sensitive in V2; the lowercase skill directory names are intentional.
 
