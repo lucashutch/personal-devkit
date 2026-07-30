@@ -39,16 +39,6 @@
             "timeout": 10
           }
         ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash '/home/lucas/.claude/hooks/herdr-agent-state.sh' session",
-            "timeout": 10
-          }
-        ]
       }
     ]
   },
