@@ -1,7 +1,7 @@
 // Shared by the slim-tools plugin and scripts/update-slim-schemas.ts.
 export const slimDescriptions: Record<string, string> = {
   bash:
-    "Execute a shell command in the current working directory or optional workdir. Returns stdout and stderr. Optionally provide a timeout in milliseconds.",
+    "Execute a shell command. Use read for files and line ranges instead of nl, sed, head, tail, cat, or awk. Returns stdout and stderr. Optionally provide a timeout in milliseconds.",
   task:
     "Launch or resume a subagent for work that should be delegated. Provide the agent type, short description, and full prompt.",
   read: "Read a file or directory. Use absolute filePath. Supports offset and limit for large files.",
