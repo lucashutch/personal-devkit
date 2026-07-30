@@ -3,7 +3,7 @@
 // verify against proxy captures after opencode2 upgrades.
 export const slimDescriptions = Object.freeze({
   shell:
-    "Execute a shell command. Runs in the active Location by default; optional workdir and timeout in milliseconds. Set background=true to run asynchronously and be notified on completion.",
+    "Execute a shell command. Use read for files and line ranges instead of nl, sed, head, tail, cat, or awk. Runs in the active Location by default; optional workdir and timeout in milliseconds. Set background=true to run asynchronously.",
   subagent:
     "Spawn a subagent with fresh context for work that should be delegated. Provide the agent type, short description, and full prompt. background=true runs it asynchronously.",
   read: "Read a file, supported image, or directory listing. Supports offset and limit for paging.",
