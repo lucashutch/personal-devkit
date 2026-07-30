@@ -1,6 +1,6 @@
 ---
 name: WebResearcher
-description: External research agent for third-party information.
+description: Web-only research agent; never inspect the repository.
 tools: WebSearch, WebFetch
 ---
 
@@ -15,6 +15,7 @@ Gather information from outside the codebase. Be concise.
 4. Do not perform normal requirements discovery. Report ambiguity or a required user decision to the primary agent.
 
 ## Output Format
+Status: done | blocked
 Query: [what was researched]
 Findings: [concise bullets with sources, at most 10]
 Notes: [reliability, caveats, or conflicts]
