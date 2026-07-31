@@ -101,29 +101,28 @@ Current bash snippets include:
 - `och` — OpenCode home account
 - `ocw` — OpenCode work account
 - `oct` — OpenCode test account (prompt-capture proxy, experimental providers)
-- `opencode` resolves through the profile shim and defaults to the work profile
+- `opencode` is aliased to `ocw`, so a bare invocation uses the work profile
 - `o2h` — OpenCode V2 home profile (service on `127.0.0.1:4098`)
 - `o2w` — OpenCode V2 work profile (service on `127.0.0.1:4097`)
 - `o2t` — OpenCode V2 test profile (service on `127.0.0.1:4099`)
 - `tokh` — Tokscale using the home OpenCode V1 data
 - `tokw` — Tokscale using the work OpenCode V1 data
 
-All helpers run `dotfiles/bashrc.d/bin/opencode` (V1) or its `bin/opencode2`
-symlink (V2), a shim placed ahead of the real binaries on `PATH`. It applies
-the selected profile's XDG namespace, and when the command carries
-`--session <id>` it switches to whichever profile and generation own that
-session, looking V1 sessions up in the profile storage directory and V2
-sessions up in the profile database. This is what lets external session resume
-— Herdr's auto-resume runs a plain `opencode --session <id>` — reach sessions
-in any profile. Bare `opencode2` still runs in the standard global namespace.
+The helpers in `dotfiles/bashrc.d/opencode.sh` are plain shell functions that
+export the selected profile's XDG namespace and then run the real binary. The
+V1 helpers attach to that profile's shared server, starting the systemd unit
+first, so several TUI clients can share one set of live sessions; subcommands
+and TUI flags that `attach` does not accept fall back to a standalone process.
+Bare `opencode2` still runs in the standard global namespace.
 
-A PATH shim is the only available integration point. Herdr builds its resume
-argv from a hardcoded per-agent table, does not reuse the pane's launch
-command, and rejects non-official agent sources, so neither `config.toml`, the
-agent-detection manifest, nor the OpenCode integration plugin can point resume
-at `och`/`ocw`/`o2h`. `scripts/link-config.py --opencode` therefore links the
-shim into `~/.local/bin` as both `opencode` and `opencode2`, because Herdr
-spawns that argv directly rather than through an interactive shell.
+Profile selection is deliberately shell-only. Callers that are not interactive
+shells set the namespace themselves: the `opencode-v1-*` units carry their own
+`XDG_*` environment. External session resume is therefore not supported —
+Herdr builds its resume argv from a hardcoded per-agent table, does not reuse
+the pane's launch command, and rejects non-official agent sources, so it cannot
+be pointed at `och`/`ocw`/`o2h`. A `~/.local/bin` PATH shim was tried as the
+only remaining integration point and did not work, so resume from outside a
+profile wrapper finds only the sessions of the default namespace.
 
 The V1 helpers use separate XDG config, data, state, and cache trees. This
 keeps each account's complete V1 global config, credentials, sessions, and
