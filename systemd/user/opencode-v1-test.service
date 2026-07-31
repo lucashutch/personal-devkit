@@ -2,9 +2,19 @@
 Description=OpenCode V1 test service
 
 [Service]
-Environment=OPENCODE_PROFILE=test
-Environment=PATH=%h/.npm-global/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=%h/.local/bin/opencode serve --hostname 127.0.0.1 --port 4197
+# The XDG namespace is set here rather than inherited from the shell helpers,
+# which do not exist for a systemd unit. nvm publishes the OpenCode binary on
+# PATH only after its init script runs, and ~/.bashrc returns early for a
+# non-interactive shell, so nvm.sh is sourced explicitly. This follows nvm's
+# default alias, so a Node upgrade needs no change here.
+Environment=XDG_CONFIG_HOME=%h/.config/opencode-v1-test
+Environment=XDG_DATA_HOME=%h/.local/share/opencode-v1-test
+Environment=XDG_STATE_HOME=%h/.local/state/opencode-v1-test
+Environment=XDG_CACHE_HOME=%h/.cache/opencode-v1-test
+Environment=GH_CONFIG_DIR=%h/.config/gh
+Environment=OPENCODE_EXPERIMENTAL_WEBSOCKETS=true
+Environment=NVM_DIR=%h/.nvm
+ExecStart=/usr/bin/bash -c '. "$NVM_DIR/nvm.sh" >/dev/null; exec opencode serve --hostname 127.0.0.1 --port 4197'
 ExecStartPost=/usr/bin/bash -c 'for attempt in {1..50}; do (exec 3<>/dev/tcp/127.0.0.1/4197) >/dev/null 2>&1 && exit 0; sleep 0.1; done; exit 1'
 Restart=on-failure
 RestartSec=1
