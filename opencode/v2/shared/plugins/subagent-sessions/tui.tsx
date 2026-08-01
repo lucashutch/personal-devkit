@@ -167,7 +167,7 @@ export default Plugin.define({
                       <text fg={current().color}>▎{"\n"}▎ </text>
                       <box flexDirection="column" flexGrow={1}>
                         <text>{truncate(
-                          [effortLabel(label()?.profile), role()].filter(Boolean).join(" · ")
+                          [role(), effortLabel(label()?.profile)].filter(Boolean).join(" · ")
                             || live().title || "Untitled subagent",
                         )}</text>
                         <text fg={theme.text.subdued}>
