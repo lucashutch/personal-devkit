@@ -141,6 +141,29 @@ After every V2 CLI upgrade:
    requests.
 5. Run one live home-profile delegation and inspect the final session to verify
    the requested agent role and each selected model profile.
+6. Recheck the host API signatures the plugin calls. They are unversioned and
+   have changed silently before — see the note below.
+
+## Host API signature changes
+
+These break at runtime only, with an opaque error, so the unit test fakes must
+be kept faithful to the host.
+
+- `next-16621` changed `ctx.agent.get(id)` to
+  `ctx.agent.get({ agentID })` returning `{ location, data }`, and it now
+  rejects with `Agent not found: <id>` instead of resolving `undefined`.
+  Calling it the old way surfaced as `Expected string, got undefined` on every
+  `subagent` call, because the host ran `Agent.ID.make(input.agentID)` against
+  an undefined property.
+
+Signatures are readable from the shipped source maps:
+`@opencode-ai/cli/node_modules/@opencode-ai/cli-linux-x64-baseline/bin/*.js.map`,
+whose `sourcesContent` holds `core/src/plugin/host.ts` and
+`core/src/plugin/promise.ts`.
+
+Note also that the V2 service is persistent: after editing a plugin, run
+`o2h service restart` (or the profile equivalent) or the old module stays
+loaded and the fix appears not to work.
 
 ## Known limitations
 

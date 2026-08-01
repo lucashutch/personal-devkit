@@ -120,7 +120,11 @@ export function createDelegateProfilesPlugin() {
         if (existing) return existing
 
         const pending = (async () => {
-          const source = await ctx.agent.get(agent)
+          // `agent.get` takes `{ agentID }` and returns `{ location, data }`.
+          // It rejects with "Agent not found" rather than resolving undefined.
+          const source = await ctx.agent.get({ agentID: agent })
+            .then((result) => result?.data)
+            .catch(() => undefined)
           if (!source) throw new Error(`delegate-profiles cannot find agent: ${agent}`)
           const registration = await ctx.agent.transform((draft) => {
             draft.update(id, (alias) => {
