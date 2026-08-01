@@ -2,8 +2,8 @@
 
 ## Version
 
-- CLI: `@opencode-ai/cli@0.0.0-next-15788`
-- Verified: 2026-07-18
+- CLI: `@opencode-ai/cli@0.0.0-next-16621`
+- Verified: 2026-08-01
 
 ## Server plugins
 
@@ -61,19 +61,16 @@ session. Skill bodies are loaded on demand rather than injected into the
 initial prompt. Command `subtask` metadata has no execution effect in V2, so
 the ported commands explicitly tell General to load the corresponding skill.
 
-## TUI plugins: blocked
+## TUI plugins: working
 
-V2 contains the same TUI slot API used by V1 (`sidebar_content`,
-`sidebar_footer`, and related slots), but it does not yet load external TUI
-plugins from `cli.json`. The staged Limitwatch plugin is therefore inert; see
+`next-16621` exposes the host renderer to external plugins
+(`context.renderer`), so plugin-local `@opentui/solid` JSX now renders instead
+of crashing with `No renderer found`. The Limitwatch quota and subagent-session
+plugins are enabled in `shared/cli.json` and load from
+`shared/plugins/*/tui.tsx`.
+
+Their dependencies are pinned in `opencode/v2/package.json`; run `npm install`
+there after cloning or after upgrading the CLI, because `@opencode-ai/plugin`
+is versioned per CLI build. Both plugins use the additive `sidebar.content`
+slot. See
 [limitwatch-tui-findings.md](limitwatch-tui-findings.md).
-
-The V1 `subagent-sessions-plugin` is affected by the same limitation. Its
-sidebar child-session view depends on `api.slots.register`, so it cannot be
-ported as a functioning V2 sidebar plugin until the V2 external TUI-plugin
-loader lands. The existing V1 plugin remains the supported implementation.
-
-When V2 does load external TUI plugins, port the V1
-`opencode/v1/shared/plugins/subagent-sessions-plugin/` directory alongside the
-already staged Limitwatch plugin, then verify session-created, session-updated,
-and session-deleted refreshes in the V2 sidebar.
