@@ -14,5 +14,9 @@
   "keybinds": {
     "input_submit": "ctrl+return",
     "input_newline": "return,shift+return,alt+return,ctrl+j"
-  }
+  },
+  "plugins": [
+    "./shared/plugins/limitwatch-quota/tui.tsx",
+    "./shared/plugins/subagent-sessions/tui.tsx"
+  ]
 }
