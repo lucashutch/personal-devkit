@@ -41,5 +41,5 @@ and their parameter descriptions equal `shared/lib/slim-tools-data.js`.
   upgrading `@opencode-ai/cli@next`.
 - Plugin load failures are logged at
   `~/.local/share/opencode-v2-<profile>/opencode/log/opencode.log`.
-- V2 does not yet load external **TUI** plugins. This does not affect this
-  server-side tool-description plugin.
+- V2 loads and activates external **TUI** plugins through `cli.json`. This does
+  not affect this server-side tool-description plugin.
