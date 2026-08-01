@@ -107,7 +107,14 @@ test("plugin advertises model_profile and routes execution through a hidden alia
   }
   const ctx = {
     agent: {
-      get: async (id) => id === source.id ? source : aliases.get(id),
+      // Mirrors the host: `{ agentID }` in, `{ location, data }` out, and a
+      // rejection rather than `undefined` when the agent does not exist.
+      get: async (input) => {
+        if (typeof input?.agentID !== "string") throw new Error("Expected string, got undefined")
+        const found = input.agentID === source.id ? source : aliases.get(input.agentID)
+        if (!found) throw new Error(`Agent not found: ${input.agentID}`)
+        return { location: {}, data: found }
+      },
       list: async () => ({ data: [source] }),
       transform: async (callback) => {
         callback({
