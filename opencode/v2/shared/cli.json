@@ -3,12 +3,17 @@
     "name": "one-dark"
   },
   "diffs": {
-    "wrap": "word"
+    "wrap": "word",
+    "view": "auto",
+    "tree": true,
+    "single": false
   },
   "session": {
     "sidebar": "auto",
-    "scrollbar": false,
-    "thinking": "show"
+    "scrollbar": true,
+    "thinking": "hide",
+    "markdown": "rendered",
+    "grouping": "auto"
   },
   "animations": true,
   "keybinds": {
@@ -18,5 +23,23 @@
   "plugins": [
     "./shared/plugins/limitwatch-quota/tui.tsx",
     "./shared/plugins/subagent-sessions/tui.tsx"
-  ]
+  ],
+  "tabs": {
+    "enabled": false,
+    "scope": "global"
+  },
+  "scroll": {
+    "speed": 2
+  },
+  "prompt": {
+    "paste": "compact"
+  },
+  "attention": {
+    "enabled": true
+  },
+  "debug": {
+    "turn_tokens": false,
+    "devtools": true,
+    "timing": false
+  }
 }

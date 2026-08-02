@@ -54,5 +54,16 @@
   "theme": "custom:one-dark",
   "env": {
     "ENABLE_TOOL_SEARCH": "true"
+  },
+  "enabledPlugins": {
+    "gitkraken-hooks@gitkraken": true
+  },
+  "extraKnownMarketplaces": {
+    "gitkraken": {
+      "source": {
+        "path": "/home/lucas/.claude/plugins/marketplaces/gitkraken",
+        "source": "directory"
+      }
+    }
   }
 }
