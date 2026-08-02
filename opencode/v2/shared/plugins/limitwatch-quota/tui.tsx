@@ -204,6 +204,15 @@ const plugin = Plugin.define({
 
     let timer: ReturnType<typeof setInterval> | undefined
     let refreshQueued = false
+    let disposeSlot: (() => void) | undefined
+    let slotReady = false
+
+    const remountSlot = () => {
+      if (!slotReady) return
+      disposeSlot?.()
+      disposeSlot = registerSlot()
+      context.renderer.requestRender()
+    }
 
     const refresh = async () => {
       if (state().refreshing) {
@@ -214,12 +223,14 @@ const plugin = Plugin.define({
       try {
         const lines = await fetchQuotaLines()
         setState({ lines, updatedAt: Date.now(), refreshing: false })
+        remountSlot()
       } catch (error) {
         setState({
           lines: [`Error: ${error instanceof Error ? error.message : String(error)}`],
           updatedAt: Date.now(),
           refreshing: false,
         })
+        remountSlot()
       } finally {
         if (refreshQueued) {
           refreshQueued = false
@@ -233,7 +244,7 @@ const plugin = Plugin.define({
     timer.unref?.()
     const disposeStatus = context.data.on("session.status", () => void refresh())
 
-    const disposeSlot = context.ui.slot("sidebar.content", () => {
+    function QuotaSidebar() {
       const current = state()
       const stamp = current.updatedAt
         ? `updated ${new Date(current.updatedAt).toLocaleTimeString()}`
@@ -259,12 +270,20 @@ const plugin = Plugin.define({
           ) : null}
         </box>
       )
-    })
+    }
+
+    function registerSlot() {
+      return context.ui.slot("sidebar.content", () => <QuotaSidebar />)
+    }
+
+    disposeSlot = registerSlot()
+    slotReady = true
 
     return () => {
+      slotReady = false
       if (timer) clearInterval(timer)
       disposeStatus()
-      disposeSlot()
+      disposeSlot?.()
     }
   },
 })
