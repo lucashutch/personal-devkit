@@ -3,7 +3,8 @@
 ## Purpose
 
 Adds a `Quotas` section to the session sidebar. It runs `limitwatch show
---json`, formats each account's quota, and refreshes every two minutes.
+--json`, formats each account's quota, refreshes after session status changes,
+and polls every two minutes.
 
 ## Configuration
 

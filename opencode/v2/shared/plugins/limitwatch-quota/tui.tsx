@@ -203,9 +203,13 @@ const plugin = Plugin.define({
     })
 
     let timer: ReturnType<typeof setInterval> | undefined
+    let refreshQueued = false
 
     const refresh = async () => {
-      if (state().refreshing) return
+      if (state().refreshing) {
+        refreshQueued = true
+        return
+      }
       setState((prev) => ({ ...prev, refreshing: true }))
       try {
         const lines = await fetchQuotaLines()
@@ -216,12 +220,18 @@ const plugin = Plugin.define({
           updatedAt: Date.now(),
           refreshing: false,
         })
+      } finally {
+        if (refreshQueued) {
+          refreshQueued = false
+          void refresh()
+        }
       }
     }
 
     void refresh()
     timer = setInterval(() => void refresh(), 2 * 60 * 1000)
     timer.unref?.()
+    const disposeStatus = context.data.on("session.status", () => void refresh())
 
     const disposeSlot = context.ui.slot("sidebar.content", () => {
       const current = state()
@@ -253,6 +263,7 @@ const plugin = Plugin.define({
 
     return () => {
       if (timer) clearInterval(timer)
+      disposeStatus()
       disposeSlot()
     }
   },
