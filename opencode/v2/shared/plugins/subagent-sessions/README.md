@@ -21,14 +21,21 @@ The effort and role are recovered from generated agent IDs such as
 
 - Plugin entry: `shared/cli.json` → `./shared/plugins/subagent-sessions/tui.tsx`
 - Slot: `sidebar.content`
-- Child lookup: `context.data.session.family(parentID)` plus cached sessions
+- Child lookup: the TUI session cache plus session info retained from events,
+  with a one-second server reconciliation filtered by `parentID`
 - Refresh: `session.created`, `session.updated`, `session.deleted`, and
   `session.status` events
 
-The loader intentionally does not await `session.sync()` or message syncs.
-Those requests can remain pending for active children and would leave the UI
-stuck on `Loading sessions…`; the host's live family/session cache is used
-instead.
+The event handlers explicitly request a renderer frame after changing reactive
+state and remount the external slot. The remount is necessary because this
+external plugin's Solid runtime is not the host's runtime: signal updates are
+visible on the next mount but do not invalidate the existing host render tree.
+
+V2's `data.session.list()` is a local cache and can lag behind a newly created
+child. Session events include the complete session info, so the plugin retains
+that payload and merges it with the cache. It also reconciles with the session
+list endpoint once per second because the host does not always project child
+session events into an already-mounted external slot.
 
 ## Troubleshooting
 

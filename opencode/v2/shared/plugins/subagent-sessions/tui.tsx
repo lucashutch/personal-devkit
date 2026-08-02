@@ -9,7 +9,7 @@ type ChildSession = {
   agent?: string
   model?: { providerID?: string; id?: string; variant?: string }
   parentID?: string
-  time?: { created?: number }
+  time?: { created?: number; updated?: number }
 }
 
 type ChildWithModel = ChildSession & { modelLabel?: string }
@@ -60,34 +60,69 @@ export default Plugin.define({
   setup(context) {
     const theme = context.theme
     const [sessionRevision, setSessionRevision] = createSignal(0)
-    const refreshSessions = () => setSessionRevision((value) => value + 1)
-    const disposeCreated = context.data.on("session.created", refreshSessions)
-    const disposeUpdated = context.data.on("session.updated", refreshSessions)
-    const disposeDeleted = context.data.on("session.deleted", refreshSessions)
-    const disposeStatus = context.data.on("session.status", refreshSessions)
+    const observedSessions = new Map<string, ChildSession>()
+    let disposeSlot: (() => void) | undefined
+    let slotReady = false
+    const refreshSessions = () => {
+      setSessionRevision((value) => value + 1)
+      if (slotReady) {
+        disposeSlot?.()
+        disposeSlot = registerSlot()
+      }
+      context.renderer.requestRender()
+    }
+    const rememberSession = (event: { data: { sessionID: string; info: unknown } }) => {
+      observedSessions.set(event.data.sessionID, event.data.info as ChildSession)
+      refreshSessions()
+    }
+    const disposeCreated = context.data.on("session.created", rememberSession)
+    const disposeUpdated = context.data.on("session.updated", rememberSession)
+    const disposeDeleted = context.data.on("session.deleted", (event) => {
+      observedSessions.delete(event.data.sessionID)
+      refreshSessions()
+    })
+    const disposeStatus = context.data.on("session.status", () => context.renderer.requestRender())
 
     function SubagentSessions(props: { sessionID: string }) {
       const [state, setState] = createSignal<ListState>({ children: [], loading: true })
       const [open, setOpen] = createSignal(true)
       let scrollbox: ScrollBoxRenderable | undefined
       let request = 0
+      let disposed = false
       let knownChildIDs = new Set<string>()
 
+      const refreshRemote = async () => {
+        const parentID = props.sessionID
+        try {
+          const response = await context.client.session.list({ parentID })
+          if (disposed || parentID !== props.sessionID) return
+          let changed = false
+          for (const session of response.data as ChildSession[]) {
+            const previous = observedSessions.get(session.id)
+            observedSessions.set(session.id, session)
+            changed ||= !previous
+              || previous.time?.updated !== session.time?.updated
+              || previous.title !== session.title
+              || previous.agent !== session.agent
+          }
+          if (changed) refreshSessions()
+        } catch {
+          // The local cache and event payloads remain usable if polling fails.
+        }
+      }
+
+      void refreshRemote()
+      const poll = setInterval(() => void refreshRemote(), 1_000)
+
       const load = (parentID: string) => {
-        // The host keeps child sessions in its family index as they are
-        // created. Do not await a server sync here: unlike the native viewer,
-        // a plugin sync can remain pending while a child is still running,
-        // which leaves the sidebar on "Loading sessions…" forever.
-        const childIDs = new Set([
-          ...context.data.session.family(parentID),
-          ...context.data.session.list()
-            .filter((session) => session.parentID === parentID)
-            .map((session) => session.id),
-        ])
-        const children = [...childIDs]
-          .filter((id) => id !== parentID)
-          .map((id) => context.data.session.get(id))
-          .filter((session): session is ChildSession => Boolean(session) && session!.parentID === parentID)
+        // The collection cache can lag behind session events. Retain the info
+        // carried by those events so a new child is renderable immediately.
+        const sessions = new Map<string, ChildSession>(
+          context.data.session.list().map((session) => [session.id, session]),
+        )
+        for (const [id, session] of observedSessions) sessions.set(id, session)
+        const children = [...sessions.values()]
+          .filter((session) => session.parentID === parentID)
           .sort((left, right) => (left.time?.created ?? 0) - (right.time?.created ?? 0))
 
         return children.map((child) => {
@@ -105,21 +140,26 @@ export default Plugin.define({
         sessionRevision()
         const currentRequest = ++request
         setState((previous) => ({ ...previous, loading: true, error: undefined }))
-
         try {
           const children = load(parentID)
           if (currentRequest !== request) return
           const hasNewChild = children.some((child) => !knownChildIDs.has(child.id))
           knownChildIDs = new Set(children.map((child) => child.id))
           setState({ children, loading: false })
+          context.renderer.requestRender()
           if (hasNewChild) requestAnimationFrame(() => scrollbox?.scrollTo(scrollbox.scrollHeight))
         } catch (error) {
           if (currentRequest !== request) return
           setState({ children: [], loading: false, error: errorMessage(error) })
+          context.renderer.requestRender()
         }
       })
 
-      onCleanup(() => { request += 1 })
+      onCleanup(() => {
+        disposed = true
+        clearInterval(poll)
+        request += 1
+      })
 
       const listHeight = () => state().children.length === 0 ? 1 : MAX_VISIBLE_ROWS
 
@@ -185,16 +225,22 @@ export default Plugin.define({
       )
     }
 
-    const disposeSlot = context.ui.slot("sidebar.content", (props) => (
-      <SubagentSessions sessionID={String(props.sessionID)} />
-    ))
+    function registerSlot() {
+      return context.ui.slot("sidebar.content", (props) => (
+        <SubagentSessions sessionID={String(props.sessionID)} />
+      ))
+    }
+
+    disposeSlot = registerSlot()
+    slotReady = true
 
     return () => {
       disposeCreated()
       disposeUpdated()
       disposeDeleted()
       disposeStatus()
-      disposeSlot()
+      slotReady = false
+      disposeSlot?.()
     }
   },
 })
