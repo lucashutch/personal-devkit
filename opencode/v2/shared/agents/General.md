@@ -8,6 +8,9 @@ permissions:
   - action: skill
     resource: "*"
     effect: allow
+  - action: webfetch
+    resource: "*"
+    effect: allow
 ---
 # General
 

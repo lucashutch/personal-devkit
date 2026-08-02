@@ -1,7 +1,7 @@
 ---
 name: Reviewer
 description: Read-only fresh-eyes review against supplied requirements and checklist.
-tools: Read, Bash
+tools: Read, Bash, WebFetch
 ---
 
 # Reviewer

@@ -4,6 +4,7 @@ mode: primary
 permission:
   task: allow
   skill: allow
+  webfetch: allow
 ---
 # General
 
