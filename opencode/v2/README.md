@@ -63,14 +63,16 @@ the ported commands explicitly tell General to load the corresponding skill.
 
 ## TUI plugins: working
 
-`next-16621` exposes the host renderer to external plugins
+`next-16671` exposes the host renderer to external plugins
 (`context.renderer`), so plugin-local `@opentui/solid` JSX now renders instead
 of crashing with `No renderer found`. The Limitwatch quota and subagent-session
 plugins are enabled in `shared/cli.json` and load from
 `shared/plugins/*/tui.tsx`.
 
-Their dependencies are pinned in `opencode/v2/package.json`; run `npm install`
-there after cloning or after upgrading the CLI, because `@opencode-ai/plugin`
-is versioned per CLI build. Both plugins use the additive `sidebar.content`
-slot. See
+Their dependencies are pinned in `opencode/v2/package.json` and installed by
+`scripts/link-config.py --opencode` with `npm ci`. They must be installed from
+that directory because the plugin loader resolves imports from the plugin source
+tree. The OpenCode CLI and `@opencode-ai/plugin` are versioned as a pair; update
+`package.json` and its lockfile after upgrading the CLI.
+Both plugins use the additive `sidebar.content` slot. See
 [limitwatch-tui-findings.md](limitwatch-tui-findings.md).

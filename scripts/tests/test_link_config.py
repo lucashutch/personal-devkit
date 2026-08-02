@@ -47,6 +47,9 @@ class LinkConfigTests(unittest.TestCase):
                 "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$SERVICE_LOG\"\n"
             )
             executable.chmod(0o755)
+            npm = binary_directory / "npm"
+            npm.write_text("#!/bin/sh\nexit 0\n")
+            npm.chmod(0o755)
             systemctl = binary_directory / "systemctl"
             systemctl.write_text("#!/bin/sh\nexit 0\n")
             systemctl.chmod(0o755)
@@ -68,6 +71,7 @@ class LinkConfigTests(unittest.TestCase):
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("opencode-v2-tui-dependencies", result.stdout)
             repeat = subprocess.run(
                 ["python3", str(LINKER), "--opencode"],
                 cwd=ROOT,

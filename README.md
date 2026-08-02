@@ -151,9 +151,11 @@ directory, so `gh` keeps one login across OpenCode profiles.
 
 Run `scripts/link-config.py --opencode` first. It links profile config to
 `~/.config/opencode-v2-{home,work,test}/opencode/`, with shared CLI settings
-and agents sourced from `opencode/v2/shared/`. It never links runtime-generated
-`service.json` or other credentials/state files. Use the profile wrappers;
-bare `opencode2` is intentionally not configured by this repository.
+and agents sourced from `opencode/v2/shared/`, then runs `npm ci` in
+`opencode/v2/` to install the TUI plugin dependencies. It never links
+runtime-generated `service.json` or other credentials/state files. Use the
+profile wrappers; bare `opencode2` is intentionally not configured by this
+repository.
 
 `scripts/link-config.py --opencode` configures these local-only endpoints when
 `opencode2` is on `PATH`; rerunning it reapplies the same values safely. If the
