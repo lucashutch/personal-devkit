@@ -22,7 +22,8 @@ The effort and role are recovered from generated agent IDs such as
 - Plugin entry: `shared/cli.json` → `./shared/plugins/subagent-sessions/tui.tsx`
 - Slot: `sidebar.content`
 - Child lookup: `context.data.session.family(parentID)` plus cached sessions
-- Refresh: `session.created`, `session.updated`, and `session.deleted` events
+- Refresh: `session.created`, `session.updated`, `session.deleted`, and
+  `session.status` events
 
 The loader intentionally does not await `session.sync()` or message syncs.
 Those requests can remain pending for active children and would leave the UI

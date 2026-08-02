@@ -64,6 +64,7 @@ export default Plugin.define({
     const disposeCreated = context.data.on("session.created", refreshSessions)
     const disposeUpdated = context.data.on("session.updated", refreshSessions)
     const disposeDeleted = context.data.on("session.deleted", refreshSessions)
+    const disposeStatus = context.data.on("session.status", refreshSessions)
 
     function SubagentSessions(props: { sessionID: string }) {
       const [state, setState] = createSignal<ListState>({ children: [], loading: true })
@@ -192,6 +193,7 @@ export default Plugin.define({
       disposeCreated()
       disposeUpdated()
       disposeDeleted()
+      disposeStatus()
       disposeSlot()
     }
   },
