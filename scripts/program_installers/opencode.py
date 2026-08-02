@@ -21,8 +21,10 @@ def install_opencode(options: object) -> int:
         error("npm is required to install opencode. Install npm or put opencode on PATH and rerun.")
         return 1
 
-    info("Installing opencode with npm.")
-    result = run_command(["npm", "install", "--global", "opencode-ai@latest"], check=False)
+    info("Installing OpenCode V2 next with npm.")
+    result = run_command(
+        ["npm", "install", "--global", "@opencode-ai/cli@next"], check=False
+    )
     if result.returncode != 0:
         return 1
 

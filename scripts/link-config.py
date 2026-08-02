@@ -17,6 +17,7 @@ from program_installers.common import configure_logging, fail, info
 OPENCODE_V2_PROFILES = ("home", "work", "test")
 OPENCODE_V2_SHARED_ENTRIES = ("cli.json", "agents", "commands", "skills")
 OPENCODE_V2_SERVICE_PORTS = {"home": 4098, "work": 4097, "test": 4099}
+OPENCODE_V2_DIRECTORY = "opencode/v2"
 
 OPENCODE_V1_PROFILES = ("home", "work", "test")
 OPENCODE_V1_SERVICE_UNITS = tuple(
@@ -265,6 +266,28 @@ def configure_v2_services(summary: Summary) -> None:
             summary.worked.append(("newly linked", label))
 
 
+def install_v2_tui_dependencies(summary: Summary, *, root: Path) -> None:
+    """Install the packages imported by the repo-managed V2 TUI plugins."""
+    executable = shutil.which("npm")
+    if not executable:
+        info("skipped V2 TUI plugin dependencies: npm is not on PATH")
+        return
+
+    result = subprocess.run(
+        [executable, "ci", "--ignore-scripts"],
+        cwd=root / OPENCODE_V2_DIRECTORY,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode:
+        detail = result.stderr.strip() or result.stdout.strip() or "command failed"
+        record_error(summary, "opencode-v2-tui-dependencies", f"npm ci failed: {detail}")
+        return
+    info("installed: V2 TUI plugin dependencies")
+    summary.worked.append(("newly linked", "opencode-v2-tui-dependencies"))
+
+
 def install_v1_services(summary: Summary, *, root: Path, force: bool) -> None:
     """Link V1's lazy-start user services and reload the user manager."""
     link_entries(
@@ -500,6 +523,8 @@ def main(argv: list[str]) -> int:
             install_v1_services(summary, root=root, force=parsed.force)
         if not summary.errored:
             configure_v2_services(summary)
+        if not summary.errored:
+            install_v2_tui_dependencies(summary, root=root)
 
     if parsed.link_claude:
         link_entries(

@@ -4,13 +4,13 @@
   "type": "module",
   "description": "Dependencies for the V2 TUI plugins in shared/plugins.",
   "dependencies": {
-    "@opencode-ai/plugin": "0.0.0-next-16621",
+    "@opencode-ai/plugin": "0.0.0-next-16671",
     "@opentui/core": "0.4.5",
     "@opentui/keymap": "0.4.5",
     "@opentui/solid": "0.4.5",
     "solid-js": "1.9.12"
   },
   "devDependencies": {
-    "@opencode-ai/theme": "0.0.0-next-16621"
+    "@opencode-ai/theme": "0.0.0-next-16671"
   }
 }
