@@ -11,6 +11,9 @@ permissions:
   - action: subagent
     resource: "*"
     effect: deny
+  - action: webfetch
+    resource: "*"
+    effect: allow
 ---
 # Reviewer
 

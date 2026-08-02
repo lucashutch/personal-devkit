@@ -4,6 +4,7 @@ mode: subagent
 permission:
   edit: deny
   skill: deny
+  webfetch: allow
 ---
 # Reviewer
 
