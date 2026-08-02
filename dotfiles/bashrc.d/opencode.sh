@@ -155,3 +155,18 @@ tokw() {
   XDG_DATA_HOME="$HOME/.local/share/opencode-v1-work" \
     command npx tokscale@latest --client opencode --client claude "$@"
 }
+
+# Tokscale usage for OpenCode V2 account data. V2 keeps sessions in
+# opencode-next.db, while tokscale's opencode client only reads the V1
+# storage/message tree, so these report nothing until tokscale learns to read
+# the V2 database. They are kept separate from tokh/tokw because tokscale takes
+# a single data root, so V1 and V2 cannot be scanned in one invocation.
+tok2h() {
+  XDG_DATA_HOME="$HOME/.local/share/opencode-v2-home" \
+    command npx tokscale@latest --client opencode "$@"
+}
+
+tok2w() {
+  XDG_DATA_HOME="$HOME/.local/share/opencode-v2-work" \
+    command npx tokscale@latest --client opencode "$@"
+}
