@@ -110,14 +110,12 @@ Current bash snippets include:
 
 The helpers in `dotfiles/bashrc.d/opencode.sh` are plain shell functions that
 export the selected profile's XDG namespace and then run the real binary. The
-V1 helpers attach to that profile's shared server, starting the systemd unit
-first, so several TUI clients can share one set of live sessions; subcommands
-and TUI flags that `attach` does not accept fall back to a standalone process.
-Bare `opencode2` still runs in the standard global namespace.
+V1 helpers run the V1 binary directly, so each window is its own standalone
+process. Bare `opencode2` still runs in the standard global namespace.
 
 Profile selection is deliberately shell-only. Callers that are not interactive
-shells set the namespace themselves: the `opencode-v1-*` units carry their own
-`XDG_*` environment. External session resume is therefore not supported —
+shells set the namespace themselves. External session resume is therefore not
+supported —
 Herdr builds its resume argv from a hardcoded per-agent table, does not reuse
 the pane's launch command, and rejects non-official agent sources, so it cannot
 be pointed at `och`/`ocw`/`o2h`. A `~/.local/bin` PATH shim was tried as the
@@ -151,7 +149,8 @@ directory, so `gh` keeps one login across OpenCode profiles.
 
 Run `scripts/link-config.py --opencode` first. It links profile config to
 `~/.config/opencode-v2-{home,work,test}/opencode/`, with shared CLI settings
-and agents sourced from `opencode/v2/shared/`, then runs `npm ci` in
+agents, the Herdr lifecycle integration, and the Herdr session-title plugin sourced from
+`opencode/v2/shared/`, then runs `npm ci` in
 `opencode/v2/` to install the TUI plugin dependencies. It never links
 runtime-generated `service.json` or other credentials/state files. Use the
 profile wrappers; bare `opencode2` is intentionally not configured by this
@@ -191,27 +190,10 @@ agent, command, plugin, and skill files. The profile sources live under
 when setting up another computer or preserving existing V1 authentication and
 session history.
 
-V1 CLI TUI launches use a lazy per-profile user service instead of starting a
-server in every window. The first `och`, `ocw`, or `oct` launch starts its
-localhost service and attaches to it; later windows attach to the same service.
-The services listen on `4195`, `4196`, and `4197` respectively and are linked
-to `~/.config/systemd/user/` by `scripts/link-config.py --opencode`; they do
-not start at login. Check a profile with `systemctl --user status
-opencode-v1-home.service`. Restart its service after changing its V1 config,
-agents, commands, skills, plugins, or after upgrading the V1 binary:
+V1 CLI TUI launches are standalone: each `och`, `ocw`, or `oct` window starts
+its own process, and every V1 command keeps its normal upstream behavior.
 
-```sh
-systemctl --user restart opencode-v1-home.service
-systemctl --user restart opencode-v1-work.service
-systemctl --user restart opencode-v1-test.service
-```
-
-Run `scripts/link-config.py --opencode` after changing the managed service
-units; it reloads the user systemd manager. Explicit V1 commands such as
-`opencode run`, `opencode serve`, and `opencode attach` retain their normal
-standalone behavior.
-
-The same command also installs Home and Work desktop launchers under the XDG
+`scripts/link-config.py --opencode` also installs Home and Work desktop launchers under the XDG
 data directory. They use the V1 XDG roots above, have green and orange icons,
 and locally hide the stock OpenCode desktop entry.
 
