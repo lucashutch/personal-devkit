@@ -1,4 +1,4 @@
-"""Profile and attach-mode checks for the OpenCode shell helpers."""
+"""Profile checks for the OpenCode shell helpers."""
 
 from __future__ import annotations
 
@@ -82,49 +82,17 @@ class OpenCodeHelperTests(unittest.TestCase):
         self.assertEqual(seen["gh"], f"{self.home}/.config/gh")
         self.assertEqual(seen["websockets"], "true")
 
-    def test_v1_tui_attaches_to_the_profile_server(self) -> None:
+    def test_v1_helper_runs_the_binary_standalone(self) -> None:
         seen = self.run_helper("och")
-        self.assertEqual(
-            seen["argv"],
-            ["attach", "http://127.0.0.1:4195", "--dir", str(self.home)],
-        )
-        self.assertEqual(
-            self.systemctl_calls(), ["--user start opencode-v1-home.service"]
-        )
-
-    def test_each_v1_profile_uses_its_own_port(self) -> None:
-        self.assertIn("http://127.0.0.1:4196", self.run_helper("ocw")["argv"])
-        self.assertIn("http://127.0.0.1:4197", self.run_helper("oct")["argv"])
-
-    def test_directory_argument_becomes_the_attach_directory(self) -> None:
-        seen = self.run_helper("och /tmp")
-        self.assertEqual(seen["argv"][-2:], ["--dir", "/tmp"])
-
-    def test_session_flag_is_forwarded_to_attach(self) -> None:
-        seen = self.run_helper("och --session ses_example")
-        self.assertEqual(
-            seen["argv"],
-            [
-                "attach",
-                "http://127.0.0.1:4195",
-                "--session",
-                "ses_example",
-                "--dir",
-                str(self.home),
-            ],
-        )
-
-    def test_subcommands_keep_the_standalone_path(self) -> None:
-        seen = self.run_helper("och models")
-        self.assertEqual(seen["argv"], ["models"])
+        self.assertEqual(seen["argv"], [])
         self.assertEqual(self.systemctl_calls(), [])
 
-    def test_unsupported_tui_flags_keep_the_standalone_path(self) -> None:
-        seen = self.run_helper("och --model anthropic/claude")
-        self.assertEqual(seen["argv"], ["--model", "anthropic/claude"])
+    def test_v1_arguments_are_forwarded_unchanged(self) -> None:
+        seen = self.run_helper("och --model anthropic/claude /tmp")
+        self.assertEqual(seen["argv"], ["--model", "anthropic/claude", "/tmp"])
         self.assertEqual(self.systemctl_calls(), [])
 
-    def test_v2_helper_applies_profile_namespace_without_attach(self) -> None:
+    def test_v2_helper_applies_profile_namespace(self) -> None:
         seen = self.run_helper("o2h")
         self.assertEqual(seen["argv"], [])
         self.assertEqual(seen["config"], f"{self.home}/.config/opencode-v2-home")
