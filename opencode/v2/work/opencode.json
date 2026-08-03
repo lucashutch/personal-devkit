@@ -16,7 +16,9 @@
   "plugins": [
     "./shared/plugins/model-filter.js",
     "./shared/plugins/slim-tools.js",
-    "./shared/plugins/delegate-profiles.js"
+    "./shared/plugins/delegate-profiles.js",
+    "./shared/plugins/herdr-agent-state.js",
+    "./shared/plugins/herdr-session-title.js"
   ],
   "agents": {
     "build": {
