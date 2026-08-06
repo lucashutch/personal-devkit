@@ -59,29 +59,39 @@ export default Plugin.define({
   id: "subagent-sessions-plugin",
   setup(context) {
     const theme = context.theme
-    const [sessionRevision, setSessionRevision] = createSignal(0)
+    const [sessionState, setSessionState] = context.storage.memory("subagent-sessions", {
+      initial: { revision: 0 },
+    })
     const observedSessions = new Map<string, ChildSession>()
+    const observedStatuses = new Map<string, "idle" | "running">()
+    const statusEventTimes = new Map<string, number>()
     let disposeSlot: (() => void) | undefined
     let slotReady = false
     const refreshSessions = () => {
-      setSessionRevision((value) => value + 1)
+      setSessionState((state) => { state.revision += 1 })
       if (slotReady) {
         disposeSlot?.()
         disposeSlot = registerSlot()
       }
-      context.renderer.requestRender()
     }
-    const rememberSession = (event: { data: { sessionID: string; info: unknown } }) => {
-      observedSessions.set(event.data.sessionID, event.data.info as ChildSession)
+    const rememberSession = (event: { data: Omit<ChildSession, "id"> & { sessionID: string } }) => {
+      observedSessions.set(event.data.sessionID, { ...event.data, id: event.data.sessionID })
       refreshSessions()
     }
     const disposeCreated = context.data.on("session.created", rememberSession)
-    const disposeUpdated = context.data.on("session.updated", rememberSession)
+    const disposeRenamed = context.data.on("session.renamed", refreshSessions)
+    const disposeModelSelected = context.data.on("session.model.selected", refreshSessions)
     const disposeDeleted = context.data.on("session.deleted", (event) => {
       observedSessions.delete(event.data.sessionID)
+      observedStatuses.delete(event.data.sessionID)
+      statusEventTimes.delete(event.data.sessionID)
       refreshSessions()
     })
-    const disposeStatus = context.data.on("session.status", () => context.renderer.requestRender())
+    const disposeStatus = context.data.on("session.status", (event) => {
+      observedStatuses.set(event.data.sessionID, event.data.status.type === "busy" ? "running" : "idle")
+      statusEventTimes.set(event.data.sessionID, Date.now())
+      refreshSessions()
+    })
 
     function SubagentSessions(props: { sessionID: string }) {
       const [state, setState] = createSignal<ListState>({ children: [], loading: true })
@@ -104,6 +114,14 @@ export default Plugin.define({
               || previous.time?.updated !== session.time?.updated
               || previous.title !== session.title
               || previous.agent !== session.agent
+
+            const status = context.data.session.status(session.id)
+            const observedStatus = observedStatuses.get(session.id)
+            const eventIsFresh = Date.now() - (statusEventTimes.get(session.id) ?? 0) < 750
+            if (!eventIsFresh && observedStatus !== status) {
+              observedStatuses.set(session.id, status)
+              changed = true
+            }
           }
           if (changed) refreshSessions()
         } catch {
@@ -128,8 +146,8 @@ export default Plugin.define({
         return children.map((child) => {
           const model = child.model
             ? modelLabel(child.model)
-            : [...context.data.session.message.list(child.id)].reverse()
-              .map((message) => modelLabel(message.info))
+            : [...(context.data.session.message.list(child.id) ?? [])].reverse()
+              .map((message) => modelLabel(message))
               .find(Boolean)
           return model ? { ...child, modelLabel: model } : child
         })
@@ -137,7 +155,7 @@ export default Plugin.define({
 
       createEffect(() => {
         const parentID = props.sessionID
-        sessionRevision()
+        sessionState.revision
         const currentRequest = ++request
         setState((previous) => ({ ...previous, loading: true, error: undefined }))
         try {
@@ -146,12 +164,10 @@ export default Plugin.define({
           const hasNewChild = children.some((child) => !knownChildIDs.has(child.id))
           knownChildIDs = new Set(children.map((child) => child.id))
           setState({ children, loading: false })
-          context.renderer.requestRender()
           if (hasNewChild) requestAnimationFrame(() => scrollbox?.scrollTo(scrollbox.scrollHeight))
         } catch (error) {
           if (currentRequest !== request) return
           setState({ children: [], loading: false, error: errorMessage(error) })
-          context.renderer.requestRender()
         }
       })
 
@@ -166,7 +182,7 @@ export default Plugin.define({
       // V2 reports only "idle" or "running"; V1's separate "retry" state has no
       // equivalent in the session status API.
       const activity = (sessionID: string) =>
-        context.data.session.status(sessionID) === "running"
+        (observedStatuses.get(sessionID) ?? context.data.session.status(sessionID)) === "running"
           ? { label: "working", color: theme.text.feedback.warning.default }
           : { label: "idle", color: theme.text.subdued }
 
@@ -236,7 +252,8 @@ export default Plugin.define({
 
     return () => {
       disposeCreated()
-      disposeUpdated()
+      disposeRenamed()
+      disposeModelSelected()
       disposeDeleted()
       disposeStatus()
       slotReady = false

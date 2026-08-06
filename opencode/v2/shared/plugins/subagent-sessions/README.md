@@ -23,13 +23,22 @@ The effort and role are recovered from generated agent IDs such as
 - Slot: `sidebar.content`
 - Child lookup: the TUI session cache plus session info retained from events,
   with a one-second server reconciliation filtered by `parentID`
-- Refresh: `session.created`, `session.updated`, `session.deleted`, and
-  `session.status` events
+- Refresh: session creation, rename, model selection, deletion, and status
+  events
 
-The event handlers explicitly request a renderer frame after changing reactive
-state and remount the external slot. The remount is necessary because this
-external plugin's Solid runtime is not the host's runtime: signal updates are
-visible on the next mount but do not invalidate the existing host render tree.
+The event handlers update a host-owned `context.storage.memory()` revision and
+remount the slot. Neither ordinary Solid signals nor the host-owned store
+invalidated the already-mounted external slot in live testing, despite the
+upstream `createComponent` lifecycle fix. Remounting remains necessary until
+OpenCode fixes the remaining external Solid-runtime boundary.
+
+Status event payloads are retained directly as well. The host session-status
+cache can still contain `running` when the event announcing `idle` triggers the
+remount, so rereading only that cache leaves completed subagents looking busy.
+The one-second reconciliation also compares each child's cached status and
+remounts when it changes. Fresh event status wins briefly so a lagging cache
+cannot immediately undo it; afterward polling can recover either a missed
+`running` transition or a missed `idle` transition.
 
 V2's `data.session.list()` is a local cache and can lag behind a newly created
 child. Session events include the complete session info, so the plugin retains

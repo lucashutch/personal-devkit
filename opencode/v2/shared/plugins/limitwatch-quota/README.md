@@ -17,9 +17,9 @@ When `LIMITWATCH_CONFIG_DIR` is unset, the plugin resets `XDG_CONFIG_HOME` to
 not hide the normal Limitwatch accounts.
 
 After each refresh, including the two-minute poll, the plugin remounts its
-sidebar slot and requests a renderer frame. External plugin signals currently
-do not invalidate the host's existing Solid render tree, so requesting a frame
-without remounting leaves stale quota values visible.
+sidebar slot. Live testing found that neither plugin-local Solid signals nor a
+host-owned `context.storage.memory()` store invalidated the existing external
+slot, so remounting remains necessary for fresh quota values.
 
 ## Troubleshooting
 

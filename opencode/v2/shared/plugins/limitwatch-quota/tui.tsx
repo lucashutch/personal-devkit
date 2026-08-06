@@ -1,5 +1,4 @@
 /** @jsxImportSource @opentui/solid */
-import { createSignal } from "solid-js"
 import { Plugin } from "@opencode-ai/plugin/tui"
 
 const DEFAULT_COMMAND = "limitwatch show --json"
@@ -196,10 +195,12 @@ const plugin = Plugin.define({
   id: "limitwatch-quota-plugin",
   setup(context) {
     const theme = context.theme
-    const [state, setState] = createSignal({
-      lines: ["Loading quota..."] as QuotaLine[],
-      updatedAt: 0,
-      refreshing: false,
+    const [state, setState] = context.storage.memory("limitwatch-quota", {
+      initial: {
+        lines: ["Loading quota..."] as QuotaLine[],
+        updatedAt: 0,
+        refreshing: false,
+      },
     })
 
     let timer: ReturnType<typeof setInterval> | undefined
@@ -211,24 +212,26 @@ const plugin = Plugin.define({
       if (!slotReady) return
       disposeSlot?.()
       disposeSlot = registerSlot()
-      context.renderer.requestRender()
     }
-
     const refresh = async () => {
-      if (state().refreshing) {
+      if (state.refreshing) {
         refreshQueued = true
         return
       }
-      setState((prev) => ({ ...prev, refreshing: true }))
+      setState((current) => { current.refreshing = true })
       try {
         const lines = await fetchQuotaLines()
-        setState({ lines, updatedAt: Date.now(), refreshing: false })
+        setState((current) => {
+          current.lines = lines
+          current.updatedAt = Date.now()
+          current.refreshing = false
+        })
         remountSlot()
       } catch (error) {
-        setState({
-          lines: [`Error: ${error instanceof Error ? error.message : String(error)}`],
-          updatedAt: Date.now(),
-          refreshing: false,
+        setState((current) => {
+          current.lines = [`Error: ${error instanceof Error ? error.message : String(error)}`]
+          current.updatedAt = Date.now()
+          current.refreshing = false
         })
         remountSlot()
       } finally {
@@ -245,7 +248,7 @@ const plugin = Plugin.define({
     const disposeStatus = context.data.on("session.status", () => void refresh())
 
     function QuotaSidebar() {
-      const current = state()
+      const current = state
       const stamp = current.updatedAt
         ? `updated ${new Date(current.updatedAt).toLocaleTimeString()}`
         : current.refreshing ? "refreshing" : ""
