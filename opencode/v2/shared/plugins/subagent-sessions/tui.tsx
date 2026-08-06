@@ -12,7 +12,8 @@ type ChildSession = {
   time?: { created?: number; updated?: number }
 }
 
-type ChildWithModel = ChildSession & { modelLabel?: string }
+type TokenUsage = { count: number; context?: number }
+type ChildWithModel = ChildSession & { modelLabel?: string; tokenUsage?: TokenUsage }
 type ListState = { children: ChildWithModel[]; loading: boolean; error?: string }
 
 const MAX_VISIBLE_ROWS = 18
@@ -43,8 +44,10 @@ function modelLabel(message: unknown) {
 }
 
 function delegateLabel(session: ChildSession) {
-  const match = session.agent?.match(/^delegate-profile--(.+?)--(.+)$/)
-  return match ? { profile: match[1], agent: match[2] } : undefined
+  const legacy = session.agent?.match(/^delegate-profile--(.+?)--(.+)$/)
+  if (legacy) return { profile: legacy[1], agent: legacy[2] }
+  const concise = session.agent?.match(/^(Fast|Standard|Deep)-(.+)$/)
+  return concise ? { profile: concise[1].toLowerCase(), agent: concise[2] } : undefined
 }
 
 function effortLabel(value?: string) {
@@ -53,6 +56,12 @@ function effortLabel(value?: string) {
 
 function modelName(value?: string) {
   return value?.split("/").at(-1)?.split("#")[0]
+}
+
+function formatTokens(value: number) {
+  if (value < 1_000) return String(value)
+  if (value < 1_000_000) return `${(value / 1_000).toFixed(value < 10_000 ? 1 : 0)}K`
+  return `${(value / 1_000_000).toFixed(1)}M`
 }
 
 export default Plugin.define({
@@ -65,6 +74,7 @@ export default Plugin.define({
     const observedSessions = new Map<string, ChildSession>()
     const observedStatuses = new Map<string, "idle" | "running">()
     const statusEventTimes = new Map<string, number>()
+    const observedTokenCounts = new Map<string, number>()
     let disposeSlot: (() => void) | undefined
     let slotReady = false
     const refreshSessions = () => {
@@ -85,6 +95,7 @@ export default Plugin.define({
       observedSessions.delete(event.data.sessionID)
       observedStatuses.delete(event.data.sessionID)
       statusEventTimes.delete(event.data.sessionID)
+      observedTokenCounts.delete(event.data.sessionID)
       refreshSessions()
     })
     const disposeStatus = context.data.on("session.status", (event) => {
@@ -122,6 +133,12 @@ export default Plugin.define({
               observedStatuses.set(session.id, status)
               changed = true
             }
+
+            const tokenCount = tokenUsage(session.id)?.count ?? 0
+            if (observedTokenCounts.get(session.id) !== tokenCount) {
+              observedTokenCounts.set(session.id, tokenCount)
+              changed = true
+            }
           }
           if (changed) refreshSessions()
         } catch {
@@ -149,8 +166,23 @@ export default Plugin.define({
             : [...(context.data.session.message.list(child.id) ?? [])].reverse()
               .map((message) => modelLabel(message))
               .find(Boolean)
-          return model ? { ...child, modelLabel: model } : child
+          const usage = tokenUsage(child.id, model)
+          return { ...child, ...(model ? { modelLabel: model } : {}), tokenUsage: usage }
         })
+      }
+
+      function tokenUsage(sessionID: string, model?: string): TokenUsage | undefined {
+        const assistant = [...(context.data.session.message.list(sessionID) ?? [])]
+          .reverse()
+          .find((message) => message.type === "assistant" && message.tokens)
+        if (!assistant || assistant.type !== "assistant" || !assistant.tokens) return undefined
+        const tokens = assistant.tokens
+        const count = tokens.input + tokens.output + tokens.reasoning + tokens.cache.read + tokens.cache.write
+        const modelInfo = context.data.location.model.list()?.find((candidate) =>
+          `${candidate.providerID}/${candidate.modelID}` === model?.split("#")[0]
+          || candidate.id === model?.split("#")[0]
+        )
+        return { count, context: modelInfo?.limit.context }
       }
 
       createEffect(() => {
@@ -216,6 +248,15 @@ export default Plugin.define({
                   const label = () => delegateLabel(live())
                   const role = () => label()?.agent ?? live().agent ?? "Subagent"
                   const model = () => child.modelLabel ?? modelLabel(live().model)
+                  const usage = () => child.tokenUsage
+                  const tokenLabel = () => {
+                    const current = usage()
+                    if (!current) return undefined
+                    const percentage = current.context
+                      ? ` (${Math.round(current.count / current.context * 100)}%)`
+                      : ""
+                    return `${formatTokens(current.count)}${percentage}`
+                  }
                   return (
                     <box
                       flexDirection="row"
@@ -228,7 +269,7 @@ export default Plugin.define({
                             || live().title || "Untitled subagent",
                         )}</text>
                         <text fg={theme.text.subdued}>
-                          {`  ${modelName(model()) ?? "Model unavailable"} · ${current().label}`}
+                          {`  ${modelName(model()) ?? "Model unavailable"} · ${current().label}${tokenLabel() ? ` · ${tokenLabel()}` : ""}`}
                         </text>
                       </box>
                     </box>
