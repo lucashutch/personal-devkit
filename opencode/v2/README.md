@@ -63,7 +63,7 @@ the ported commands explicitly tell General to load the corresponding skill.
 
 ## TUI plugins: working
 
-`next-16671` exposes the host renderer to external plugins
+`next-16902` exposes the host renderer to external plugins
 (`context.renderer`), so plugin-local `@opentui/solid` JSX now renders instead
 of crashing with `No renderer found`. The Limitwatch quota and subagent-session
 plugins are enabled in `shared/cli.json` and load from
@@ -76,3 +76,8 @@ tree. The OpenCode CLI and `@opencode-ai/plugin` are versioned as a pair; update
 `package.json` and its lockfile after upgrading the CLI.
 Both plugins use the additive `sidebar.content` slot. See
 [limitwatch-tui-findings.md](limitwatch-tui-findings.md).
+
+External slot state still does not reliably invalidate an already-mounted host
+tree. Both plugins remount their slots after asynchronous updates. The
+subagent plugin also reconciles sessions and status once per second to handle
+event/cache ordering and missed parallel status transitions.
