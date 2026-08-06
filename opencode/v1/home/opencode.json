@@ -96,6 +96,44 @@
                 "mimo-v2.5-free",
                 "grok-4.5"
             ]
+        },
+        "meta": {
+            "npm": "@ai-sdk/openai",
+            "name": "Meta",
+            "options": {
+                "baseURL": "https://api.meta.ai/v1",
+                "apiKey": "{file:/home/lucas/.config/opencode-v1-home/opencode/meta-api-key}"
+            },
+            "models": {
+                "muse-spark-1.2": {
+                    "name": "Muse Spark 1.2",
+                    "reasoning": true,
+                    "limit": {
+                        "context": 1048576,
+                        "output": 131072
+                    },
+                    "modalities": {
+                        "input": ["text", "image", "pdf", "video"],
+                        "output": ["text"]
+                    }
+                },
+                "muse-spark-1.2-contributor": {
+                    "name": "Muse Spark 1.2 Contributor",
+                    "reasoning": true,
+                    "limit": {
+                        "context": 1048576,
+                        "output": 131072
+                    },
+                    "modalities": {
+                        "input": ["text", "image", "pdf", "video"],
+                        "output": ["text"]
+                    }
+                }
+            },
+            "whitelist": [
+                "muse-spark-1.2",
+                "muse-spark-1.2-contributor"
+            ]
         }
     }
 }
