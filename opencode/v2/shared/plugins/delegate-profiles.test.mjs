@@ -86,6 +86,11 @@ test("addModelProfile augments a clone of the native schema", () => {
   assert.deepEqual(patched.required, ["agent", "model_profile"])
 })
 
+test("aliasID produces a concise native TUI label", () => {
+  assert.equal(aliasID("Worker", "fast"), "Fast-Worker")
+  assert.equal(aliasID("WebResearcher", "deep"), "Deep-WebResearcher")
+})
+
 test("plugin advertises model_profile and routes execution through a hidden alias", async () => {
   const root = mkdtempSync(join(tmpdir(), "delegate-profiles-"))
   const previous = process.env.XDG_CONFIG_HOME

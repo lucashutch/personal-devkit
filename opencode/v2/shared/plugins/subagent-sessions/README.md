@@ -3,19 +3,22 @@
 ## Purpose
 
 Adds a `Subagents` section to the session sidebar. It lists direct child
-sessions, shows their execution state and selected model, and navigates to a
-child when clicked.
+sessions, shows their execution state, selected model, and latest context
+usage, and navigates to a child when clicked.
 
 Rows use this format:
 
 ```text
 Fast · Worker
-gpt-5.6-luna · idle
+gpt-5.6-luna · idle · 87.9K (18%)
 ```
 
-The effort and role are recovered from generated agent IDs such as
-`delegate-profile--fast--Worker`. The model comes from the child session's
-`model` field; cached message metadata is a fallback.
+The effort and role are recovered from concise generated agent IDs such as
+`Fast-Worker`. Legacy `delegate-profile--fast--Worker` sessions remain
+supported. The model comes from the child session's
+`model` field; cached message metadata is a fallback. Token usage comes from
+the latest assistant message and is compared with the selected model's context
+limit when that metadata is available.
 
 ## Configuration
 

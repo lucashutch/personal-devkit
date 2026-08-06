@@ -103,7 +103,7 @@ export function addModelProfile(schema, agents = []) {
 }
 
 export function aliasID(agent, profile) {
-  return `delegate-profile--${profile}--${agent}`
+  return `${profile[0].toUpperCase()}${profile.slice(1)}-${agent}`
 }
 
 export function createDelegateProfilesPlugin() {

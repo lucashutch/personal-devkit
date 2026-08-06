@@ -170,9 +170,11 @@ loaded and the fix appears not to work.
 - Native V2 `subagent` always creates a fresh child. It cannot resume an
   existing delegated session as the V1 replacement can.
 - Native permission checks see the generated hidden alias ID. General's
-  wildcard rule allows aliases, but per-agent allowlists
-  must include `delegate-profile--<profile>--<agent>` IDs.
+  wildcard rule allows aliases, but per-agent allowlists must include
+  `<Profile>-<Agent>` IDs such as `Fast-Worker`.
 - The hidden alias remains the stored child session's agent ID, although its
-  display name and behavior are cloned from the requested role.
+  display name and behavior are cloned from the requested role. The native
+  subagent tool row renders that raw ID rather than the alias display name. The
+  concise `<Profile>-<Agent>` ID keeps that built-in label readable.
 - All hook and agent-transform APIs used here are beta and must be revalidated
   against the exact installed release.
