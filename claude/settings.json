@@ -8,7 +8,6 @@
     "deny": [
       "Artifact",
       "Workflow",
-      "Skill",
       "ReportFindings",
       "ScheduleWakeup",
       "ShareOnboardingGuide",
