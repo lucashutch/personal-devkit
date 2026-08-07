@@ -116,24 +116,26 @@
                         "input": ["text", "image", "pdf", "video"],
                         "output": ["text"]
                     }
-                },
-                "muse-spark-1.2-contributor": {
-                    "name": "Muse Spark 1.2 Contributor",
-                    "reasoning": true,
-                    "limit": {
-                        "context": 1048576,
-                        "output": 131072
-                    },
-                    "modalities": {
-                        "input": ["text", "image", "pdf", "video"],
-                        "output": ["text"]
-                    }
                 }
             },
             "whitelist": [
-                "muse-spark-1.2",
-                "muse-spark-1.2-contributor"
+                "muse-spark-1.2"
             ]
+        },
+        "vllm": {
+            "name": "vLLM",
+            "options": {
+                "baseURL": "http://c0-hnl:8000/v1",
+                "apiKey": "not-needed"
+            },
+            "models": {
+                "google/gemma-4-26B-A4B-it": {
+                    "name": "Google Gemma 4 26B"
+                },
+                "Qwen/Qwen3.6-35B-A3B": {
+                    "name": "Qwen 3.6 35B"
+                }
+            }
         }
     }
 }
