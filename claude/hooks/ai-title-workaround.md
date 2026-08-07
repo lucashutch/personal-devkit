@@ -1,56 +1,80 @@
-# Session title workaround (`ai-title`)
+# Session titles under a pinned agent (`ai-title`)
 
-`herdr-session-title.sh` generates Claude Code session titles itself. This is a
-workaround for Claude having stopped generating them, and it is meant to be
-reverted once the built-in generator works again.
+`herdr-session-title.sh` generates Claude Code session titles itself. This is
+**not** a stopgap for a Claude Code bug — it is the standing price of pinning a
+default agent, and it should stay as long as `settings.agent` is set.
 
-Observed on Claude Code **2.1.220** (installed 2026-07-27).
+Verified on Claude Code **2.1.224** with Opus 5 (2026-08-07).
 
-## Symptom
+## Root cause
 
-Sessions show their first typed prompt everywhere a title should appear: the
-Herdr tab, `/resume`, and the session pickers.
+Pinning an agent suppresses the built-in title generator. The trigger in the
+interactive REPL is guarded by (deminified from the 2.1.224 bundle):
 
-Claude still *reads* AI-generated titles — it just stopped writing them. In this
-machine's history, 70 of 149 transcripts carry an `ai-title` entry, and the last
-one was written **2026-07-28**, immediately after the 2.1.220 upgrade.
-
-## What the CLI does internally
-
-Titles are transcript entries, not session-file fields:
-
-```json
-{"type":"custom-title","customTitle":"…","sessionId":"…"}   // /rename
-{"type":"ai-title","aiTitle":"…","sessionId":"…"}           // generated
+```js
+if (!titleDisabled && !sessionTitle && !aiTitle && !agentTitle && !attemptedRef.current)
 ```
 
-Display precedence, from the minified bundle (`hKt`):
+A truthy **`agentTitle`** short-circuits it, so no `ai-title` is ever written.
+This applies to `settings.agent` and to `--agent` alike — they are the same code
+path, so a shell alias is not a way around it. Display precedence is
 
 ```js
 agentName || customTitle || aiTitle || summary || firstPrompt || sessionId.slice(0,8)
 ```
 
-The writer we imitate is `saveAiGeneratedTitle`:
+so a pinned agent would also shadow a generated title in the tab regardless.
 
-```js
-function BEe(e,t){ Ete(tD(e),{type:"ai-title",aiTitle:t,sessionId:e}) … }
-```
+Confirmed by controlled runs on 2.1.224 (one prompt each, fresh config dir):
 
-So the hook appends exactly the record the CLI would have written. `/resume`
-entries render `customTitle ?? aiTitle`, which is why generated titles show up
-there too.
+| Config | native `ai-title`? |
+| --- | --- |
+| no pin, no agent files | yes |
+| pin set, agent file absent (pin inert) | yes |
+| agent files present, no pin | yes |
+| **pin set + agent file present** | **no** |
 
-This was **not** disabled by a setting in this repo. The only guard on the
-built-in generator is
+Upstream this is [claude-code#83876](https://github.com/anthropics/claude-code/issues/83876)
+(open, no fix as of 2.1.226). [#81766](https://github.com/anthropics/claude-code/issues/81766)
+is the same symptom seen from the VS Code extension. Nothing in the CHANGELOG
+for 2.1.215-2.1.226 touches session titles.
 
-```js
-function Nne(){ return Ot.sessionPersistenceDisabled }
-```
+### Superseded explanation
 
-which is about non-persistent sessions (`--bare`, some SDK paths), not user
-config. The remaining call sites are guarded by "already has a custom title".
-The regression therefore looks like a change in the generator's trigger
-conditions in 2.1.220.
+Earlier revisions of this file blamed a regression introduced in 2.1.220 and
+stated the cause was "not a setting in this repo". Both were wrong. That guess
+came from reading only `sessionPersistenceDisabled` and missing the `agentTitle`
+term, plus a coincidence: `"agent": "General"` landed in `00a20a2` (2026-07-25)
+and the last native title in local history is 2026-07-28, close enough to the
+2.1.220 upgrade to look causal.
+
+## Why the pin is worth keeping
+
+Real tokens sent on the first request (`cache_creation_input_tokens`), Opus 5,
+same prompt, fresh config:
+
+| Config | Real tokens | System prompt | Tools | Skills |
+| --- | --- | --- | --- | --- |
+| plain, no pin | 17,224 | ~10.4k (derived) | 7.7k | 1.8k |
+| **pin, with `Skill`** | **8,572** | 3.4k | 4.1k | 1.8k |
+| pin, without `Skill` | 5,988 | 3.4k | 5.3k | none |
+| `--system-prompt-file` only | 14,032 | - | 7.7k | 1.8k |
+| `--system-prompt-file` + 7 `--tools` | 14,306 | - | 4.4k | 1.8k |
+
+The pinned agent replaces Claude Code's default system prompt with General.md's
+compact one, which is where most of the ~8.7k saving comes from. The flag-based
+alternatives do not come close, so trading the pin away to recover native titles
+would cost far more than this hook does.
+
+Note that the `tools:` list in General.md must include **`Skill`** or skills are
+not loaded at all (that is the 1.8k row disappearing above, and it is why `Skill`
+was added on 2026-08-07).
+
+Caveats on the table: one sample per config; a config dir without this repo's
+`disableBundledSkills`, so the skills figure is bundled skills; and the
+`System prompt` row is absent from `/context` in every config except the pinned
+agent, unexplained. Haiku 4.5 gives wildly different numbers and must not be used
+to reason about this.
 
 ## What the hook does
 
@@ -61,53 +85,46 @@ conditions in 2.1.220.
    to summarise the first prompt, append the result as an `ai-title` entry, and
    rename the tab. Once per session; no hook ever blocks on it.
 
+Entry shapes, both read by the CLI:
+
+```json
+{"type":"custom-title","customTitle":"…","sessionId":"…"}   // /rename
+{"type":"ai-title","aiTitle":"…","sessionId":"…"}           // generated
+```
+
+The writer imitated is `saveAiGeneratedTitle`, so the hook appends exactly the
+record the CLI would have written. `/resume` renders `customTitle ?? aiTitle`,
+which is why generated titles show up there too.
+
 Notes:
 
 - A user `/rename` always wins — the generating child re-checks for a
   `customTitle` before renaming the tab.
 - Appends lead with a newline only when the transcript was left mid-line, so a
   partially written last entry cannot be corrupted.
-- If the built-in generator starts firing again, both it and this hook may
-  append an `ai-title` to a fresh session. Last write wins and the hook skips
-  generation when one already exists, so the only cost is a duplicate entry.
+- Titles this hook writes are Title Case and at most 5 words; Claude's native
+  ones are sentence case. That is how to tell them apart in a transcript.
 
-## Checking whether it is fixed
+## When to revisit
 
-Start a fresh session in a directory whose hook is disabled (or temporarily
-remove the `UserPromptSubmit` entry), send one prompt, let the first turn
-finish, then:
+Only if the pin goes away, or if upstream stops letting `agentTitle` suppress
+generation (watch #83876). To check the latter, temporarily unset
+`settings.agent`, start a session, send one prompt, and look for a
+**sentence-case** `ai-title`:
 
 ```sh
-grep -c '"type":"ai-title"' ~/.claude/projects/*/<session-id>.jsonl
+grep -o '"aiTitle":"[^"]*"' ~/.claude/projects/*/<session-id>.jsonl
 ```
 
-A non-zero count with a title the hook did not write means the built-in
-generator is back.
-
-## Reverting
-
-1. Delete `claude/hooks/herdr-session-title.sh` and its `UserPromptSubmit` and
-   `SessionStart` entries in `claude/settings.json`.
-2. Delete this file.
-3. Re-link: `scripts/link-config.py` (`~/.claude/hooks` is hardlinked/copied
-   from the repo, so stale copies must be cleared).
-
-Herdr tab labels then need another source. Options, best first:
-
-- **Supported hook output.** `UserPromptSubmit` and `SessionStart` accept
-  `{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","sessionTitle":"…"}}`,
-  documented in the bundle's schema as *"Set the session title"* and routed
-  through the rename path with a distinct `"hook"` source. It is synchronous, so
-  it cannot carry a title that takes seconds to generate, but it is the right
-  API for setting a title the hook already knows. It writes a `customTitle`,
-  which would shadow a later user `/rename`.
-- **Read-only labelling.** Keep a trimmed hook that only reads
-  `customTitle`/`aiTitle` from the transcript and renames the tab, dropping the
-  generation half entirely.
+If the pin is ever dropped, delete `herdr-session-title.sh` and its
+`UserPromptSubmit` / `SessionStart` entries in `claude/settings.json`, then
+re-run `scripts/link-config.py`. Herdr tab labels would then come from the
+supported hook output instead:
+`{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","sessionTitle":"…"}}`,
+which is synchronous and writes a `customTitle`.
 
 ## Rejected approach
 
 Writing `name` / `nameSource` into `~/.claude/sessions/<pid>.json`. It does
-survive the live session's rewrites (verified by probing this file while a
-session was running), but the record is keyed by **pid**, so the title is lost
-on `/resume`, and the schema is undocumented.
+survive the live session's rewrites, but the record is keyed by **pid**, so the
+title is lost on `/resume`, and the schema is undocumented.

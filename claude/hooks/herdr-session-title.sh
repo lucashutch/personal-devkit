@@ -1,15 +1,17 @@
 #!/bin/sh
 # Keep HerdR tab labels in sync with the Claude Code session.
 #
-# Claude Code no longer generates session titles: it understands an "ai-title"
-# transcript entry and stopped writing them around 2.1.220, so sessions fall
-# back to their first prompt everywhere. This hook fills that gap by generating
-# the title itself, and stores it the way Claude does rather than in a private
-# cache, so `/resume` and the session pickers show it too.
+# Claude Code suppresses its own session-title generation whenever a default
+# agent is pinned (`settings.agent` / `--agent`): a truthy agentTitle short
+# circuits the generator, so sessions fall back to their first prompt
+# everywhere. We keep the pin because it swaps in General.md's compact system
+# prompt (~8.7k tokens cheaper per session), so this hook generates the title
+# itself and stores it the way Claude does rather than in a private cache, so
+# `/resume` and the session pickers show it too.
 #
-# The generation half is a workaround; see ai-title-workaround.md next to this
-# file for the evidence, how to check whether Claude does it again, and how to
-# revert.
+# This is permanent for as long as the pin stays, not a stopgap; see
+# ai-title-workaround.md next to this file for the evidence, the measurements,
+# and when to revisit.
 #
 # Titles live in the transcript as one of the entries Claude already reads:
 #

@@ -1,7 +1,7 @@
 ---
 name: Worker
 description: Implements a bounded task with explicit files, constraints, and validation.
-tools: Read, Edit, Bash
+tools: Read, Edit, Write, Bash
 ---
 
 # Worker
