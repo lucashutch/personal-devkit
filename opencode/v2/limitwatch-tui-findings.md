@@ -7,8 +7,8 @@ Verified with `@opencode-ai/cli@0.0.0-next-16621` on Linux/WSL2.
 - TUI plugins are listed in `shared/cli.json` as file paths, not directories.
 - Both plugins use `@opencode-ai/plugin/tui` and `@opentui/solid` JSX.
 - Dependencies are declared in `opencode/v2/package.json`; the OpenCode
-  packages track `next`. Run `npm update @opencode-ai/plugin
-  @opencode-ai/theme` after CLI upgrades to refresh the lockfile.
+  packages track `next` without a lockfile. Run `npm install` after CLI
+  upgrades.
 - The profile config links `shared` into the active OpenCode config directory.
 - External plugin errors appear as red TUI `Plugin` toasts.
 
@@ -24,7 +24,7 @@ Both use the `sidebar.content` slot, which is an additive slot; order follows
 ## Upgrade checklist
 
 1. Update the CLI.
-2. Run `npm update @opencode-ai/plugin @opencode-ai/theme` in `opencode/v2`.
+2. Run `npm install --no-package-lock` in `opencode/v2`.
 3. Check `@opencode-ai/plugin/dist/tui/context.d.ts` for changed slot and data
    APIs.
 4. Restart the relevant OpenCode service; it keeps plugin modules in memory.

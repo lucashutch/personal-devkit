@@ -150,8 +150,8 @@ directory, so `gh` keeps one login across OpenCode profiles.
 Run `scripts/link-config.py --opencode` first. It links profile config to
 `~/.config/opencode-v2-{home,work,test}/opencode/`, with shared CLI settings
 agents, the Herdr lifecycle integration, and the Herdr session-title plugin sourced from
-`opencode/v2/shared/`, then runs `npm ci` in
-`opencode/v2/` to install the TUI plugin dependencies. It never links
+`opencode/v2/shared/`, then runs `npm install --no-package-lock` in
+`opencode/v2/` to install the current `next` TUI plugin dependencies. It never links
 runtime-generated `service.json` or other credentials/state files. Use the
 profile wrappers; bare `opencode2` is intentionally not configured by this
 repository.

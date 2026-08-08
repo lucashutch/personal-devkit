@@ -271,7 +271,7 @@ def install_v2_tui_dependencies(summary: Summary, *, root: Path) -> None:
         return
 
     result = subprocess.run(
-        [executable, "ci", "--ignore-scripts"],
+        [executable, "install", "--ignore-scripts", "--no-package-lock"],
         cwd=root / OPENCODE_V2_DIRECTORY,
         capture_output=True,
         text=True,
@@ -279,7 +279,7 @@ def install_v2_tui_dependencies(summary: Summary, *, root: Path) -> None:
     )
     if result.returncode:
         detail = result.stderr.strip() or result.stdout.strip() or "command failed"
-        record_error(summary, "opencode-v2-tui-dependencies", f"npm ci failed: {detail}")
+        record_error(summary, "opencode-v2-tui-dependencies", f"npm install failed: {detail}")
         return
     info("installed: V2 TUI plugin dependencies")
     summary.worked.append(("newly linked", "opencode-v2-tui-dependencies"))

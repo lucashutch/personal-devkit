@@ -1,5 +1,6 @@
 /** @jsxImportSource @opentui/solid */
 import { Plugin } from "@opencode-ai/plugin/tui"
+import { createSignal } from "solid-js"
 
 const DEFAULT_COMMAND = "limitwatch show --json"
 
@@ -195,12 +196,10 @@ const plugin = Plugin.define({
   id: "limitwatch-quota-plugin",
   setup(context) {
     const theme = context.theme
-    const [state, setState] = context.storage.memory("limitwatch-quota", {
-      initial: {
-        lines: ["Loading quota..."] as QuotaLine[],
-        updatedAt: 0,
-        refreshing: false,
-      },
+    const [state, setState] = createSignal({
+      lines: ["Loading quota..."] as QuotaLine[],
+      updatedAt: 0,
+      refreshing: false,
     })
 
     let timer: ReturnType<typeof setInterval> | undefined
@@ -214,24 +213,20 @@ const plugin = Plugin.define({
       disposeSlot = registerSlot()
     }
     const refresh = async () => {
-      if (state.refreshing) {
+      if (state().refreshing) {
         refreshQueued = true
         return
       }
-      setState((current) => { current.refreshing = true })
+      setState((current) => ({ ...current, refreshing: true }))
       try {
         const lines = await fetchQuotaLines()
-        setState((current) => {
-          current.lines = lines
-          current.updatedAt = Date.now()
-          current.refreshing = false
-        })
+        setState({ lines, updatedAt: Date.now(), refreshing: false })
         remountSlot()
       } catch (error) {
-        setState((current) => {
-          current.lines = [`Error: ${error instanceof Error ? error.message : String(error)}`]
-          current.updatedAt = Date.now()
-          current.refreshing = false
+        setState({
+          lines: [`Error: ${error instanceof Error ? error.message : String(error)}`],
+          updatedAt: Date.now(),
+          refreshing: false,
         })
         remountSlot()
       } finally {
@@ -248,15 +243,14 @@ const plugin = Plugin.define({
     const disposeStatus = context.data.on("session.status", () => void refresh())
 
     function QuotaSidebar() {
-      const current = state
-      const stamp = current.updatedAt
-        ? `updated ${new Date(current.updatedAt).toLocaleTimeString()}`
-        : current.refreshing ? "refreshing" : ""
+      const stamp = () => state().updatedAt
+        ? `updated ${new Date(state().updatedAt).toLocaleTimeString()}`
+        : state().refreshing ? "refreshing" : ""
 
       return (
         <box flexDirection="column">
           <text bold>Quotas</text>
-          {current.lines.map((line) => typeof line === "string" ? (
+          {state().lines.map((line) => typeof line === "string" ? (
             <text fg={theme.text.subdued}>{line}</text>
           ) : (
             <box flexDirection="row">
@@ -265,10 +259,10 @@ const plugin = Plugin.define({
               <text fg={theme.text.subdued}>{line.value}</text>
             </box>
           ))}
-          {stamp ? (
+          {stamp() ? (
             <box flexDirection="row">
               <box flexGrow={1} />
-              <text fg={theme.text.subdued}>{stamp}</text>
+              <text fg={theme.text.subdued}>{stamp()}</text>
             </box>
           ) : null}
         </box>

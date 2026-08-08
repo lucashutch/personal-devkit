@@ -68,9 +68,7 @@ export default Plugin.define({
   id: "subagent-sessions-plugin",
   setup(context) {
     const theme = context.theme
-    const [sessionState, setSessionState] = context.storage.memory("subagent-sessions", {
-      initial: { revision: 0 },
-    })
+    const [revision, setRevision] = createSignal(0)
     const observedSessions = new Map<string, ChildSession>()
     const observedStatuses = new Map<string, "idle" | "running">()
     const statusEventTimes = new Map<string, number>()
@@ -78,7 +76,7 @@ export default Plugin.define({
     let disposeSlot: (() => void) | undefined
     let slotReady = false
     const refreshSessions = () => {
-      setSessionState((state) => { state.revision += 1 })
+      setRevision((value) => value + 1)
       if (slotReady) {
         disposeSlot?.()
         disposeSlot = registerSlot()
@@ -187,7 +185,7 @@ export default Plugin.define({
 
       createEffect(() => {
         const parentID = props.sessionID
-        sessionState.revision
+        revision()
         const currentRequest = ++request
         setState((previous) => ({ ...previous, loading: true, error: undefined }))
         try {
