@@ -263,11 +263,11 @@ export default Plugin.define({
                       <text fg={current().color}>▎{"\n"}▎ </text>
                       <box flexDirection="column" flexGrow={1}>
                         <text>{truncate(
-                          [role(), effortLabel(label()?.profile)].filter(Boolean).join(" · ")
+                          [role(), effortLabel(label()?.profile), current().label].filter(Boolean).join(" · ")
                             || live().title || "Untitled subagent",
                         )}</text>
                         <text fg={theme.text.subdued}>
-                          {`  ${modelName(model()) ?? "Model unavailable"} · ${current().label}${tokenLabel() ? ` · ${tokenLabel()}` : ""}`}
+                          {`  ${modelName(model()) ?? "Model unavailable"}${tokenLabel() ? ` · ${tokenLabel()}` : ""}`}
                         </text>
                       </box>
                     </box>

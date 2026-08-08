@@ -9,8 +9,8 @@ usage, and navigates to a child when clicked.
 Rows use this format:
 
 ```text
-Fast · Worker
-gpt-5.6-luna · idle · 87.9K (18%)
+Worker · Fast · idle
+gpt-5.6-luna · 87.9K (18%)
 ```
 
 The effort and role are recovered from concise generated agent IDs such as
