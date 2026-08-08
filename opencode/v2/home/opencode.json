@@ -9,6 +9,10 @@
     "compaction": {
         "prune": false
     },
+    "warming": {
+        "interval": "20 minutes",
+        "duration": "90 minutes"
+    },
     "instructions": [
         "AGENTS.md",
         ".vscode/lucas.md"

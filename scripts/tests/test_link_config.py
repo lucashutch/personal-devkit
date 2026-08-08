@@ -107,6 +107,10 @@ class LinkConfigTests(unittest.TestCase):
                     target.joinpath("shared", "plugins", "herdr-agent-state.js").resolve(),
                     ROOT / "opencode" / "v2" / "shared" / "plugins" / "herdr-agent-state.js",
                 )
+                self.assertEqual(
+                    target.joinpath("shared", "plugins", "herdr-session-title.js").resolve(),
+                    ROOT / "opencode" / "v2" / "shared" / "plugins" / "herdr-session-title.js",
+                )
                 self.assertFalse(target.joinpath("service.json").exists())
                 v1_target = config_home / f"opencode-v1-{profile}" / "opencode"
                 self.assertEqual(
