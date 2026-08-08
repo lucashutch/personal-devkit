@@ -29,17 +29,20 @@ limit when that metadata is available.
 - Refresh: session creation, rename, model selection, deletion, and status
   events
 
-The event handlers update a host-owned `context.storage.memory()` revision and
-remount the slot. Neither ordinary Solid signals nor the host-owned store
-invalidated the already-mounted external slot in live testing, despite the
-upstream `createComponent` lifecycle fix. Remounting remains necessary until
-OpenCode fixes the remaining external Solid-runtime boundary.
+V2 plugin dependencies intentionally track the current `next` channel. Do not
+add a lockfile or pin preview builds; run `npm install --no-package-lock` from
+`opencode/v2` after upgrading `opencode2`.
+
+The event handlers update a plugin-local Solid signal and remount the slot. With
+`next-17028`, a minimal component-local Solid timer remained at its initial
+value until the sidebar was hidden and shown, confirming that mounted external
+slots do not currently react even when state is entirely plugin-local.
 
 Status event payloads are retained directly as well. The host session-status
-cache can still contain `running` when the event announcing `idle` triggers the
-remount, so rereading only that cache leaves completed subagents looking busy.
+cache can still contain `running` when the event announcing `idle` triggers a
+refresh, so rereading only that cache leaves completed subagents looking busy.
 The one-second reconciliation also compares each child's cached status and
-remounts when it changes. Fresh event status wins briefly so a lagging cache
+refreshes when it changes. Fresh event status wins briefly so a lagging cache
 cannot immediately undo it; afterward polling can recover either a missed
 `running` transition or a missed `idle` transition.
 

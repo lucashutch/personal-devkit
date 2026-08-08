@@ -70,15 +70,15 @@ the ported commands explicitly tell General to load the corresponding skill.
 `next-16902` exposes the host renderer to external plugins
 (`context.renderer`), so plugin-local `@opentui/solid` JSX now renders instead
 of crashing with `No renderer found`. The Limitwatch quota and subagent-session
-plugins are enabled in `shared/cli.json` and load from
+plugins and a minimal reactivity smoke test are enabled in `shared/cli.json` and load from
 `shared/plugins/*/tui.tsx`.
 
 Their dependencies are declared in `opencode/v2/package.json` and installed by
-`scripts/link-config.py --opencode` with `npm ci`. They must be installed from
+`scripts/link-config.py --opencode` from the current `next` channel without a
+lockfile. They must be installed from
 that directory because the plugin loader resolves imports from the plugin source
-tree. The OpenCode packages track the `next` channel; run `npm update
-@opencode-ai/plugin @opencode-ai/theme` when upgrading the CLI to refresh the
-lockfile and expose extension API breakage.
+tree. The OpenCode packages track the `next` channel; run `npm install` when
+upgrading the CLI to expose extension API breakage.
 Both plugins use the additive `sidebar.content` slot. See
 [limitwatch-tui-findings.md](limitwatch-tui-findings.md).
 
@@ -86,3 +86,7 @@ External slot state still does not reliably invalidate an already-mounted host
 tree. Both plugins remount their slots after asynchronous updates. The
 subagent plugin also reconciles sessions and status once per second to handle
 event/cache ordering and missed parallel status transitions.
+
+The `reactivity-smoke` plugin isolates this behavior with a component-local
+one-second Solid counter. It remains enabled until a published build updates
+mounted external slots without forcing a sidebar or route remount.

@@ -12,14 +12,18 @@ and polls every two minutes.
 - Command override: `LIMITWATCH_COMMAND`
 - Account directory override: `LIMITWATCH_CONFIG_DIR`
 
+V2 plugin dependencies intentionally track the current `next` channel. Do not
+add a lockfile or pin preview builds; run `npm install --no-package-lock` from
+`opencode/v2` after upgrading `opencode2`.
+
 When `LIMITWATCH_CONFIG_DIR` is unset, the plugin resets `XDG_CONFIG_HOME` to
 `$HOME/.config` for the child process so profile-specific OpenCode config does
 not hide the normal Limitwatch accounts.
 
-After each refresh, including the two-minute poll, the plugin remounts its
-sidebar slot. Live testing found that neither plugin-local Solid signals nor a
-host-owned `context.storage.memory()` store invalidated the existing external
-slot, so remounting remains necessary for fresh quota values.
+The plugin remounts its slot after asynchronous updates. With `next-17028`, a
+minimal component-local Solid timer remained at its initial value until the
+sidebar was hidden and shown, confirming that mounted external slots do not
+currently react even when state is entirely plugin-local.
 
 ## Troubleshooting
 

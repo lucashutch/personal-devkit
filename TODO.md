@@ -1,7 +1,6 @@
 # TODO
 
-- Revisit V2 TUI slot invalidation after a future OpenCode upgrade. With
-  `0.0.0-next-16902`, neither ordinary Solid signals nor host-owned
-  `context.storage.memory()` invalidated mounted external slots in live
-  testing. The unregister/register workaround remains necessary pending an
-  upstream fix.
+- Revisit V2 TUI slot invalidation after `0.0.0-next-17028`. A minimal external
+  component with a local Solid signal and one-second timer stayed at `0s` until
+  the sidebar was hidden and shown. Keep the unregister/register workaround
+  until the host runtime propagates external component updates.
