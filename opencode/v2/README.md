@@ -18,6 +18,10 @@ while this CLI release implements it as `context`. The plugin intentionally
 uses the runtime name. Revalidate after every V2 upgrade because this is beta
 API surface.
 
+The `personal.slim-skills` plugin uses the same session-context hook to replace
+V2's verbose XML skill catalog with one `ID: description` line per skill. Skill
+IDs and descriptions are preserved, so on-demand loading is unchanged.
+
 ## Model filter
 
 V2 currently has no native provider/model whitelist, and per-model `disabled`
@@ -69,11 +73,12 @@ of crashing with `No renderer found`. The Limitwatch quota and subagent-session
 plugins are enabled in `shared/cli.json` and load from
 `shared/plugins/*/tui.tsx`.
 
-Their dependencies are pinned in `opencode/v2/package.json` and installed by
+Their dependencies are declared in `opencode/v2/package.json` and installed by
 `scripts/link-config.py --opencode` with `npm ci`. They must be installed from
 that directory because the plugin loader resolves imports from the plugin source
-tree. The OpenCode CLI and `@opencode-ai/plugin` are versioned as a pair; update
-`package.json` and its lockfile after upgrading the CLI.
+tree. The OpenCode packages track the `next` channel; run `npm update
+@opencode-ai/plugin @opencode-ai/theme` when upgrading the CLI to refresh the
+lockfile and expose extension API breakage.
 Both plugins use the additive `sidebar.content` slot. See
 [limitwatch-tui-findings.md](limitwatch-tui-findings.md).
 
