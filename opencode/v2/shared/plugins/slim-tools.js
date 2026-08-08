@@ -14,11 +14,13 @@ function patchSchemaNode(node, params) {
       if (props[name]) props[name] = { ...props[name], description: desc }
     }
     node.properties = { ...props }
+    Object.values(node.properties).forEach((sub) => patchSchemaNode(sub, params))
   }
 
   for (const key of ["anyOf", "oneOf", "allOf"]) {
     if (Array.isArray(node[key])) node[key].forEach((sub) => patchSchemaNode(sub, params))
   }
+  if (Array.isArray(node.prefixItems)) node.prefixItems.forEach((sub) => patchSchemaNode(sub, params))
   if (node.items) patchSchemaNode(node.items, params)
 }
 
