@@ -23,7 +23,8 @@
         "todowrite": "deny",
         "skill": "deny",
         "webfetch": "deny",
-        "websearch": "deny"
+        "websearch": "deny",
+        "chatgpt_websearch": "allow"
     },
     "agent": {
         "review": {

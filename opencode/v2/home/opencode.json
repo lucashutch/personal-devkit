@@ -18,6 +18,7 @@
         ".vscode/lucas.md"
     ],
     "plugins": [
+        "opencode-chatgpt-websearch@0.1.1",
         "./shared/plugins/model-filter.js",
         "./shared/plugins/slim-tools.js",
         "./shared/plugins/slim-skills.js",
@@ -25,6 +26,9 @@
         "./shared/plugins/herdr-agent-state.js",
         "./shared/plugins/herdr-session-title.js"
     ],
+    "websearch": {
+        "provider": "chatgpt"
+    },
     "agents": {
         "build": {
             "disabled": true
@@ -76,7 +80,7 @@
         {
             "action": "websearch",
             "resource": "*",
-            "effect": "deny"
+            "effect": "allow"
         }
     ]
 }
