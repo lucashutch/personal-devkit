@@ -88,6 +88,9 @@ Then link dotfiles:
  scripts/link-config.py --dotfiles
 ```
 
+This also links `dotfiles/.asoundrc` to `~/.asoundrc`, routing ALSA clients
+through PulseAudio so notification sounds work with WSLg.
+
 Current bash snippets include:
 
 - PATH setup for Bun, Cargo, Go, npm, pi-node, LM Studio, and ARM toolchains

@@ -520,6 +520,14 @@ def main(argv: list[str]) -> int:
             entries=DOTFILES_ENTRIES,
             force=parsed.force,
         )
+        link_entries(
+            summary,
+            label="dotfiles",
+            source_dir=root / "dotfiles",
+            target_dir=Path.home(),
+            entries=(".asoundrc",),
+            force=parsed.force,
+        )
 
     summary.print()
     return 1 if summary.errored else 0

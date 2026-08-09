@@ -15,6 +15,26 @@ LINKER = ROOT / "scripts" / "link-config.py"
 
 
 class LinkConfigTests(unittest.TestCase):
+    def test_dotfiles_links_pulse_alsa_config_to_home(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_home:
+            environment = os.environ | {
+                "HOME": temporary_home,
+                "XDG_CONFIG_HOME": str(Path(temporary_home) / ".config"),
+                "PATH": "/nonexistent",
+            }
+            result = subprocess.run(
+                [sys.executable, str(LINKER), "--dotfiles"],
+                cwd=ROOT,
+                env=environment,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            target = Path(temporary_home) / ".asoundrc"
+            self.assertTrue(target.is_symlink())
+            self.assertEqual(target.resolve(), ROOT / "dotfiles" / ".asoundrc")
+
     def test_herdr_links_repo_config(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_home:
             config_home = Path(temporary_home) / ".config"
