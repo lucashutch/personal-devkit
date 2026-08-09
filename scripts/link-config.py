@@ -1,63 +1,32 @@
 #!/usr/bin/env python3
-"""Link repo-managed OpenCode, Claude Code, Herdr, and desktop configuration."""
-
+"""Link repository-managed configuration described by links.yaml."""
 from __future__ import annotations
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
+
+import yaml
 
 from program_installers.common import configure_logging, fail, info
 
-
-OPENCODE_V2_PROFILES = ("home", "work", "test")
-OPENCODE_V2_SHARED_ENTRIES = ("cli.json", "agents", "commands", "skills")
-OPENCODE_V2_SERVICE_PORTS = {"home": 4098, "work": 4097, "test": 4099}
-OPENCODE_V2_DIRECTORY = "opencode/v2"
-
-OPENCODE_V1_PROFILES = ("home", "work", "test")
-OPENCODE_DESKTOP_ENTRIES = (
+PROFILE_NAMES = {
+    f"opencode-v{version}-{profile}"
+    for version in (1, 2)
+    for profile in ("home", "work", "test")
+}
+VARIABLE = re.compile(r"\$([A-Z_]+)")
+DESKTOP_TEMPLATES = (
     "opencode-home.desktop.in",
     "opencode-work.desktop.in",
     "ai.opencode.desktop.desktop.in",
 )
-
-# Every V1 profile has a complete global config, while these repo-managed
-# assets remain shared between profiles.
-OPENCODE_V1_SHARED_ENTRIES = (
-    "tui.json",
-    "commands",
-    "agents",
-    "plugins",
-    "skills",
-)
-
-CLAUDE_ENTRIES = (
-    "settings.json",
-    "keybindings.json",
-    "statusline-command.sh",
-    "commands",
-    "agents",
-    "skills",
-    "themes",
-    "hooks",
-)
-
-HERDR_ENTRIES = ("config.toml",)
-
-DOTFILES_ENTRIES = (
-    "starship.toml",
-    "ghostty",
-    "bashrc.d",
-)
-
-
-def script_name() -> str:
-    return Path(sys.argv[0]).name
+GROUPS = ("opencode", "claude", "herdr", "dotfiles")
 
 
 class HelpFormatter(argparse.RawTextHelpFormatter):
@@ -65,472 +34,587 @@ class HelpFormatter(argparse.RawTextHelpFormatter):
         return super().format_help().replace("usage:", "Usage:", 1)
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog=script_name(),
-        usage="%(prog)s [OPTIONS]",
-        description=(
-            "Link repo-managed config into ~/.config. By default, OpenCode config is selected."
-        ),
-        epilog=(
-            "Behavior:\n"
-            "  - Default target is OpenCode config when no target flag is provided.\n"
-            "  - Existing matching symlinks are reported as already linked.\n"
-            "  - Use --force to replace existing files, directories, or mismatched symlinks."
-        ),
-        formatter_class=HelpFormatter,
-        add_help=False,
-    )
-    options = parser.add_argument_group("Options")
-    options.add_argument("-o", "--opencode", action="store_true", help="Link OpenCode config")
-    options.add_argument("-c", "--claude", action="store_true", help="Link Claude Code config")
-    options.add_argument("--herdr", action="store_true", help="Link Herdr config")
-    options.add_argument("-d", "--dotfiles", action="store_true", help="Link dotfiles config")
-    options.add_argument("-a", "--all", action="store_true", help="Link OpenCode, Claude Code, Herdr, and dotfiles config")
-    options.add_argument("--force", action="store_true", help="Replace existing files/directories/symlinks")
-    options.add_argument("--help", action="store_true", help="Show this help text")
-    return parser
+@dataclass(frozen=True)
+class Link:
+    group: str
+    source: Path
+    destination: Path
 
 
-@dataclass
-class Options:
-    force: bool = False
-    link_opencode: bool = False
-    link_claude: bool = False
-    link_herdr: bool = False
-    link_dotfiles: bool = False
-
-    def select_default(self) -> None:
-        if not self.link_opencode and not self.link_claude and not self.link_herdr and not self.link_dotfiles:
-            self.link_opencode = True
+@dataclass(frozen=True)
+class GeneratedFile:
+    destination: Path
+    content: str
 
 
-@dataclass
-class Summary:
-    worked: list[tuple[str, str]] = field(default_factory=list)
-    errored: list[str] = field(default_factory=list)
-
-    RESET = "\033[0m"
-    BOLD = "\033[1m"
-    CYAN = "\033[36m"
-    GREEN = "\033[32m"
-    BLUE = "\033[34m"
-    MAGENTA = "\033[35m"
-    RED = "\033[31m"
-
-    @staticmethod
-    def join_items(items: list[str]) -> str:
-        return ", ".join(items) if items else "none"
-
-    @classmethod
-    def colored_item(cls, kind: str, text: str) -> str:
-        color = cls.BLUE if kind == "already linked" else cls.GREEN
-        return f"{color}{text}{cls.RESET}"
-
-    @classmethod
-    def line(cls, emoji: str, color: str, label: str, items: list[str]) -> str:
-        return f"{emoji} {color}{label}:{cls.RESET} {cls.join_items(items)}"
-
-    @classmethod
-    def worked_header(cls) -> str:
-        return (
-            f"{cls.GREEN}newly linked{cls.RESET} / "
-            f"{cls.BLUE}already linked{cls.RESET}"
-        )
-
-    def print(self) -> None:
-        info("")
-        info(f"{self.BOLD}{self.CYAN}🔗 Link summary{self.RESET}")
-        info(f"✅ {self.GREEN}Worked:{self.RESET} {self.worked_header()}")
-        for kind, item in self.worked:
-            info(f"  - {self.colored_item(kind, item)}")
-        info(self.line("❌", self.RED, "Errored", self.errored))
-        if not self.errored:
-            info("🎉 All selected config symlinks are correct.")
-
-
-def parse_args(argv: list[str]) -> Options | int:
-    parser = build_parser()
-    known_options = {option for action in parser._actions for option in action.option_strings}
-    for arg in argv:
-        if arg in ("-h", "--help"):
-            parser.print_help(sys.stdout)
-            return 0
-        if arg not in known_options:
-            parser.print_help(sys.stderr)
-            return fail(f"Unknown option: {arg}")
-
-    parsed = parser.parse_args(argv)
-    options = Options(force=parsed.force)
-    if parsed.all:
-        options.link_opencode = True
-        options.link_claude = True
-        options.link_herdr = True
-        options.link_dotfiles = True
-    options.link_opencode = options.link_opencode or parsed.opencode
-    options.link_claude = options.link_claude or parsed.claude
-    options.link_herdr = options.link_herdr or parsed.herdr
-    options.link_dotfiles = options.link_dotfiles or parsed.dotfiles
-    options.select_default()
-    return options
-
-
-def repo_root() -> Path:
+def root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
-def config_home() -> Path:
-    raw = os.environ.get("XDG_CONFIG_HOME")
-    home = Path(raw).expanduser() if raw else Path.home() / ".config"
-    if home.name in {
-        "opencode-v1-home",
-        "opencode-v1-work",
-        "opencode-v1-test",
-        "opencode-v2-home",
-        "opencode-v2-work",
-        "opencode-v2-test",
-    }:
-        return home.parent
-    return home
+def unprofile(path: Path) -> Path:
+    return path.parent if path.name in PROFILE_NAMES else path
 
 
-def xdg_home(variable: str, default: Path) -> Path:
-    """Return an unprofiled XDG base directory."""
-    home = Path(os.environ.get(variable, str(default))).expanduser()
-    if home.name in {
-        "opencode-v1-home",
-        "opencode-v1-work",
-        "opencode-v1-test",
-        "opencode-v2-home",
-        "opencode-v2-work",
-        "opencode-v2-test",
-    }:
-        return home.parent
-    return home
-
-
-def profile_xdg_root(variable: str, default: Path, profile: str) -> Path:
-    """Return a V2 profile root without nesting an existing profile suffix."""
-    root = Path(os.environ.get(variable, str(default))).expanduser()
-    if root.name in {
-        "opencode-v1-home",
-        "opencode-v1-work",
-        "opencode-v1-test",
-        "opencode-v2-home",
-        "opencode-v2-work",
-        "opencode-v2-test",
-    }:
-        root = root.parent
-    return root / f"opencode-v2-{profile}"
-
-
-def configure_v2_services(summary: Summary) -> None:
-    """Write fixed, profile-local service endpoints through the V2 CLI."""
-    executable = shutil.which("opencode2")
-    if not executable:
-        info("skipped V2 service configuration: opencode2 is not on PATH")
-        return
-
+def variables() -> dict[str, str]:
+    home = Path(os.environ.get("HOME", str(Path.home()))).expanduser().absolute()
     defaults = {
-        "XDG_CONFIG_HOME": Path.home() / ".config",
-        "XDG_DATA_HOME": Path.home() / ".local" / "share",
-        "XDG_STATE_HOME": Path.home() / ".local" / "state",
-        "XDG_CACHE_HOME": Path.home() / ".cache",
+        "CONFIG_HOME": home / ".config",
+        "DATA_HOME": home / ".local/share",
+        "STATE_HOME": home / ".local/state",
+        "CACHE_HOME": home / ".cache",
     }
-    for profile, port in OPENCODE_V2_SERVICE_PORTS.items():
-        environment = os.environ.copy()
-        environment.update(
-            {
-                variable: str(profile_xdg_root(variable, default, profile))
-                for variable, default in defaults.items()
-            }
+    result = {"HOME": str(home)}
+    for name, default in defaults.items():
+        value = Path(os.environ.get("XDG_" + name, str(default))).expanduser().absolute()
+        result[name] = str(unprofile(value))
+    return result
+
+
+def expand(value: str, values: dict[str, str]) -> str:
+    unknown = set(VARIABLE.findall(value)) - values.keys()
+    if unknown or "$" in VARIABLE.sub("", value):
+        raise ValueError(f"undefined or invalid variable in {value!r}")
+    return VARIABLE.sub(lambda match: values[match.group(1)], value)
+
+
+def path_matches(path: str, pattern: str) -> bool:
+    """Match repository-relative POSIX paths with recursive, shell-like globs."""
+    if "/" not in pattern:
+        pattern = "**/" + pattern
+    expression = ""
+    index = 0
+    while index < len(pattern):
+        if pattern[index : index + 3] == "**/":
+            expression += "(?:.*/)?"
+            index += 3
+        elif pattern[index : index + 2] == "**":
+            expression += ".*"
+            index += 2
+        elif pattern[index] == "*":
+            expression += "[^/]*"
+            index += 1
+        elif pattern[index] == "?":
+            expression += "[^/]"
+            index += 1
+        else:
+            expression += re.escape(pattern[index])
+            index += 1
+    if pattern.endswith("/**"):
+        expression = expression.removesuffix("/.*") + "(?:/.*)?"
+    return re.fullmatch(expression, path) is not None
+
+
+def expand_filtered(
+    group: str,
+    source: Path,
+    destination: Path,
+    includes: list[str],
+    excludes: list[str],
+) -> list[Link]:
+    def selected(relative: str) -> bool:
+        return any(path_matches(relative, pattern) for pattern in includes) and not any(
+            path_matches(relative, pattern) for pattern in excludes
         )
-        label = f"opencode-v2-{profile}/service"
-        for key, value in (("hostname", "127.0.0.1"), ("port", str(port))):
-            result = subprocess.run(
-                [executable, "service", "set", key, value],
-                env=environment,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            if result.returncode:
-                detail = result.stderr.strip() or result.stdout.strip() or "command failed"
-                record_error(summary, label, f"could not set {key}: {detail}")
-                break
-        else:
-            info(f"configured: {label} -> 127.0.0.1:{port}")
-            summary.worked.append(("newly linked", label))
+
+    def covers_subtree(relative: str) -> bool:
+        if excludes:
+            return False
+        return "**" in includes or f"{relative}/**" in includes
+
+    def visit(directory: Path, relative: Path) -> list[Link]:
+        links: list[Link] = []
+        entries = sorted(directory.iterdir(), key=lambda item: item.name)
+        for child in entries:
+            child_relative = relative / child.name
+            child_name = child_relative.as_posix()
+            if child.is_dir() and not child.is_symlink():
+                if covers_subtree(child_name):
+                    links.append(Link(group, child, destination / child_relative))
+                else:
+                    links.extend(visit(child, child_relative))
+            elif selected(child_name):
+                links.append(Link(group, child, destination / child_relative))
+        if (
+            not entries
+            and not excludes
+            and relative != Path()
+            and selected(relative.as_posix())
+        ):
+            links.append(Link(group, directory, destination / relative))
+        return links
+
+    return visit(source, Path())
 
 
-def install_v2_tui_dependencies(summary: Summary, *, root: Path) -> None:
-    """Install the packages imported by the repo-managed V2 TUI plugins."""
-    executable = shutil.which("npm")
-    if not executable:
-        info("skipped V2 TUI plugin dependencies: npm is not on PATH")
-        return
+def build_plan(groups: set[str], manifest: Path | None = None) -> list[Link]:
+    manifest = manifest or root() / "links.yaml"
+    try:
+        document = yaml.safe_load(manifest.read_text())
+    except (OSError, yaml.YAMLError) as error:
+        raise ValueError(f"could not read manifest: {error}") from error
+    if (
+        not isinstance(document, dict)
+        or set(document) != {"version", "groups"}
+        or document.get("version") != 1
+        or not isinstance(document.get("groups"), dict)
+    ):
+        raise ValueError("manifest must have version: 1 and a groups mapping")
+    invalid_manifest_groups = set(document["groups"]) - set(GROUPS)
+    if invalid_manifest_groups:
+        raise ValueError(
+            f"unknown manifest groups: {', '.join(sorted(invalid_manifest_groups))}"
+        )
+    unknown_groups = groups - document["groups"].keys()
+    if unknown_groups:
+        raise ValueError(f"undefined groups: {', '.join(sorted(unknown_groups))}")
+    values, plan = variables(), []
+    for group in sorted(groups):
+        entries = document["groups"][group]
+        if not isinstance(entries, list):
+            raise ValueError(f"group {group} must be a list")
+        for entry in entries:
+            if not isinstance(entry, dict) or set(entry) - {
+                "source",
+                "destinations",
+                "optional",
+                "include",
+                "exclude",
+            }:
+                raise ValueError(f"invalid entry in group {group}")
+            if "optional" in entry and not isinstance(entry["optional"], bool):
+                raise ValueError(f"optional must be a boolean in group {group}")
+            source_value, destinations = entry.get("source"), entry.get("destinations")
+            if (
+                not isinstance(source_value, str)
+                or not isinstance(destinations, list)
+                or not destinations
+                or not all(isinstance(value, str) for value in destinations)
+            ):
+                raise ValueError(f"invalid source/destinations in group {group}")
+            source = Path(expand(source_value, values))
+            if not source.is_absolute():
+                source = root() / source
+            source = Path(os.path.normpath(source.absolute()))
+            if not source.exists():
+                if entry.get("optional") is True:
+                    continue
+                raise ValueError(f"missing source: {source}")
+            filtered = "include" in entry or "exclude" in entry
+            for key in ("include", "exclude"):
+                if key in entry and (
+                    not isinstance(entry[key], list)
+                    or not all(
+                        isinstance(pattern, str)
+                        and pattern
+                        and "[" not in pattern
+                        and "]" not in pattern
+                        for pattern in entry[key]
+                    )
+                ):
+                    raise ValueError(
+                        f"{key} must contain non-empty *, **, ? glob strings in group {group}"
+                    )
+            if filtered and (not source.is_dir() or source.is_symlink()):
+                raise ValueError(f"filters require a directory source: {source}")
+            includes = entry.get("include", ["**"])
+            excludes = entry.get("exclude", [])
+            for value in destinations:
+                destination = Path(expand(value, values))
+                if not destination.is_absolute():
+                    raise ValueError(f"destination must be absolute: {destination}")
+                normalized_destination = Path(
+                    os.path.normpath(destination.absolute())
+                )
+                if source == normalized_destination:
+                    raise ValueError(f"source equals destination: {source}")
+                if (
+                    normalized_destination in source.parents
+                    or source in normalized_destination.parents
+                ):
+                    raise ValueError(
+                        f"dangerous source/destination nesting: {normalized_destination}"
+                    )
+                if filtered:
+                    plan.extend(
+                        expand_filtered(
+                            group, source, normalized_destination, includes, excludes
+                        )
+                    )
+                else:
+                    plan.append(Link(group, source, normalized_destination))
+    destinations: dict[Path, Link] = {}
+    for link in plan:
+        if link.source == link.destination:
+            raise ValueError(f"source equals destination: {link.source}")
+        if link.destination in destinations:
+            raise ValueError(f"duplicate destination: {link.destination}")
+        destinations[link.destination] = link
+        if link.destination in link.source.parents or link.source in link.destination.parents:
+            raise ValueError(f"dangerous source/destination nesting: {link.destination}")
+    ordered = sorted(destinations)
+    for index, destination in enumerate(ordered):
+        for other in ordered[index + 1:]:
+            if destination in other.parents:
+                raise ValueError(f"conflicting parent/child destinations: {destination} and {other}")
+    return plan
 
-    result = subprocess.run(
-        [executable, "install", "--ignore-scripts", "--no-package-lock"],
-        cwd=root / OPENCODE_V2_DIRECTORY,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode:
-        detail = result.stderr.strip() or result.stdout.strip() or "command failed"
-        record_error(summary, "opencode-v2-tui-dependencies", f"npm install failed: {detail}")
-        return
-    info("installed: V2 TUI plugin dependencies")
-    summary.worked.append(("newly linked", "opencode-v2-tui-dependencies"))
+
+def immediate_symlink_target(path: Path) -> Path | None:
+    if not path.is_symlink():
+        return None
+    target = Path(os.readlink(path))
+    if not target.is_absolute():
+        target = path.parent / target
+    return Path(os.path.normpath(target.absolute()))
 
 
-def record_error(summary: Summary, label: str, message: str) -> None:
-    fail(message)
-    summary.errored.append(f"{label} ({message})")
+def matches(link: Link) -> bool:
+    return immediate_symlink_target(link.destination) == link.source
 
 
-def remove_existing(path: Path) -> None:
-    if path.is_symlink() or path.is_file():
-        path.unlink()
-        return
-    for child in path.iterdir():
-        if child.is_dir() and not child.is_symlink():
-            remove_existing(child)
-        else:
-            child.unlink()
-    path.rmdir()
+def symlink_ancestor(path: Path) -> Path | None:
+    for ancestor in path.parents:
+        if ancestor.is_symlink():
+            return ancestor
+    return None
 
 
-def link_entries(
-    summary: Summary,
-    *,
-    label: str,
-    source_dir: Path,
-    target_dir: Path,
-    entries: tuple[str, ...],
-    force: bool,
+def preflight_links(
+    plan: list[Link], *, force: bool, unlink: bool, check: bool
+) -> tuple[list[Link], list[str]]:
+    operations = []
+    errors = []
+    for link in plan:
+        dst = link.destination
+        ancestor = symlink_ancestor(dst)
+        if ancestor is not None:
+            errors.append(f"refusing to operate through symlink ancestor: {ancestor}")
+            continue
+        if check:
+            if not matches(link):
+                errors.append(f"incorrect: {dst}")
+            continue
+        if unlink:
+            if matches(link):
+                operations.append(link)
+            elif dst.exists() or dst.is_symlink():
+                errors.append(f"refusing to unlink unmanaged object: {dst}")
+            continue
+        if matches(link):
+            continue
+        if dst.exists() or dst.is_symlink():
+            if not force:
+                errors.append(f"already exists: {dst} (use --force to replace)")
+                continue
+            if dst.is_dir() and not dst.is_symlink() and any(dst.iterdir()):
+                errors.append(f"refusing to replace non-empty directory: {dst}")
+                continue
+        operations.append(link)
+    return operations, errors
+
+
+def execute_links(
+    plan: list[Link], operations: list[Link], *, dry_run: bool, unlink: bool
 ) -> None:
-    if not source_dir.is_dir():
-        record_error(summary, label, f"missing source directory: {source_dir}")
-        return
-
-    target_dir.mkdir(parents=True, exist_ok=True)
-
-    for entry in entries:
-        src = source_dir / entry
-        dst = target_dir / entry
-        item_label = f"{label}/{entry}"
-
-        if not src.exists():
-            record_error(summary, item_label, f"missing source: {src}")
+    operation_set = set(operations)
+    for link in plan:
+        dst = link.destination
+        if link not in operation_set:
+            if not unlink:
+                info(f"ok: {dst} -> {link.source}")
             continue
-
-        if dst.is_symlink():
-            current = dst.resolve(strict=False)
-            if current == src:
-                info(f"ok: {dst} -> {src}")
-                summary.worked.append(("already linked", item_label))
-                continue
-            if not force:
-                record_error(
-                    summary,
-                    item_label,
-                    f"{dst} is already a symlink to {os.readlink(dst)} (use --force to replace)",
-                )
-                continue
-            dst.unlink()
-        elif dst.exists():
-            if not force:
-                record_error(
-                    summary,
-                    item_label,
-                    f"{dst} already exists and is not a symlink (use --force to replace)",
-                )
-                continue
-            remove_existing(dst)
-
-        try:
+        if unlink:
+            info(f"would unlink: {dst}" if dry_run else f"unlinked: {dst}")
+            if not dry_run:
+                dst.unlink()
+            continue
+        if dst.exists() or dst.is_symlink():
+            if not dry_run:
+                if dst.is_dir() and not dst.is_symlink():
+                    dst.rmdir()
+                else:
+                    dst.unlink()
+        message = f"{dst} -> {link.source}"
+        info(f"would link: {message}" if dry_run else f"linked: {message}")
+        if not dry_run:
             dst.parent.mkdir(parents=True, exist_ok=True)
-            dst.symlink_to(src)
-        except OSError:
-            record_error(summary, item_label, f"failed to link {dst} -> {src}")
-            continue
-
-        info(f"linked: {dst} -> {src}")
-        summary.worked.append(("newly linked", item_label))
+            dst.symlink_to(link.source)
 
 
-def install_desktop_entries(summary: Summary, *, root: Path, force: bool) -> None:
-    """Install profile launchers and their icons into the user's XDG data tree."""
-    config = config_home()
-    data = xdg_home("XDG_DATA_HOME", Path.home() / ".local" / "share")
-    state = xdg_home("XDG_STATE_HOME", Path.home() / ".local" / "state")
-    cache = xdg_home("XDG_CACHE_HOME", Path.home() / ".cache")
-    source_dir = root / "desktop"
-    applications = data / "applications"
+def desktop_plan() -> tuple[list[GeneratedFile], list[Link], list[str]]:
+    generated = []
+    errors = []
+    values = variables()
+    source_dir = root() / "desktop"
+    data = Path(values["DATA_HOME"])
     replacements = {
-        "@XDG_CONFIG_HOME@": str(config),
-        "@XDG_DATA_HOME@": str(data),
-        "@XDG_STATE_HOME@": str(state),
-        "@XDG_CACHE_HOME@": str(cache),
-        "@ICON_HOME@": str(data / "icons" / "hicolor" / "scalable" / "apps"),
+        f"@XDG_{key}@": value
+        for key, value in values.items()
+        if key != "HOME"
     }
-
-    for template_name in OPENCODE_DESKTOP_ENTRIES:
-        src = source_dir / template_name
-        name = template_name.removesuffix(".in")
-        dst = applications / name
-        label = f"opencode-desktop/{name}"
-        if not src.is_file():
-            record_error(summary, label, f"missing source: {src}")
+    replacements["@ICON_HOME@"] = str(data / "icons/hicolor/scalable/apps")
+    for template in DESKTOP_TEMPLATES:
+        source = source_dir / template
+        destination = data / "applications" / template.removesuffix(".in")
+        if not source.is_file():
+            errors.append(f"missing source: {source}")
             continue
-        content = src.read_text()
+        content = source.read_text()
         for token, value in replacements.items():
             content = content.replace(token, value)
-        if dst.exists() or dst.is_symlink():
-            if dst.is_file() and not dst.is_symlink() and dst.read_text() == content:
-                summary.worked.append(("already linked", label))
-                continue
-            if not force:
-                record_error(summary, label, f"{dst} already exists (use --force to replace)")
-                continue
-            remove_existing(dst)
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        dst.write_text(content)
-        info(f"installed: {dst}")
-        summary.worked.append(("newly linked", label))
+        generated.append(GeneratedFile(destination, content))
+    icons = [
+        Link(
+            "opencode",
+            source_dir / "icons" / name,
+            data / "icons/hicolor/scalable/apps" / name,
+        )
+        for name in ("opencode-home.png", "opencode-work.png")
+    ]
+    for icon in icons:
+        if not icon.source.is_file():
+            errors.append(f"missing source: {icon.source}")
+    return generated, icons, errors
 
-    link_entries(
-        summary,
-        label="opencode-desktop-icons",
-        source_dir=source_dir / "icons",
-        target_dir=data / "icons" / "hicolor" / "scalable" / "apps",
-        entries=("opencode-home.png", "opencode-work.png"),
-        force=force,
-    )
-    # These were the first, generic profile icons. Remove only the symlinks we
-    # previously managed; never remove a user's own icon file.
+
+def preflight_generated(
+    files: list[GeneratedFile], *, force: bool, check: bool = False
+) -> tuple[list[GeneratedFile], list[str]]:
+    operations = []
+    errors = []
+    for artifact in files:
+        destination = artifact.destination
+        ancestor = symlink_ancestor(destination)
+        if ancestor is not None:
+            errors.append(f"refusing to operate through symlink ancestor: {ancestor}")
+            continue
+        if check:
+            if (
+                not destination.is_file()
+                or destination.is_symlink()
+                or destination.read_text() != artifact.content
+            ):
+                errors.append(f"incorrect: {destination}")
+            continue
+        if (
+            destination.is_file()
+            and not destination.is_symlink()
+            and destination.read_text() == artifact.content
+        ):
+            continue
+        if destination.exists() or destination.is_symlink():
+            if not force:
+                errors.append(f"already exists: {destination}")
+                continue
+            if (
+                destination.is_dir()
+                and not destination.is_symlink()
+                and any(destination.iterdir())
+            ):
+                errors.append(f"refusing to replace non-empty directory: {destination}")
+                continue
+        operations.append(artifact)
+    return operations, errors
+
+
+def execute_generated(files: list[GeneratedFile], *, dry_run: bool) -> None:
+    for artifact in files:
+        destination = artifact.destination
+        if destination.exists() or destination.is_symlink():
+            if not dry_run:
+                if destination.is_dir() and not destination.is_symlink():
+                    destination.rmdir()
+                else:
+                    destination.unlink()
+        info(f"would install: {destination}" if dry_run else f"installed: {destination}")
+        if not dry_run:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(artifact.content)
+
+
+def remove_legacy_icons() -> None:
+    source_dir = root() / "desktop" / "icons"
+    icon_dir = Path(variables()["DATA_HOME"]) / "icons/hicolor/scalable/apps"
     for name in ("opencode-home.svg", "opencode-work.svg"):
-        legacy = data / "icons" / "hicolor" / "scalable" / "apps" / name
-        source = source_dir / "icons" / name
-        if legacy.is_symlink() and legacy.resolve(strict=False) == source:
-            legacy.unlink()
-            info(f"removed obsolete icon: {legacy}")
+        legacy = Link("opencode", source_dir / name, icon_dir / name)
+        if matches(legacy):
+            legacy.destination.unlink()
+
+
+def actions(dry_run: bool) -> list[str]:
+    if dry_run:
+        info("would configure: opencode-v2 services")
+        info("would install: opencode-v2-tui-dependencies")
+        return []
+    errors, executable = [], shutil.which("opencode2")
+    if not executable:
+        info("skipped V2 service configuration: opencode2 is not on PATH")
+    else:
+        defaults = {
+            "XDG_CONFIG_HOME": "CONFIG_HOME",
+            "XDG_DATA_HOME": "DATA_HOME",
+            "XDG_STATE_HOME": "STATE_HOME",
+            "XDG_CACHE_HOME": "CACHE_HOME",
+        }
+        for profile, port in {"home": 4098, "work": 4097, "test": 4099}.items():
+            environment = os.environ.copy()
+            environment.update(
+                {
+                    key: str(Path(variables()[name]) / f"opencode-v2-{profile}")
+                    for key, name in defaults.items()
+                }
+            )
+            for key, value in (("hostname", "127.0.0.1"), ("port", str(port))):
+                result = subprocess.run(
+                    [executable, "service", "set", key, value],
+                    env=environment,
+                    capture_output=True,
+                    text=True,
+                )
+                if result.returncode:
+                    detail = result.stderr.strip() or result.stdout.strip() or "command failed"
+                    errors.append(
+                        f"opencode-v2-{profile}/service (could not set {key}: {detail})"
+                    )
+                    break
+            else:
+                info(f"configured: opencode-v2-{profile}/service -> 127.0.0.1:{port}")
+    npm = shutil.which("npm")
+    if not npm:
+        info("skipped V2 TUI plugin dependencies: npm is not on PATH")
+    else:
+        result = subprocess.run(
+            [npm, "install", "--ignore-scripts", "--no-package-lock"],
+            cwd=root() / "opencode/v2",
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode:
+            detail = result.stderr.strip() or result.stdout.strip() or "command failed"
+            errors.append(f"opencode-v2-tui-dependencies (npm install failed: {detail})")
+        else:
+            info("installed: opencode-v2-tui-dependencies")
+    return errors
 
 
 def main(argv: list[str]) -> int:
     configure_logging()
-
-    parsed = parse_args(argv)
-    if isinstance(parsed, int):
-        return parsed
-
-    summary = Summary()
-    root = repo_root()
-    home = config_home()
-
-    if parsed.link_opencode:
-        for profile in OPENCODE_V2_PROFILES:
-            target_dir = home / f"opencode-v2-{profile}" / "opencode"
-            source_dir = root / "opencode" / "v2" / profile
-            link_entries(
-                summary,
-                label=f"opencode-v2-{profile}",
-                source_dir=source_dir,
-                target_dir=target_dir,
-                entries=("opencode.json", "delegate_config.json", "model_config.json"),
-                force=parsed.force,
-            )
-            if (source_dir / "plugins").is_dir():
-                link_entries(
-                    summary,
-                    label=f"opencode-v2-{profile}",
-                    source_dir=source_dir,
-                    target_dir=target_dir,
-                    entries=("plugins",),
-                    force=parsed.force,
-                )
-            link_entries(
-                summary,
-                label=f"opencode-v2-{profile}",
-                source_dir=root / "opencode" / "v2" / "shared",
-                target_dir=target_dir,
-                entries=OPENCODE_V2_SHARED_ENTRIES,
-                force=parsed.force,
-            )
-            link_entries(
-                summary,
-                label=f"opencode-v2-{profile}",
-                source_dir=root / "opencode" / "v2",
-                target_dir=target_dir,
-                entries=("shared",),
-                force=parsed.force,
-            )
-        for profile in OPENCODE_V1_PROFILES:
-            target_dir = home / f"opencode-v1-{profile}" / "opencode"
-            link_entries(
-                summary,
-                label=f"opencode-v1-{profile}",
-                source_dir=root / "opencode" / "v1" / profile,
-                target_dir=target_dir,
-                entries=("opencode.json", "delegate_config.json"),
-                force=parsed.force,
-            )
-            link_entries(
-                summary,
-                label=f"opencode-v1-{profile}",
-                source_dir=root / "opencode" / "v1" / "shared",
-                target_dir=target_dir,
-                entries=OPENCODE_V1_SHARED_ENTRIES,
-                force=parsed.force,
-            )
-        install_desktop_entries(summary, root=root, force=parsed.force)
-        if not summary.errored:
-            configure_v2_services(summary)
-        if not summary.errored:
-            install_v2_tui_dependencies(summary, root=root)
-
-    if parsed.link_claude:
-        link_entries(
-            summary,
-            label="claude",
-            source_dir=root / "claude",
-            target_dir=Path.home() / ".claude",
-            entries=CLAUDE_ENTRIES,
-            force=parsed.force,
+    parser = argparse.ArgumentParser(
+        usage="%(prog)s [OPTIONS]",
+        description=(
+            "Link repo-managed config into the selected XDG locations. By default, "
+            "OpenCode config is selected."
+        ),
+        epilog=(
+            "Manifest paths are interpreted relative to the repository root, including "
+            "paths in a custom manifest.\n"
+            "Existing matching symlinks are left unchanged. --force replaces regular "
+            "files, symlinks, and empty directories only."
+        ),
+        formatter_class=HelpFormatter,
+    )
+    group_help = {
+        "opencode": "Link OpenCode config",
+        "claude": "Link Claude Code config",
+        "herdr": "Link Herdr config",
+        "dotfiles": "Link dotfiles config",
+    }
+    for short, name in (
+        ("-o", "opencode"),
+        ("-c", "claude"),
+        (None, "herdr"),
+        ("-d", "dotfiles"),
+    ):
+        parser.add_argument(
+            *(filter(None, (short, "--" + name))),
+            action="store_true",
+            help=group_help[name],
         )
+    parser.add_argument(
+        "-a",
+        "--all",
+        action="store_true",
+        help="Select OpenCode, Claude Code, Herdr, and dotfiles config",
+    )
+    parser.add_argument(
+        "--force", action="store_true", help="Replace existing safe objects"
+    )
+    parser.add_argument(
+        "--manifest", type=Path, help="Read mappings from PATH (sources remain repo-relative)"
+    )
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument(
+        "--check",
+        action="store_true",
+        help="Check links without writing or running actions",
+    )
+    modes.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Describe links and actions without writing",
+    )
+    modes.add_argument(
+        "--unlink",
+        action="store_true",
+        help="Remove only matching managed symlinks (including OpenCode icons)",
+    )
+    args = parser.parse_args(argv)
+    groups = {
+        name
+        for name in ("opencode", "claude", "herdr", "dotfiles")
+        if args.all or getattr(args, name)
+    } or {"opencode"}
+    try:
+        plan = build_plan(groups, args.manifest)
+    except ValueError as error:
+        return fail(str(error))
+    generated = []
+    generated_operations = []
+    complete_plan = list(plan)
+    errors = []
+    if "opencode" in groups:
+        generated, icons, desktop_errors = desktop_plan()
+        errors.extend(desktop_errors)
+        complete_plan.extend(icons)
+        if not args.unlink:
+            generated_operations, generated_errors = preflight_generated(
+                generated, force=args.force, check=args.check
+            )
+            errors.extend(generated_errors)
 
-    if parsed.link_herdr:
-        link_entries(
-            summary,
-            label="herdr",
-            source_dir=root / "herdr",
-            target_dir=config_home() / "herdr",
-            entries=HERDR_ENTRIES,
-            force=parsed.force,
-        )
+    link_operations, link_errors = preflight_links(
+        complete_plan,
+        force=args.force,
+        unlink=args.unlink,
+        check=args.check,
+    )
+    errors.extend(link_errors)
 
-    if parsed.link_dotfiles:
-        link_entries(
-            summary,
-            label="dotfiles",
-            source_dir=root / "dotfiles",
-            target_dir=home,
-            entries=DOTFILES_ENTRIES,
-            force=parsed.force,
+    if not errors and not args.check:
+        execute_links(
+            complete_plan,
+            link_operations,
+            dry_run=args.dry_run,
+            unlink=args.unlink,
         )
-        link_entries(
-            summary,
-            label="dotfiles",
-            source_dir=root / "dotfiles",
-            target_dir=Path.home(),
-            entries=(".asoundrc",),
-            force=parsed.force,
-        )
-
-    summary.print()
-    return 1 if summary.errored else 0
+        if not args.unlink:
+            execute_generated(generated_operations, dry_run=args.dry_run)
+            if "opencode" in groups and not args.dry_run:
+                remove_legacy_icons()
+            if "opencode" in groups:
+                errors.extend(actions(args.dry_run))
+    info("")
+    if errors:
+        info(f"Link summary: {len(errors)} error(s)")
+    elif args.dry_run:
+        info("Link summary: dry run completed; no changes were made.")
+    elif args.unlink:
+        info("Link summary: selected managed symlinks were removed.")
+    else:
+        info("Link summary: all selected config symlinks are correct.")
+    for error in errors:
+        fail(error)
+    return 1 if errors else 0
 
 
 if __name__ == "__main__":

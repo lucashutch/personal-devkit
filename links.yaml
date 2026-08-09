@@ -1,0 +1,92 @@
+version: 1
+groups:
+  opencode:
+  - source: opencode/v2/home
+    destinations:
+    - $CONFIG_HOME/opencode-v2-home/opencode
+    include:
+    - "*.json"
+    - "plugins/**"
+  - source: opencode/v2/work
+    destinations:
+    - $CONFIG_HOME/opencode-v2-work/opencode
+    include:
+    - "*.json"
+    - "plugins/**"
+  - source: opencode/v2/test
+    destinations:
+    - $CONFIG_HOME/opencode-v2-test/opencode
+    include:
+    - "*.json"
+    - "plugins/**"
+    exclude:
+    - __pycache__
+    - "*.pyc"
+  - source: opencode/v2/shared
+    destinations:
+    - $CONFIG_HOME/opencode-v2-home/opencode
+    - $CONFIG_HOME/opencode-v2-work/opencode
+    - $CONFIG_HOME/opencode-v2-test/opencode
+    include:
+    - cli.json
+    - "agents/**"
+    - "commands/**"
+    - "skills/**"
+  - source: opencode/v2/shared
+    destinations:
+    - $CONFIG_HOME/opencode-v2-home/opencode/shared
+    - $CONFIG_HOME/opencode-v2-work/opencode/shared
+    - $CONFIG_HOME/opencode-v2-test/opencode/shared
+
+  - source: opencode/v1/home
+    destinations:
+    - $CONFIG_HOME/opencode-v1-home/opencode
+    include:
+    - "*.json"
+  - source: opencode/v1/work
+    destinations:
+    - $CONFIG_HOME/opencode-v1-work/opencode
+    include:
+    - "*.json"
+  - source: opencode/v1/test
+    destinations:
+    - $CONFIG_HOME/opencode-v1-test/opencode
+    include:
+    - "*.json"
+  - source: opencode/v1/shared
+    destinations:
+    - $CONFIG_HOME/opencode-v1-home/opencode
+    - $CONFIG_HOME/opencode-v1-work/opencode
+    - $CONFIG_HOME/opencode-v1-test/opencode
+    include:
+    - tui.json
+    - "commands/**"
+    - "agents/**"
+    - "plugins/**"
+    - "skills/**"
+
+  claude:
+  - source: claude
+    destinations:
+    - $HOME/.claude
+    include:
+    - "**"
+
+  herdr:
+  - source: herdr
+    destinations:
+    - $CONFIG_HOME/herdr
+    include:
+    - config.toml
+
+  dotfiles:
+  - source: dotfiles
+    destinations:
+    - $CONFIG_HOME
+    include:
+    - starship.toml
+    - "ghostty/**"
+    - "bashrc.d/**"
+  - source: dotfiles/.asoundrc
+    destinations:
+    - $HOME/.asoundrc

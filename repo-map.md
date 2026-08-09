@@ -12,10 +12,11 @@ Stack: TypeScript/TSX OpenCode plugins, JSON configuration, Python 3.11+, Bash
 - `herdr/` — Herdr configuration.
 - `dotfiles/` — Bash snippets, Ghostty configuration, and Starship theme.
 - `scripts/` — Python installers/linker plus TypeScript schema maintenance utility.
+- `links.yaml` — declarative source-to-destination mappings consumed by the linker.
 
 ## Entry points
 - `scripts/install.py` — installs the toolkit's supported command-line tools.
-- `scripts/link-config.py` — symlinks repo sources into OpenCode V1/V2, Claude, Herdr, and dotfile target locations.
+- `scripts/link-config.py` — validates and applies `links.yaml`, then runs repository-specific OpenCode setup actions.
 - `opencode/v1/shared/plugins/*.ts` — auto-loaded OpenCode V1 plugin modules.
 - `opencode/v1/{home,work,test}/opencode.json` — profile-specific V1 global configs.
 - `opencode/v2/{home,work,test}/opencode.json` — V2 profile-specific global configs.
@@ -23,6 +24,7 @@ Stack: TypeScript/TSX OpenCode plugins, JSON configuration, Python 3.11+, Bash
 ## Commands
 - Install tools: `scripts/install.py --help`
 - Link config: `scripts/link-config.py --help`
+- Install Python dependencies: `python3 -m pip install -r requirements.txt`
 - Python syntax check: `python3 -m compileall -q scripts`
 - Tests/lint/build: no repository-wide manifest or CI commands are defined.
 

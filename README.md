@@ -10,7 +10,8 @@ Feel free to fork this repo or open PRs to fine-tune the prompts and tool descri
 - `claude/` — Claude Code settings, keybindings, statusline, agents, skills, and commands
 - `herdr/` — Herdr configuration
 - `dotfiles/` — terminal and shell config managed from this repo
-- `scripts/link-config.py` — symlinks repo-managed config into `~/.config` (and `~/.claude`)
+- `links.yaml` — declares repo-managed source-to-destination mappings
+- `scripts/link-config.py` — validates and applies the mappings, plus repository-specific setup actions
 
 
 ## Tool installer
@@ -48,20 +49,81 @@ The installer is intended to be noninteractive and idempotent. Reruns skip selec
 
 ## Linking config
 
+Install the Python dependency before using the linker:
+
 ```sh
- scripts/link-config.py --help
- scripts/link-config.py --opencode
- scripts/link-config.py --claude
- scripts/link-config.py --herdr
- scripts/link-config.py --dotfiles
- scripts/link-config.py --all
+python3 -m pip install -r requirements.txt
 ```
 
-Use `--force` to replace existing files/directories/symlinks at the target paths.
+```sh
+scripts/link-config.py --help
+scripts/link-config.py --opencode
+scripts/link-config.py --claude
+scripts/link-config.py --herdr
+scripts/link-config.py --dotfiles
+scripts/link-config.py --all
+```
+
+Use `--force` to replace existing files, symlinks, or empty directories at the target paths.
 Without `--force`, the script reports every item that worked or errored and exits non-zero if anything failed.
 
 By default, running the script with no target option links OpenCode config only.
 Herdr config is linked from `herdr/config.toml` to `~/.config/herdr/config.toml`.
+
+The linker validates the complete selected plan before changing anything. Its
+additional operating modes are:
+
+```sh
+scripts/link-config.py --all --check     # verify without changing files
+scripts/link-config.py --all --dry-run   # show links and actions that would run
+scripts/link-config.py --dotfiles --unlink
+```
+
+`--unlink` removes only symlinks whose immediate target is still the declared
+source. It leaves generated desktop files and unmanaged objects untouched.
+`--force` can replace files, symlinks, and empty directories, but never a
+non-empty real directory.
+
+### Link manifest
+
+Each `links.yaml` entry maps one repository-relative source to one or more
+absolute destinations. Destinations may use `$HOME`, `$CONFIG_HOME`,
+`$DATA_HOME`, `$STATE_HOME`, and `$CACHE_HOME`; the XDG values are normalized
+so running the linker from an OpenCode profile does not nest profile roots.
+
+```yaml
+version: 1
+groups:
+  herdr:
+  - source: herdr/config.toml
+    destinations:
+    - $CONFIG_HOME/herdr/config.toml
+```
+
+Directory entries can select contents recursively with `include` and `exclude`
+globs. Relative paths are preserved, patterns without `/` match at any depth,
+and exclusions take precedence. Patterns support `*` within one path segment,
+`**` across path segments, and `?` for one non-separator character; character
+classes such as `[abc]` are not supported. A subdirectory is linked as one
+directory only when an include such as `**` or `docs/**` structurally selects
+its complete subtree and there are no exclusions. Other filtered directories
+are created normally and contain links to their selected files.
+
+```yaml
+- source: examples/config
+  destinations:
+  - $CONFIG_HOME/example
+  include:
+  - "**/*.md"
+  exclude:
+  - draft.md
+  - "archive/**"
+```
+
+Without `include` or `exclude`, a directory source is linked as one directory.
+Use `optional: true` for a source that may not exist. A custom manifest can be
+checked with `--manifest PATH`; its source paths are still relative to this
+repository.
 
 ## Bash config
 
