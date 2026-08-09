@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["PyYAML>=6.0"]
+# ///
 """Link repository-managed configuration described by links.yaml."""
 from __future__ import annotations
 

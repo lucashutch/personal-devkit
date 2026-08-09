@@ -24,9 +24,10 @@ Stack: TypeScript/TSX OpenCode plugins, JSON configuration, Python 3.11+, Bash
 ## Commands
 - Install tools: `scripts/install.py --help`
 - Link config: `scripts/link-config.py --help`
-- Install Python dependencies: `python3 -m pip install -r requirements.txt`
+- Install Python dependencies: `uv sync` (or run scripts ad hoc with `uv run scripts/link-config.py`)
 - Python syntax check: `python3 -m compileall -q scripts`
-- Tests/lint/build: no repository-wide manifest or CI commands are defined.
+- Tests: `uv run pytest`
+- Lint: `uv run ruff check scripts`
 
 ## Conventions & gotchas
 - Edit repository sources, never linked files under `~/.config/opencode*` or `~/.claude`.

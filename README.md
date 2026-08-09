@@ -49,10 +49,16 @@ The installer is intended to be noninteractive and idempotent. Reruns skip selec
 
 ## Linking config
 
-Install the Python dependency before using the linker:
+The linker needs PyYAML. With [uv](https://docs.astral.sh/uv/) you can run it without installing anything (inline script metadata resolves the dependency):
 
 ```sh
-python3 -m pip install -r requirements.txt
+uv run scripts/link-config.py --all
+```
+
+Or set up the project environment once and use the script directly:
+
+```sh
+uv sync
 ```
 
 ```sh
