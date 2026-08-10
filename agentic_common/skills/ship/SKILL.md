@@ -4,9 +4,9 @@ description: Validate, commit, push, and create or refresh a PR for completed wo
 ---
 # Ship
 
-Use the `bash` tool to perform this pipeline in order:
+Perform this pipeline in order:
 
-1. Inspect the working-tree status and diff. Do not disturb or include unrelated changes; use `question` when they prevent safe shipping.
+1. Inspect the working-tree status and diff. Do not disturb or include unrelated changes; ask the user when they prevent safe shipping.
 2. Ensure the repository's quality gates pass.
 3. Ensure you are on a feature branch; create one if needed.
 4. Commit the intended uncommitted changes (prefer amends for small changes). Read the diff to write a clear, succinct commit message. Make one or more atomic commits if needed.

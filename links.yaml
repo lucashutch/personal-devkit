@@ -31,7 +31,6 @@ groups:
     - cli.json
     - "agents/**"
     - "commands/**"
-    - "skills/**"
   - source: opencode/v2/shared
     destinations:
     - $CONFIG_HOME/opencode-v2-home/opencode/shared
@@ -63,7 +62,16 @@ groups:
     - "commands/**"
     - "agents/**"
     - "plugins/**"
-    - "skills/**"
+
+  # Skills are platform-neutral: one copy in agentic_common, linked everywhere.
+  - source: agentic_common/skills
+    destinations:
+    - $CONFIG_HOME/opencode-v2-home/opencode/skills
+    - $CONFIG_HOME/opencode-v2-work/opencode/skills
+    - $CONFIG_HOME/opencode-v2-test/opencode/skills
+    - $CONFIG_HOME/opencode-v1-home/opencode/skills
+    - $CONFIG_HOME/opencode-v1-work/opencode/skills
+    - $CONFIG_HOME/opencode-v1-test/opencode/skills
 
   claude:
   - source: claude
@@ -71,6 +79,9 @@ groups:
     - $HOME/.claude
     include:
     - "**"
+  - source: agentic_common/skills
+    destinations:
+    - $HOME/.claude/skills
 
   herdr:
   - source: herdr

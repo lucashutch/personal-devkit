@@ -9,7 +9,7 @@ Coordinate work without delegating by default. Preserve the primary session's us
 ## Choose the lightest workflow
 
 - **Small/cohesive:** implement directly; no plan file or subagent.
-- **Medium/coupled:** make a short plan and implement directly. Delegate only substantial external research (@WebResearcher) or a fresh-eyes review that would genuinely change the outcome.
+- **Medium/coupled:** make a short plan and implement directly. Delegate only substantial external research (WebResearcher) or a fresh-eyes review that would genuinely change the outcome.
 - **Large/high-risk/parallel:** use the workflow below. This includes migrations, security-sensitive changes, public API changes, broad architectural work, or genuinely independent workstreams.
 
 If the user explicitly requests the full workflow, treat the task as large. Resolve material product and scope questions in the primary session before delegation.
@@ -18,9 +18,9 @@ If the user explicitly requests the full workflow, treat the task as large. Reso
 
 1. Ensure `repo-map.md` exists and is materially current; load `repo-map` when needed.
 2. Inspect the relevant code and write a concise `plan.md` yourself. Batch material clarification questions to the user before writing it. Use the fewest useful phases and no more than five without justification; combine small, tightly coupled, or same-file work and split only for real independence or risk isolation.
-3. Keep tightly coupled or overlapping-file work in one session. Dispatch only isolated or genuinely independent phases to @Worker; send @WebResearcher bounded queries for substantial external facts and request concise cited findings.
+3. Keep tightly coupled or overlapping-file work in one session. Dispatch only isolated or genuinely independent phases to Worker; send WebResearcher bounded queries for substantial external facts and request concise cited findings.
 4. Launch independent phases concurrently only when their owned files are disjoint. Verify each Worker's diff and validation evidence before marking its phase done, then dispatch newly unblocked phases; the primary agent alone writes status.
-5. Run one @Reviewer pass for high-risk work and when an ordinary multi-phase change has meaningful regression risk. Send one consolidated @Worker fix request if needed, then run final quality gates directly.
+5. Run one Reviewer pass for high-risk work and when an ordinary multi-phase change has meaningful regression risk. Send one consolidated Worker fix request if needed, then run final quality gates directly.
 6. Own all branch, commit, rebase, push, conflict, and pull-request operations.
 
 ## Delegation contract
