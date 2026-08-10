@@ -19,7 +19,16 @@ import yaml
 
 from program_installers.common import configure_logging, fail, info
 
-PROFILE_NAMES = {"opencode-v1-test", "opencode-v2", "opencode-v2-test"}
+PROFILE_NAMES = {
+    "opencode-v1-test",
+    "opencode-v2",
+    "opencode-v2-test",
+    # Retired profiles, kept only so a stale shell's roots still de-nest.
+    "opencode-v1-home",
+    "opencode-v1-work",
+    "opencode-v2-home",
+    "opencode-v2-work",
+}
 VARIABLE = re.compile(r"\$([A-Z_]+)")
 DESKTOP_TEMPLATES = (
     "opencode.desktop.in",

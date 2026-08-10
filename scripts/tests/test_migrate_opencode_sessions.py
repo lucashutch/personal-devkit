@@ -13,17 +13,33 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 MIGRATOR = ROOT / "scripts" / "migrate_opencode_sessions.py"
 
+# The primary keys and unique indexes mirror the real OpenCode schemas.
 V1_SCHEMA = """
-CREATE TABLE project (id TEXT PRIMARY KEY, worktree TEXT NOT NULL, time_created INTEGER);
+CREATE TABLE project (
+    id TEXT PRIMARY KEY,
+    worktree TEXT NOT NULL,
+    icon_color TEXT,
+    time_created INTEGER
+);
 CREATE TABLE project_directory (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    directory TEXT NOT NULL,
+    time_seen INTEGER,
+    PRIMARY KEY (project_id, directory)
+);
+CREATE TABLE permission (
     id TEXT PRIMARY KEY,
     project_id TEXT NOT NULL REFERENCES project(id),
-    directory TEXT
+    action TEXT NOT NULL,
+    resource TEXT NOT NULL,
+    UNIQUE (project_id, action, resource)
 );
 CREATE TABLE session (
     id TEXT PRIMARY KEY,
     project_id TEXT NOT NULL REFERENCES project(id),
-    title TEXT
+    parent_id TEXT REFERENCES session(id),
+    title TEXT,
+    time_created INTEGER
 );
 CREATE TABLE message (
     id TEXT PRIMARY KEY,
@@ -37,21 +53,29 @@ CREATE TABLE part (
     text TEXT
 );
 CREATE TABLE todo (
-    id TEXT PRIMARY KEY,
     session_id TEXT NOT NULL REFERENCES session(id),
-    content TEXT
+    position INTEGER NOT NULL,
+    content TEXT,
+    PRIMARY KEY (session_id, position)
 );
 CREATE TABLE session_message (
+    id TEXT PRIMARY KEY,
     session_id TEXT NOT NULL REFERENCES session(id),
     message_id TEXT NOT NULL REFERENCES message(id),
-    PRIMARY KEY (session_id, message_id)
+    seq INTEGER NOT NULL,
+    UNIQUE (session_id, seq)
 );
-CREATE TABLE event_sequence (aggregate_id TEXT PRIMARY KEY, seq INTEGER NOT NULL);
+CREATE TABLE event_sequence (
+    aggregate_id TEXT PRIMARY KEY,
+    owner_id TEXT,
+    seq INTEGER NOT NULL
+);
 CREATE TABLE event (
     id TEXT PRIMARY KEY,
     aggregate_id TEXT NOT NULL REFERENCES event_sequence(aggregate_id),
     seq INTEGER NOT NULL,
-    payload TEXT
+    payload TEXT,
+    UNIQUE (aggregate_id, seq)
 );
 CREATE TABLE migration (id TEXT PRIMARY KEY, time_completed INTEGER);
 CREATE TABLE data_migration (id TEXT PRIMARY KEY, time_completed INTEGER);
@@ -71,9 +95,10 @@ CREATE TABLE message (
     role TEXT
 );
 CREATE TABLE instruction_entry (
-    id TEXT PRIMARY KEY,
     session_id TEXT NOT NULL REFERENCES session(id),
-    body TEXT
+    key TEXT NOT NULL,
+    body TEXT,
+    PRIMARY KEY (session_id, key)
 );
 CREATE TABLE migration (id TEXT PRIMARY KEY, time_completed INTEGER);
 """
@@ -111,20 +136,26 @@ def populate(
     session: str,
     message: str,
     text: str = "hello",
+    icon_color: str = "blue",
+    todo: str = "todo",
 ) -> None:
     connection = sqlite3.connect(path)
-    connection.execute("INSERT INTO project VALUES (?, ?, 1)", (project, worktree))
+    connection.execute("INSERT INTO project VALUES (?, ?, ?, 1)", (project, worktree, icon_color))
     connection.execute(
-        "INSERT INTO project_directory VALUES (?, ?, ?)", (f"dir_{session}", project, worktree)
+        "INSERT INTO project_directory VALUES (?, ?, 1)", (project, worktree)
     )
-    connection.execute("INSERT INTO session VALUES (?, ?, ?)", (session, project, f"t {session}"))
+    connection.execute(
+        "INSERT INTO session VALUES (?, ?, NULL, ?, 1)", (session, project, f"t {session}")
+    )
     connection.execute("INSERT INTO message VALUES (?, ?, 'user')", (message, session))
     connection.execute(
         "INSERT INTO part VALUES (?, ?, ?, ?)", (f"prt_{message}", message, session, text)
     )
-    connection.execute("INSERT INTO todo VALUES (?, ?, 'todo')", (f"tdo_{session}", session))
-    connection.execute("INSERT INTO session_message VALUES (?, ?)", (session, message))
-    connection.execute("INSERT INTO event_sequence VALUES (?, 2)", (session,))
+    connection.execute("INSERT INTO todo VALUES (?, 0, ?)", (session, todo))
+    connection.execute(
+        "INSERT INTO session_message VALUES (?, ?, ?, 1)", (f"smg_{message}", session, message)
+    )
+    connection.execute("INSERT INTO event_sequence VALUES (?, ?, 2)", (session, session))
     connection.execute(
         "INSERT INTO event VALUES (?, ?, 1, '{}')", (f"evt_{session}_1", session)
     )
@@ -231,7 +262,8 @@ class MigrateOpenCodeSessionsTests(unittest.TestCase):
         )
         populate(self.first, project="prj_a", worktree="/w/a", session="ses_a", message="msg_a")
         connection = sqlite3.connect(self.first)
-        connection.execute("INSERT INTO event VALUES ('evt_extra', 'ses_a', 1, '{}')")
+        connection.execute("INSERT INTO event VALUES ('evt_extra', 'ses_a', 3, '{}')")
+        connection.execute("UPDATE event_sequence SET seq = 3")
         connection.commit()
         connection.close()
 
@@ -242,6 +274,166 @@ class MigrateOpenCodeSessionsTests(unittest.TestCase):
         self.assertEqual(
             rows(self.target, "SELECT seq FROM event WHERE id = 'evt_extra'"), [(3,)]
         )
+
+    def test_event_sequence_owner_is_copied(self) -> None:
+        for path in (self.target, self.first):
+            create(path)
+        populate(self.first, project="prj_a", worktree="/w/a", session="ses_a", message="msg_a")
+
+        result = self.merge()
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(
+            rows(self.target, "SELECT owner_id FROM event_sequence"), [("ses_a",)]
+        )
+
+    def test_shared_project_id_with_same_worktree_keeps_the_target_row(self) -> None:
+        for path in (self.target, self.first, self.second):
+            create(path)
+        populate(
+            self.target,
+            project="prj_a",
+            worktree="/w/a",
+            session="ses_t",
+            message="msg_t",
+            icon_color="blue",
+        )
+        populate(
+            self.first,
+            project="prj_a",
+            worktree="/w/a",
+            session="ses_a",
+            message="msg_a",
+            icon_color="green",
+        )
+        populate(
+            self.second,
+            project="prj_a",
+            worktree="/w/a",
+            session="ses_b",
+            message="msg_b",
+            icon_color="red",
+        )
+
+        result = self.merge(sources=[self.first, self.second])
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(count(self.target, "project"), 1)
+        self.assertEqual(rows(self.target, "SELECT icon_color FROM project"), [("blue",)])
+        self.assertEqual(count(self.target, "session"), 3)
+        self.assertIn("kept the target row", result.stdout)
+
+    def test_differing_composite_key_row_aborts_then_skips(self) -> None:
+        for path in (self.target, self.first):
+            create(path)
+        populate(
+            self.target, project="prj_a", worktree="/w/a", session="ses_a", message="msg_a"
+        )
+        populate(
+            self.first,
+            project="prj_a",
+            worktree="/w/a",
+            session="ses_a",
+            message="msg_a",
+            todo="rewritten",
+        )
+
+        aborted = self.merge()
+        self.assertNotEqual(aborted.returncode, 0)
+        self.assertIn("todo row", aborted.stdout + aborted.stderr)
+        self.assertEqual(rows(self.target, "SELECT content FROM todo"), [("todo",)])
+
+        skipped = self.merge("--on-collision", "skip")
+        self.assertEqual(skipped.returncode, 0, skipped.stdout + skipped.stderr)
+        self.assertEqual(rows(self.target, "SELECT content FROM todo"), [("todo",)])
+
+    def test_unique_index_violation_names_the_constraint(self) -> None:
+        for path in (self.target, self.first):
+            create(path)
+        populate(
+            self.target, project="prj_a", worktree="/w/a", session="ses_t", message="msg_t"
+        )
+        populate(self.first, project="prj_a", worktree="/w/a", session="ses_a", message="msg_a")
+        for path, identifier in ((self.target, "per_t"), (self.first, "per_a")):
+            connection = sqlite3.connect(path)
+            connection.execute(
+                "INSERT INTO permission VALUES (?, 'prj_a', 'edit', '/w/a/f')", (identifier,)
+            )
+            connection.commit()
+            connection.close()
+
+        result = self.merge()
+
+        self.assertNotEqual(result.returncode, 0)
+        report = result.stdout + result.stderr
+        self.assertIn("permission insert rejected by a constraint", report)
+        self.assertIn("UNIQUE constraint failed", report)
+        self.assertEqual(count(self.target, "session"), 1)
+
+    def test_child_session_is_copied_after_its_renamed_parent(self) -> None:
+        for path in (self.target, self.first):
+            create(path)
+        populate(
+            self.target, project="prj_a", worktree="/w/a", session="ses_p", message="msg_t"
+        )
+        populate(self.first, project="prj_a", worktree="/w/a", session="ses_p", message="msg_a")
+        connection = sqlite3.connect(self.first)
+        connection.execute("UPDATE session SET title = 'other' WHERE id = 'ses_p'")
+        # Physically first but created later, so only a time_created ordering copies the parent first.
+        connection.execute(
+            "INSERT INTO session VALUES ('ses_c', 'prj_a', 'ses_p', 'child', 9)"
+        )
+        connection.execute("UPDATE session SET time_created = 5 WHERE id = 'ses_p'")
+        connection.commit()
+        connection.close()
+
+        result = self.merge("--on-collision", "rename")
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(
+            rows(self.target, "SELECT parent_id FROM session WHERE id = 'ses_c'"),
+            [("ses_p_profile-one",)],
+        )
+
+    def test_one_source_commits_while_another_rolls_back(self) -> None:
+        for path in (self.target, self.first, self.second):
+            create(path)
+        populate(
+            self.target, project="prj_t", worktree="/w/t", session="ses_t", message="msg_t"
+        )
+        populate(self.first, project="prj_a", worktree="/w/a", session="ses_a", message="msg_a")
+        populate(
+            self.second,
+            project="prj_t",
+            worktree="/w/t",
+            session="ses_t",
+            message="msg_t",
+            todo="rewritten",
+        )
+
+        result = self.merge(sources=[self.first, self.second])
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(
+            sorted(rows(self.target, "SELECT id FROM session")), [("ses_a",), ("ses_t",)]
+        )
+        self.assertIn("rolled back", result.stdout + result.stderr)
+
+    def test_validation_fails_when_a_source_row_is_unaccounted_for(self) -> None:
+        module = load_migrator()
+        create(self.target)
+        populate(
+            self.target, project="prj_t", worktree="/w/t", session="ses_t", message="msg_t"
+        )
+        connection = sqlite3.connect(self.target)
+        connection.row_factory = sqlite3.Row
+        self.addCleanup(connection.close)
+        stats = {"session": module.TableStats(source_rows=3, inserted=1, skipped=0)}
+
+        lines, ok = module.validate(connection, {"session": 0}, stats)
+
+        self.assertFalse(ok)
+        self.assertIn("lost:", "\n".join(lines))
 
     def conflicting_source(self) -> None:
         for path in (self.target, self.first):
@@ -401,7 +593,7 @@ class MigrateOpenCodeSessionsTests(unittest.TestCase):
         connection.execute("INSERT INTO project VALUES ('prj_a', '/w/a', 1)")
         connection.execute("INSERT INTO session VALUES ('ses_a', 'prj_a', 'title')")
         connection.execute("INSERT INTO message VALUES ('msg_a', 'ses_a', 'user')")
-        connection.execute("INSERT INTO instruction_entry VALUES ('ins_a', 'ses_a', 'body')")
+        connection.execute("INSERT INTO instruction_entry VALUES ('ses_a', 'agents', 'body')")
         connection.commit()
         connection.close()
 

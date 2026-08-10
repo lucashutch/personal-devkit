@@ -495,6 +495,30 @@ class LinkConfigTests(unittest.TestCase):
             self.assertTrue((base / "opencode-v2" / "opencode" / "opencode.json").is_symlink())
             self.assertFalse((base / "opencode-v1-test" / "opencode-v2").exists())
 
+    def test_retired_profile_roots_do_not_nest(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_home:
+            base = Path(temporary_home) / ".config"
+            environment = os.environ | {
+                "HOME": temporary_home,
+                "XDG_CONFIG_HOME": str(base / "opencode-v1-home"),
+                "XDG_DATA_HOME": str(Path(temporary_home) / ".local" / "share" / "opencode-v1-home"),
+                "XDG_STATE_HOME": str(Path(temporary_home) / ".local" / "state"),
+                "XDG_CACHE_HOME": str(Path(temporary_home) / ".cache"),
+                "PATH": "/nonexistent",
+            }
+            result = subprocess.run(
+                [sys.executable, str(LINKER), "--opencode"],
+                cwd=ROOT,
+                env=environment,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((base / "opencode" / "opencode.json").is_symlink())
+            self.assertFalse((base / "opencode-v1-home").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

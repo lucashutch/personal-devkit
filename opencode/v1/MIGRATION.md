@@ -56,13 +56,18 @@ mkdir -p "$backup/config" "$backup/data"
 
 for profile in opencode opencode-v1-home opencode-v1-work \
   opencode-v2-home opencode-v2-work; do
-  test -d "$HOME/.config/$profile" &&
+  if test -d "$HOME/.config/$profile"; then
     rsync -aH "$HOME/.config/$profile" "$backup/config"/
-  test -d "$HOME/.local/share/$profile" &&
+  fi
+  if test -d "$HOME/.local/share/$profile"; then
     rsync -aH --exclude bin "$HOME/.local/share/$profile" "$backup/data"/
+  fi
 done
 printf 'Backup written to %s\n' "$backup"
 ```
+
+Run each block in this guide with `bash -c '...'` if you would rather not leave
+`set -eu` active in your interactive shell.
 
 Keep this backup until you have listed and resumed sessions from both retired
 profiles in the new defaults.
@@ -80,10 +85,18 @@ mv "$HOME/.config/opencode" "$retired/config/opencode"
 for item in opencode.db opencode.db-wal opencode.db-shm \
   opencode-next.db opencode-next.db-wal opencode-next.db-shm \
   auth.json storage; do
-  test -e "$HOME/.local/share/opencode/$item" &&
+  if test -e "$HOME/.local/share/opencode/$item"; then
     mv "$HOME/.local/share/opencode/$item" "$retired/data"/
+  fi
 done
 ```
+
+`opencode-next.db` in this legacy default namespace holds 9 V2 sessions from the
+period when V2 ran in the default namespace. They are deliberately **not**
+merged: the legacy default namespace is being retired wholesale, and V2's new
+home is `~/.local/share/opencode-v2`. Those sessions stay recoverable in
+`$retired/data/opencode-next.db`; merge them later with `--kind v2` if you
+decide you want them.
 
 ## 3. Link the new config trees
 
@@ -96,19 +109,37 @@ readlink -f ~/.config/opencode-v2/opencode/opencode.json
 They should resolve to `opencode/v1/default/opencode.json` and
 `opencode/v2/default/opencode.json` in this repository.
 
+Now start a new terminal, so the new helpers are loaded. In the pre-migration
+shell `opencode` still points at the retired work profile and `opencode2` is the
+bare binary, so the next step would create both databases in the wrong
+namespace.
+
 ## 4. Create empty target databases with the target binaries
 
 Do not hand-build a schema, and do not copy a database from a different CLI
 version. Let each binary create its own database in the new namespace so the
-schema and applied migrations match the version you actually run:
+schema and applied migrations match the version you actually run. The XDG roots
+are set explicitly so the result does not depend on which shell you are in:
 
 ```bash
-opencode auth list >/dev/null     # creates ~/.local/share/opencode/opencode.db
-opencode2 auth list >/dev/null    # creates the opencode-v2 database
+XDG_CONFIG_HOME="$HOME/.config" XDG_DATA_HOME="$HOME/.local/share" \
+  opencode auth list >/dev/null
+XDG_CONFIG_HOME="$HOME/.config/opencode-v2" \
+  XDG_DATA_HOME="$HOME/.local/share/opencode-v2" \
+  opencode2 auth list >/dev/null
 opencode2 service stop || true    # nothing should hold the target open
 ```
 
-Confirm both files exist and are otherwise empty before merging.
+Verify both target files now exist at the expected paths, and nowhere else,
+before merging:
+
+```bash
+ls -l ~/.local/share/opencode/opencode.db \
+  ~/.local/share/opencode-v2/opencode/opencode-next.db
+find ~/.local/share -maxdepth 4 -name 'opencode*.db' -newermt '-1 hour'
+```
+
+Both should be freshly created and otherwise empty.
 
 ## 5. Merge the retired session databases
 
@@ -138,6 +169,18 @@ uv run scripts/migrate_opencode_sessions.py --kind v1 \
   --storage ~/.local/share/opencode-v1-work/opencode/storage:$HOME/.local/share/opencode/storage
 ```
 
+Both retired V1 profiles were seeded from the same machine, so they share several
+`project.id` values for the same worktree whose `icon_color` or `time_created`
+differ. The tool treats a source project row whose worktree already exists in the
+target under the same id as already represented: the target row wins, the source
+row is skipped, and dependent rows keep that id. Only rows outside `project` can
+still collide. If a `session`, `message`, `part`, or `todo` row collides with
+differing content and you trust the target copy — for example after a partially
+completed earlier merge — rerun with `--on-collision=skip`. Use it also when the
+two profiles recorded the same session with diverging metadata and you only need
+one copy. A UNIQUE-index violation is reported with its table and constraint and
+rolls the source back without dropping rows; resolve it before rerunning.
+
 And V2:
 
 ```bash
@@ -155,8 +198,9 @@ primary-key collision with differing content aborts by default; choose
 both.
 
 The tool prints `PRAGMA integrity_check`, `PRAGMA foreign_key_check`, and a
-per-table source/before/inserted/skipped/after table. Any nonzero delta or
-violation fails the run with a nonzero exit status.
+per-table source/before/inserted/skipped/after table. Any nonzero delta, any
+violation, or any `lost` row — a source row that was neither inserted nor skipped
+by policy — fails the run with a nonzero exit status.
 
 V2 keeps provider credentials in the database rather than `auth.json`, and the
 tool never merges credential rows. Reconnect each provider in the new V2
@@ -191,15 +235,30 @@ them so merged sessions can still show their history:
 
 ```bash
 for item in snapshot shell tool-output repos; do
-  test -d "$HOME/.local/share/opencode-v2-home/opencode/$item" &&
+  if test -d "$HOME/.local/share/opencode-v2-home/opencode/$item"; then
     rsync -aH "$HOME/.local/share/opencode-v2-home/opencode/$item" \
       "$HOME/.local/share/opencode-v2/opencode"/
+  fi
 done
 ```
 
 ## 8. Validate
 
-Start a new terminal so the new helpers are loaded, then:
+Count the merged sessions. The merged `session` count must equal what the target
+held before the merge plus each source's count, minus nothing — the tool never
+drops a session. Set `backup` to the directory printed in step 1, since this is a
+new shell:
+
+```bash
+backup=$HOME/opencode-profile-collapse-backup-<stamp>
+for db in "$backup/data/opencode-v1-home/opencode/opencode.db" \
+  "$backup/data/opencode-v1-work/opencode/opencode.db" \
+  "$HOME/.local/share/opencode/opencode.db"; do
+  printf '%s %s\n' "$(sqlite3 "$db" 'SELECT count(*) FROM session')" "$db"
+done
+```
+
+Then, in a new terminal so the new helpers are loaded:
 
 ```bash
 opencode auth list       # union of the retired V1 accounts
@@ -217,6 +276,16 @@ rm -rf ~/.config/opencode-v1-home ~/.config/opencode-v1-work \
   ~/.config/opencode-v2-home ~/.config/opencode-v2-work \
   ~/.local/share/opencode-v1-home ~/.local/share/opencode-v1-work \
   ~/.local/share/opencode-v2-home ~/.local/share/opencode-v2-work
+```
+
+Remove the now-orphaned per-profile desktop artifacts too:
+
+```bash
+rm -f ~/.local/share/applications/opencode-home.desktop \
+  ~/.local/share/applications/opencode-work.desktop \
+  ~/.local/share/icons/hicolor/scalable/apps/opencode-home.png \
+  ~/.local/share/icons/hicolor/scalable/apps/opencode-work.png
+update-desktop-database ~/.local/share/applications || true
 ```
 
 ## Rollback

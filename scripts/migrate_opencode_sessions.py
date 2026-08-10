@@ -65,8 +65,8 @@ IGNORED_TABLES = (
 REFERENCES = {
     "project_directory": {"project_id": "project"},
     "workspace": {"project_id": "project"},
-    "permission": {"project_id": "project", "session_id": "session"},
-    "session": {"project_id": "project", "parent_id": "session"},
+    "permission": {"project_id": "project"},
+    "session": {"project_id": "project", "parent_id": "session", "workspace_id": "workspace"},
     "message": {"session_id": "session"},
     "part": {"message_id": "message", "session_id": "session"},
     "todo": {"session_id": "session"},
@@ -77,6 +77,9 @@ REFERENCES = {
 }
 
 STORAGE_KINDS = ("message", "part", "session", "session_diff", "project")
+
+# A self-referencing table must be copied parent-first; no foreign key enforces it.
+COPY_ORDER_COLUMNS = {"session": "time_created"}
 
 
 @dataclass
@@ -245,9 +248,16 @@ def store_row(
 def insert_row(target: sqlite3.Connection, table: str, values: dict[str, object]) -> None:
     names = ", ".join(f'"{column}"' for column in values)
     holders = ", ".join("?" for _ in values)
-    target.execute(
-        f'INSERT INTO "{table}" ({names}) VALUES ({holders})', tuple(values.values())
-    )
+    try:
+        target.execute(
+            f'INSERT INTO "{table}" ({names}) VALUES ({holders})', tuple(values.values())
+        )
+    except sqlite3.IntegrityError as error:
+        # --on-collision only resolves primary keys; a UNIQUE index needs an operator decision.
+        raise MergeError(
+            f"{table} insert rejected by a constraint ({error}); "
+            "the row was not dropped, choose how to resolve it before rerunning"
+        ) from error
 
 
 def remap(values: dict[str, object], table: str, mapping: dict[str, dict[str, str]]) -> None:
@@ -271,8 +281,16 @@ def dedupe_projects(
     }
     for row in source.execute("SELECT id, worktree FROM project"):
         reused = known.get(row["worktree"])
-        if reused is not None and reused != row["id"]:
-            mapping["project"][row["id"]] = reused
+        if reused is None:
+            continue
+        mapping["project"][row["id"]] = reused
+        if reused == row["id"]:
+            # Same worktree under the same id: the target row wins even if other columns differ.
+            outcome.note(
+                f"project {row['id']} already holds worktree {row['worktree']}; "
+                "kept the target row"
+            )
+        else:
             outcome.note(
                 f"project {row['id']} reuses target project {reused} for worktree {row['worktree']}"
             )
@@ -295,7 +313,9 @@ def copy_table(
     keys = keys if keys and all(key in shared for key in keys) else []
     stats = outcome.stat(table)
     selection = ", ".join(f'"{column}"' for column in shared)
-    for row in source.execute(f'SELECT {selection} FROM "{table}"'):
+    ordering = COPY_ORDER_COLUMNS.get(table)
+    order = f' ORDER BY "{ordering}"' if ordering in shared else ""
+    for row in source.execute(f'SELECT {selection} FROM "{table}"{order}'):
         stats.source_rows += 1
         values = {column: row[column] for column in shared}
         # Projects deduplicated by worktree are already represented in the target.
@@ -324,14 +344,22 @@ def copy_events(
     sequence_stats = outcome.stat("event_sequence")
     offsets: dict[str, int] = {}
     continued: dict[str, str] = {}
-    for row in source.execute("SELECT aggregate_id, seq FROM event_sequence"):
+    sequence_columns = [
+        column
+        for column in columns(source, "event_sequence")
+        if column in set(columns(target, "event_sequence"))
+    ]
+    sequence_selection = ", ".join(f'"{column}"' for column in sequence_columns)
+    for row in source.execute(f"SELECT {sequence_selection} FROM event_sequence"):
         sequence_stats.source_rows += 1
         aggregate = mapping.get("session", {}).get(row["aggregate_id"], row["aggregate_id"])
         existing = target.execute(
             "SELECT seq FROM event_sequence WHERE aggregate_id = ?", (aggregate,)
         ).fetchone()
         if existing is None:
-            insert_row(target, "event_sequence", {"aggregate_id": aggregate, "seq": row["seq"]})
+            values = {column: row[column] for column in sequence_columns}
+            values["aggregate_id"] = aggregate
+            insert_row(target, "event_sequence", values)
             sequence_stats.inserted += 1
             continue
         offsets[row["aggregate_id"]] = int(existing["seq"])
@@ -459,18 +487,24 @@ def validate(
         lines.append(f"  {violation[0]} rowid {violation[1]} -> {violation[2]}")
     if violations:
         ok = False
-    lines.append("table                 source  before  insert    skip  after  expected  delta")
+    lines.append(
+        "table                 source  before  insert    skip  after  expected  delta  lost"
+    )
     for table in sorted(stats):
         stat = stats[table]
         after = target.execute(f'SELECT count(*) FROM "{table}"').fetchone()[0]
         expected = before.get(table, 0) + stat.inserted
         delta = after - expected
+        # Every source row must be accounted for as inserted or deliberately skipped.
+        lost = stat.source_rows - stat.inserted - stat.skipped
         lines.append(
             f"{table:<21} {stat.source_rows:>6} {before.get(table, 0):>7} "
-            f"{stat.inserted:>7} {stat.skipped:>7} {after:>6} {expected:>9} {delta:>6}"
+            f"{stat.inserted:>7} {stat.skipped:>7} {after:>6} {expected:>9} {delta:>6} {lost:>5}"
         )
-        if delta:
+        if delta or lost:
             ok = False
+    if any(stat.source_rows - stat.inserted - stat.skipped for stat in stats.values()):
+        lines.append("lost: source rows that were neither inserted nor skipped by policy")
     return lines, ok
 
 
@@ -576,7 +610,11 @@ def main(argv: list[str]) -> int:
         target.close()
         scratch = tempfile.TemporaryDirectory()
         working = Path(scratch.name) / target_path.name
-        shutil.copy2(target_path, working)
+        # The WAL comes too, or the rehearsal replays against pre-WAL content; -shm is rebuilt.
+        for suffix in ("", "-wal", "-journal"):
+            candidate = target_path.with_name(target_path.name + suffix)
+            if candidate.exists():
+                shutil.copy2(candidate, working.with_name(working.name + suffix))
         target = connect(working, writable=True)
         info("Dry run: the merge is rehearsed on a temporary copy of the target.")
     else:
