@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=OpenCode
+Comment=OpenCode default profile
+Exec=env GH_CONFIG_DIR=@XDG_CONFIG_HOME@/gh OPENCODE_EXPERIMENTAL_WEBSOCKETS=true /opt/OpenCode/ai.opencode.desktop %U
+Terminal=false
+Type=Application
+Icon=ai.opencode.desktop
+StartupWMClass=ai.opencode.desktop
+MimeType=x-scheme-handler/opencode;
+Categories=Development;

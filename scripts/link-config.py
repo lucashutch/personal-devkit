@@ -19,15 +19,10 @@ import yaml
 
 from program_installers.common import configure_logging, fail, info
 
-PROFILE_NAMES = {
-    f"opencode-v{version}-{profile}"
-    for version in (1, 2)
-    for profile in ("home", "work", "test")
-}
+PROFILE_NAMES = {"opencode-v1-test", "opencode-v2", "opencode-v2-test"}
 VARIABLE = re.compile(r"\$([A-Z_]+)")
 DESKTOP_TEMPLATES = (
-    "opencode-home.desktop.in",
-    "opencode-work.desktop.in",
+    "opencode.desktop.in",
     "ai.opencode.desktop.desktop.in",
 )
 GROUPS = ("opencode", "claude", "herdr", "dotfiles")
@@ -345,7 +340,7 @@ def execute_links(
             dst.symlink_to(link.source)
 
 
-def desktop_plan() -> tuple[list[GeneratedFile], list[Link], list[str]]:
+def desktop_plan() -> tuple[list[GeneratedFile], list[str]]:
     generated = []
     errors = []
     values = variables()
@@ -356,7 +351,6 @@ def desktop_plan() -> tuple[list[GeneratedFile], list[Link], list[str]]:
         for key, value in values.items()
         if key != "HOME"
     }
-    replacements["@ICON_HOME@"] = str(data / "icons/hicolor/scalable/apps")
     for template in DESKTOP_TEMPLATES:
         source = source_dir / template
         destination = data / "applications" / template.removesuffix(".in")
@@ -367,18 +361,7 @@ def desktop_plan() -> tuple[list[GeneratedFile], list[Link], list[str]]:
         for token, value in replacements.items():
             content = content.replace(token, value)
         generated.append(GeneratedFile(destination, content))
-    icons = [
-        Link(
-            "opencode",
-            source_dir / "icons" / name,
-            data / "icons/hicolor/scalable/apps" / name,
-        )
-        for name in ("opencode-home.png", "opencode-work.png")
-    ]
-    for icon in icons:
-        if not icon.source.is_file():
-            errors.append(f"missing source: {icon.source}")
-    return generated, icons, errors
+    return generated, errors
 
 
 def preflight_generated(
@@ -436,18 +419,9 @@ def execute_generated(files: list[GeneratedFile], *, dry_run: bool) -> None:
             destination.write_text(artifact.content)
 
 
-def remove_legacy_icons() -> None:
-    source_dir = root() / "desktop" / "icons"
-    icon_dir = Path(variables()["DATA_HOME"]) / "icons/hicolor/scalable/apps"
-    for name in ("opencode-home.svg", "opencode-work.svg"):
-        legacy = Link("opencode", source_dir / name, icon_dir / name)
-        if matches(legacy):
-            legacy.destination.unlink()
-
-
 def actions(dry_run: bool) -> list[str]:
     if dry_run:
-        info("would configure: opencode-v2 services")
+        info("would configure: opencode-v2-test service")
         info("would install: opencode-v2-tui-dependencies")
         return []
     errors, executable = [], shutil.which("opencode2")
@@ -460,29 +434,30 @@ def actions(dry_run: bool) -> list[str]:
             "XDG_STATE_HOME": "STATE_HOME",
             "XDG_CACHE_HOME": "CACHE_HOME",
         }
-        for profile, port in {"home": 4098, "work": 4097, "test": 4099}.items():
-            environment = os.environ.copy()
-            environment.update(
-                {
-                    key: str(Path(variables()[name]) / f"opencode-v2-{profile}")
-                    for key, name in defaults.items()
-                }
+        # Only the test profile moves off the built-in port, so the default
+        # profile keeps whatever OpenCode ships with and is never configured.
+        environment = os.environ.copy()
+        environment.update(
+            {
+                key: str(Path(variables()[name]) / "opencode-v2-test")
+                for key, name in defaults.items()
+            }
+        )
+        for key, value in (("hostname", "127.0.0.1"), ("port", "4099")):
+            result = subprocess.run(
+                [executable, "service", "set", key, value],
+                env=environment,
+                capture_output=True,
+                text=True,
             )
-            for key, value in (("hostname", "127.0.0.1"), ("port", str(port))):
-                result = subprocess.run(
-                    [executable, "service", "set", key, value],
-                    env=environment,
-                    capture_output=True,
-                    text=True,
+            if result.returncode:
+                detail = result.stderr.strip() or result.stdout.strip() or "command failed"
+                errors.append(
+                    f"opencode-v2-test/service (could not set {key}: {detail})"
                 )
-                if result.returncode:
-                    detail = result.stderr.strip() or result.stdout.strip() or "command failed"
-                    errors.append(
-                        f"opencode-v2-{profile}/service (could not set {key}: {detail})"
-                    )
-                    break
-            else:
-                info(f"configured: opencode-v2-{profile}/service -> 127.0.0.1:{port}")
+                break
+        else:
+            info("configured: opencode-v2-test/service -> 127.0.0.1:4099")
     npm = shutil.which("npm")
     if not npm:
         info("skipped V2 TUI plugin dependencies: npm is not on PATH")
@@ -560,7 +535,7 @@ def main(argv: list[str]) -> int:
     modes.add_argument(
         "--unlink",
         action="store_true",
-        help="Remove only matching managed symlinks (including OpenCode icons)",
+        help="Remove only matching managed symlinks",
     )
     args = parser.parse_args(argv)
     groups = {
@@ -574,12 +549,10 @@ def main(argv: list[str]) -> int:
         return fail(str(error))
     generated = []
     generated_operations = []
-    complete_plan = list(plan)
     errors = []
     if "opencode" in groups:
-        generated, icons, desktop_errors = desktop_plan()
+        generated, desktop_errors = desktop_plan()
         errors.extend(desktop_errors)
-        complete_plan.extend(icons)
         if not args.unlink:
             generated_operations, generated_errors = preflight_generated(
                 generated, force=args.force, check=args.check
@@ -587,7 +560,7 @@ def main(argv: list[str]) -> int:
             errors.extend(generated_errors)
 
     link_operations, link_errors = preflight_links(
-        complete_plan,
+        plan,
         force=args.force,
         unlink=args.unlink,
         check=args.check,
@@ -596,15 +569,13 @@ def main(argv: list[str]) -> int:
 
     if not errors and not args.check:
         execute_links(
-            complete_plan,
+            plan,
             link_operations,
             dry_run=args.dry_run,
             unlink=args.unlink,
         )
         if not args.unlink:
             execute_generated(generated_operations, dry_run=args.dry_run)
-            if "opencode" in groups and not args.dry_run:
-                remove_legacy_icons()
             if "opencode" in groups:
                 errors.extend(actions(args.dry_run))
     info("")

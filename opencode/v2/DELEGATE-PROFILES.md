@@ -115,7 +115,8 @@ The checker verifies the provider-facing schema, the exact `WebResearcher` plus
 `deep` call, the `gpt-5.6-sol` child request, the retained WebResearcher system
 prompt, and the native child result returned to the parent.
 
-The released configuration was also validated live through `o2h` with OpenAI
+The released configuration was also validated live through the retired `o2h`
+profile with OpenAI
 Luna as the General orchestrator. The final parent session contained three
 completed calls with `agent: WebResearcher` and profiles `fast`, `standard`, and
 `deep`. Inspection of the three child sessions confirmed:
@@ -162,7 +163,7 @@ whose `sourcesContent` holds `core/src/plugin/host.ts` and
 `core/src/plugin/promise.ts`.
 
 Note also that the V2 service is persistent: after editing a plugin, run
-`o2h service restart` (or the profile equivalent) or the old module stays
+`opencode2 service restart` (or the profile equivalent) or the old module stays
 loaded and the fix appears not to work.
 
 ## Known limitations

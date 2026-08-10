@@ -7,6 +7,11 @@
     "openai/gpt-5.6-terra-fast",
     "openai/gpt-5.6-luna-fast",
     "opencode/deepseek-v4-flash-free",
-    "opencode/deepseek-v4-flash"
+    "opencode/deepseek-v4-flash",
+    "github-copilot/claude-opus-5",
+    "github-copilot/claude-sonnet-5",
+    "github-copilot/gpt-5.6-luna",
+    "github-copilot/gpt-5.6-terra",
+    "github-copilot/gpt-5.6-sol"
   ]
 }

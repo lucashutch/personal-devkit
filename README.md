@@ -168,36 +168,33 @@ Current bash snippets include:
 - optional CellX Build and nrfutil completions
 - workstation aliases, including Ghostty updates and GPU selection
 - `tailnet` switching for home and work Tailscale accounts
-- OpenCode account helpers:
+- OpenCode helpers:
 
-- `och` — OpenCode home account
-- `ocw` — OpenCode work account
-- `oct` — OpenCode test account (prompt-capture proxy, experimental providers)
-- `opencode` is aliased to `ocw`, so a bare invocation uses the work profile
-- `o2h` — OpenCode V2 home profile (service on `127.0.0.1:4098`)
-- `o2w` — OpenCode V2 work profile (service on `127.0.0.1:4097`)
-- `o2t` — OpenCode V2 test profile (service on `127.0.0.1:4099`)
-- `tokh` — Tokscale using the home OpenCode V1 data
-- `tokw` — Tokscale using the work OpenCode V1 data
+- `opencode`, short alias `oc` — OpenCode V1 on the default XDG namespace
+- `oct` — isolated OpenCode V1 test profile (prompt-capture proxy, experimental providers)
+- `opencode2`, short alias `oc2` — OpenCode V2 in its own `opencode-v2` namespace
+- `o2t` — isolated OpenCode V2 test profile (service on `127.0.0.1:4099`)
 
 The helpers in `dotfiles/bashrc.d/opencode.sh` are plain shell functions that
-export the selected profile's XDG namespace and then run the real binary. The
-V1 helpers run the V1 binary directly, so each window is its own standalone
-process. Bare `opencode2` still runs in the standard global namespace.
+run the real binary. `opencode` sets no XDG override, so V1 uses
+`~/.config/opencode` and `~/.local/share/opencode` and any external tool that
+reads the default OpenCode locations sees the same sessions and credentials.
+Each V1 window is its own standalone process.
+
+`opencode2` exists because V1 and V2 both read
+`$XDG_CONFIG_HOME/opencode/opencode.json` but their config schemas are
+incompatible. It exports the `opencode-v2` XDG roots, so V2 keeps its own
+config, credentials, sessions, database, service registration, logs, and cache
+while V1 keeps the default namespace. The test wrappers use `opencode-v1-test`
+and `opencode-v2-test` roots and exist only to run experimental config against
+throwaway state.
 
 Profile selection is deliberately shell-only. Callers that are not interactive
-shells set the namespace themselves. External session resume is therefore not
-supported —
-Herdr builds its resume argv from a hardcoded per-agent table, does not reuse
-the pane's launch command, and rejects non-official agent sources, so it cannot
-be pointed at `och`/`ocw`/`o2h`. A `~/.local/bin` PATH shim was tried as the
-only remaining integration point and did not work, so resume from outside a
-profile wrapper finds only the sessions of the default namespace.
-
-The V1 helpers use separate XDG config, data, state, and cache trees. This
-keeps each account's complete V1 global config, credentials, sessions, and
-other state isolated from the other V1 accounts and from the future V2 global
-config.
+shells set the namespace themselves. Because V1 now uses the default namespace,
+external session resume works for it: Herdr builds its resume argv from a
+hardcoded per-agent table and rejects non-official agent sources, so it can
+only ever find the default namespace's sessions. Resume from outside a wrapper
+still does not work for `opencode2` or the test profiles.
 
 ## Dotfiles
 
@@ -209,65 +206,62 @@ config.
 
 ## OpenCode
 
-V2 home, work, and test profiles are selected with `o2h`, `o2w`, and `o2t`.
-Each wrapper sets all XDG config, data, state, and cache roots, isolating its
-config, credentials, sessions, database, service registration, logs, and cache
-while retaining the normal persistent V2 server within that profile. Project
-`opencode.json(c)` files still layer over the selected global profile; they do
-not isolate credentials or sessions.
+There is one default profile per OpenCode generation plus one throwaway test
+profile each:
+
+| Helper | `XDG_CONFIG_HOME` | Global config |
+| --- | --- | --- |
+| `opencode`, `oc` | `~/.config` (default) | `~/.config/opencode/opencode.json` |
+| `oct` | `~/.config/opencode-v1-test` | `opencode/opencode.json` |
+| `opencode2`, `oc2` | `~/.config/opencode-v2` | `opencode/opencode.json` |
+| `o2t` | `~/.config/opencode-v2-test` | `opencode/opencode.json` |
+
+Each non-default wrapper sets all XDG config, data, state, and cache roots,
+isolating its config, credentials, sessions, database, service registration,
+logs, and cache while retaining the normal persistent V2 server within that
+profile. Project `opencode.json(c)` files still layer over the selected global
+config; they do not isolate credentials or sessions.
 
 The wrappers set `GH_CONFIG_DIR` to the normal shared GitHub CLI config
 directory, so `gh` keeps one login across OpenCode profiles.
 
-Run `scripts/link-config.py --opencode` first. It links profile config to
-`~/.config/opencode-v2-{home,work,test}/opencode/`, with shared CLI settings
-agents, the Herdr lifecycle integration, and the Herdr session-title plugin sourced from
-`opencode/v2/shared/`, then runs `npm install --no-package-lock` in
-`opencode/v2/` to install the current `next` TUI plugin dependencies. It never links
-runtime-generated `service.json` or other credentials/state files. Use the
-profile wrappers; bare `opencode2` is intentionally not configured by this
-repository.
+Run `scripts/link-config.py --opencode` first. It links the V1 default config
+into `~/.config/opencode/` and the V2 default config into
+`~/.config/opencode-v2/opencode/`, with shared CLI settings, agents, the Herdr
+lifecycle integration, and the Herdr session-title plugin sourced from
+`opencode/v{1,2}/shared/`, then runs `npm install --no-package-lock` in
+`opencode/v2/` to install the current `next` TUI plugin dependencies. It never
+links runtime-generated `service.json` or other credentials/state files.
 
-`scripts/link-config.py --opencode` configures these local-only endpoints when
-`opencode2` is on `PATH`; rerunning it reapplies the same values safely. If the
-binary is not installed yet, it reports that service configuration was skipped.
-To configure manually, then authenticate separately in each profile:
+The V2 default profile deliberately keeps OpenCode's built-in service endpoint.
+Only the V2 test profile gets an explicit local endpoint, which
+`scripts/link-config.py --opencode` configures when `opencode2` is on `PATH`;
+rerunning it reapplies the same values safely. If the binary is not installed
+yet, it reports that service configuration was skipped. To configure manually:
 
 ```sh
-o2h service set hostname 127.0.0.1
-o2h service set port 4098
-o2w service set hostname 127.0.0.1
-o2w service set port 4097
 o2t service set hostname 127.0.0.1
 o2t service set port 4099
-o2h service restart  # use start instead if it has never run
-o2w service restart
-o2t service restart
+o2t service restart  # use start instead if it has never run
 ```
 
-Check isolation with `o2h service status`, `o2w service status`, and `o2t
-service status`. After upgrading `@opencode-ai/cli@next`, verify `opencode2
-service --help`, each profile's `service get`, and restart each service. Quit
-and restart OpenCode after changing its repo-managed configuration.
+Check isolation with `opencode2 service status` and `o2t service status`. After
+upgrading `@opencode-ai/cli@next`, verify `opencode2 service --help`, each
+profile's `service get`, and restart each service. Quit and restart OpenCode
+after changing its repo-managed configuration.
 
-V1 account profiles are linked separately:
+The V1 default config sources live in `opencode/v1/default/`, and the V2 ones in
+`opencode/v2/default/`. Both are the union of the retired home and work account
+configs, and both carry the shared repo-managed TUI, agent, command, plugin, and
+skill files. See [the profile migration guide](opencode/v1/MIGRATION.md) when
+setting up another computer or migrating from the old per-account profiles.
 
-- `~/.config/opencode-v1-home/opencode/`
-- `~/.config/opencode-v1-work/opencode/`
-- `~/.config/opencode-v1-test/opencode/`
+V1 CLI TUI launches are standalone: each `opencode` or `oct` window starts its
+own process, and every V1 command keeps its normal upstream behavior.
 
-Each profile has a complete V1 `opencode.json` plus shared repo-managed TUI,
-agent, command, plugin, and skill files. The profile sources live under
-`opencode/v1/`. See [the V1 profile migration guide](opencode/v1/MIGRATION.md)
-when setting up another computer or preserving existing V1 authentication and
-session history.
-
-V1 CLI TUI launches are standalone: each `och`, `ocw`, or `oct` window starts
-its own process, and every V1 command keeps its normal upstream behavior.
-
-`scripts/link-config.py --opencode` also installs Home and Work desktop launchers under the XDG
-data directory. They use the V1 XDG roots above, have green and orange icons,
-and locally hide the stock OpenCode desktop entry.
+`scripts/link-config.py --opencode` also installs one OpenCode desktop launcher
+under the XDG data directory. It uses the default XDG roots and the stock icon,
+and locally hides the packaged OpenCode desktop entry it replaces.
 
 ## Notes
 

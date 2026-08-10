@@ -72,42 +72,65 @@ class OpenCodeHelperTests(unittest.TestCase):
             return []
         return self.log.read_text().split("\n")[:-1]
 
-    def test_v1_helper_applies_profile_namespace(self) -> None:
-        seen = self.run_helper("och")
-        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-v1-home")
-        self.assertEqual(seen["data"], f"{self.home}/.local/share/opencode-v1-home")
-        self.assertEqual(seen["state"], f"{self.home}/.local/state/opencode-v1-home")
-        self.assertEqual(seen["cache"], f"{self.home}/.cache/opencode-v1-home")
+    def test_v1_default_sets_no_xdg_override(self) -> None:
+        seen = self.run_helper("opencode")
+        self.assertEqual(seen["argv"], [])
+        self.assertEqual(seen["config"], "")
+        self.assertEqual(seen["data"], "")
+        self.assertEqual(seen["state"], "")
+        self.assertEqual(seen["cache"], "")
+        self.assertEqual(seen["websockets"], "true")
+        self.assertEqual(self.systemctl_calls(), [])
+
+    def test_v1_short_alias_matches_the_default(self) -> None:
+        seen = self.run_helper("oc --model anthropic/claude /tmp")
+        self.assertEqual(seen["argv"], ["--model", "anthropic/claude", "/tmp"])
+        self.assertEqual(seen["config"], "")
+        self.assertEqual(seen["websockets"], "true")
+
+    def test_v1_test_profile_applies_its_namespace(self) -> None:
+        seen = self.run_helper("oct")
+        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-v1-test")
+        self.assertEqual(seen["data"], f"{self.home}/.local/share/opencode-v1-test")
+        self.assertEqual(seen["state"], f"{self.home}/.local/state/opencode-v1-test")
+        self.assertEqual(seen["cache"], f"{self.home}/.cache/opencode-v1-test")
         # gh stays shared so one login covers every profile.
         self.assertEqual(seen["gh"], f"{self.home}/.config/gh")
         self.assertEqual(seen["websockets"], "true")
 
-    def test_v1_helper_runs_the_binary_standalone(self) -> None:
-        seen = self.run_helper("och")
+    def test_v2_default_applies_its_namespace(self) -> None:
+        seen = self.run_helper("opencode2")
         self.assertEqual(seen["argv"], [])
+        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-v2")
+        self.assertEqual(seen["data"], f"{self.home}/.local/share/opencode-v2")
+        self.assertEqual(seen["state"], f"{self.home}/.local/state/opencode-v2")
+        self.assertEqual(seen["cache"], f"{self.home}/.cache/opencode-v2")
+        self.assertEqual(seen["gh"], f"{self.home}/.config/gh")
         self.assertEqual(self.systemctl_calls(), [])
 
-    def test_v1_arguments_are_forwarded_unchanged(self) -> None:
-        seen = self.run_helper("och --model anthropic/claude /tmp")
-        self.assertEqual(seen["argv"], ["--model", "anthropic/claude", "/tmp"])
-        self.assertEqual(self.systemctl_calls(), [])
+    def test_v2_short_alias_matches_the_default(self) -> None:
+        seen = self.run_helper("oc2 run hello")
+        self.assertEqual(seen["argv"], ["run", "hello"])
+        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-v2")
 
-    def test_v2_helper_applies_profile_namespace(self) -> None:
-        seen = self.run_helper("o2h")
-        self.assertEqual(seen["argv"], [])
-        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-v2-home")
-        self.assertEqual(seen["data"], f"{self.home}/.local/share/opencode-v2-home")
-        self.assertEqual(self.systemctl_calls(), [])
+    def test_v2_test_profile_applies_its_namespace(self) -> None:
+        seen = self.run_helper("o2t")
+        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-v2-test")
+        self.assertEqual(seen["data"], f"{self.home}/.local/share/opencode-v2-test")
 
     def test_v2_profile_roots_do_not_nest(self) -> None:
         seen = self.run_helper(
-            f'XDG_CONFIG_HOME="{self.home}/.config/opencode-v2-work" o2h'
+            f'XDG_CONFIG_HOME="{self.home}/.config/opencode-v2-test" opencode2'
         )
-        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-v2-home")
+        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-v2")
+
+    def test_v2_test_root_does_not_nest_under_the_default_root(self) -> None:
+        seen = self.run_helper(f'XDG_CONFIG_HOME="{self.home}/.config/opencode-v2" o2t')
+        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-v2-test")
 
     def test_helpers_do_not_leak_the_namespace_into_the_shell(self) -> None:
         script = (
-            f'set -u; source "{HELPERS}"; och >/dev/null; '
+            f'set -u; source "{HELPERS}"; oct >/dev/null; '
             'printf "%s\\n" "${XDG_CONFIG_HOME:-unset}"'
         )
         result = subprocess.run(

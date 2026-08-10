@@ -58,6 +58,11 @@
             "effect": "allow"
         },
         {
+            "action": "external_directory",
+            "resource": "/home/lucas/ncs/**",
+            "effect": "allow"
+        },
+        {
             "action": "question",
             "resource": "*",
             "effect": "allow"

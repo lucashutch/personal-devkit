@@ -1,185 +1,237 @@
-# OpenCode V1 profile migration
+# OpenCode profile migration
 
-Use this guide to migrate this repository's OpenCode V1 home, work, and test
-profiles from the old additive-config setup to explicit, isolated config and
-data trees.
-
-This migration is for the **V1** `opencode` binary. It deliberately keeps V1
-separate from the normal `~/.config/opencode/opencode.json` location, which is
-reserved for a future OpenCode V2 configuration.
+Use this guide to migrate from the old per-account OpenCode profiles
+(`och`/`ocw`, `o2h`/`o2w`) to one default profile per OpenCode generation, and
+to merge the retired profiles' session history into the new defaults.
 
 ## Resulting layout
 
-After migration, each V1 helper selects both a complete global configuration
-and independent persistent data:
-
-| Helper | `XDG_CONFIG_HOME` | V1 global config | `XDG_DATA_HOME` |
+| Helper | `XDG_CONFIG_HOME` | Global config | `XDG_DATA_HOME` |
 | --- | --- | --- | --- |
-| `och` | `~/.config/opencode-v1-home` | `opencode/opencode.json` | `~/.local/share/opencode-v1-home` |
-| `ocw` | `~/.config/opencode-v1-work` | `opencode/opencode.json` | `~/.local/share/opencode-v1-work` |
+| `opencode`, `oc` | `~/.config` (default) | `opencode/opencode.json` | `~/.local/share` (default) |
 | `oct` | `~/.config/opencode-v1-test` | `opencode/opencode.json` | `~/.local/share/opencode-v1-test` |
+| `opencode2`, `oc2` | `~/.config/opencode-v2` | `opencode/opencode.json` | `~/.local/share/opencode-v2` |
+| `o2t` | `~/.config/opencode-v2-test` | `opencode/opencode.json` | `~/.local/share/opencode-v2-test` |
 
-The profile configs are self-contained. Unlike the previous setup, they do
-not use `OPENCODE_CONFIG`, which V1 loads *in addition to* its global config.
+V1 owns the default namespace so that tools which read the default OpenCode
+locations — Tokscale, Herdr resume, the desktop launcher — need no per-profile
+plumbing. V2 keeps one dedicated namespace because both generations read
+`$XDG_CONFIG_HOME/opencode/opencode.json` with incompatible schemas.
+
+The default configs in `opencode/v1/default/` and `opencode/v2/default/` are the
+union of the retired home and work configs, with the home value kept wherever
+the two disagreed. Provider credentials are the union of both accounts.
 
 Persistent data includes provider credentials, sessions, session history,
 snapshots, logs, and databases. It is not stored in this repository.
 
 ## Prerequisites
 
-1. Use this repository revision, which includes `opencode/v1/<profile>/` and
-   the updated `dotfiles/bashrc.d/opencode.sh`.
+1. Use this repository revision, which includes `opencode/v{1,2}/default/`, the
+   updated `dotfiles/bashrc.d/opencode.sh`, and
+   `scripts/migrate_opencode_sessions.py`.
 2. Ensure the repository-managed Bash snippets are loaded from `~/.bashrc`.
-3. Close every OpenCode process that writes to the old profile data directory
-   before moving data. In particular, do not copy a SQLite database while its
-   corresponding process is running.
-
-Check for running OpenCode processes:
+3. Close every OpenCode process that writes to a source or target data
+   directory. Never copy or merge a SQLite database while its process runs.
 
 ```bash
-ps -eo pid=,comm=,args= | grep -E '[o]pencode( |$|\.exe|2)' || true
+ps -eo pid=,args= | grep -E '[o]pencode( |$|\.exe|2)' || true
 ```
 
-`opencode2` normally uses separate V2 state. However, an older `o2h`/`o2w`/
-`o2t` helper may have started V2 with the old `xdg-home`, `xdg-work`, or
-`xdg-test` directory. Stop that service before copying the affected profile;
-otherwise its logs or database sidecars can change while `rsync` is running.
-
-## 1. Link the new profile config trees
-
-From the repository root, run:
+Stop a V2 profile service explicitly, using the wrapper from the revision you
+are migrating from:
 
 ```bash
-scripts/link-config.py --opencode
+o2h service stop
+o2w service stop
 ```
 
-This links the V1 configs and shared assets into each profile-specific config
-home. It does not modify the old V1 data directories or copy credentials.
-
-Verify the links, for example:
-
-```bash
-readlink -f ~/.config/opencode-v1-home/opencode/opencode.json
-readlink -f ~/.config/opencode-v1-work/opencode/opencode.json
-```
-
-They should resolve to this repository's `opencode/v1/home/opencode.json` and
-`opencode/v1/work/opencode.json`, respectively.
-
-## 2. Copy existing home and work state
-
-The old helpers used these data roots:
-
-```text
-~/.config/opencode/xdg-home
-~/.config/opencode/xdg-work
-```
-
-Copy them to the new XDG data roots with `rsync`. This preserves the old
-locations as a rollback source. The commands also save any newly created data
-at the destination before replacing it.
+## 1. Back up everything that will change
 
 ```bash
 set -eu
-stamp=$(date +%Y%m%dT%H%M%S)
+stamp=$(date +%Y%m%d-%H%M%S)
+backup="$HOME/opencode-profile-collapse-backup-$stamp"
+mkdir -p "$backup/config" "$backup/data"
 
-for profile in home work; do
-  old="$HOME/.config/opencode/xdg-$profile/"
-  new="$HOME/.local/share/opencode-v1-$profile"
-  backup="${new}.before-state-migration-$stamp"
+for profile in opencode opencode-v1-home opencode-v1-work \
+  opencode-v2-home opencode-v2-work; do
+  test -d "$HOME/.config/$profile" &&
+    rsync -aH "$HOME/.config/$profile" "$backup/config"/
+  test -d "$HOME/.local/share/$profile" &&
+    rsync -aH --exclude bin "$HOME/.local/share/$profile" "$backup/data"/
+done
+printf 'Backup written to %s\n' "$backup"
+```
 
-  test -d "$old" || {
-    printf 'Old %s data directory does not exist: %s\n' "$profile" "$old" >&2
-    exit 1
-  }
+Keep this backup until you have listed and resumed sessions from both retired
+profiles in the new defaults.
 
-  if [ -e "$new" ]; then
-    mv "$new" "$backup"
-    printf 'Saved existing destination state at %s\n' "$backup"
-  fi
+## 2. Retire the legacy default namespace
 
-  mkdir -p "$new"
-  # Copy the contents of the XDG data root, not the root directory itself.
-  # The trailing slash is required so V1 finds state at $XDG_DATA_HOME/opencode.
-  rsync -aH --delete "$old/" "$new"/
+The default namespace still held the pre-profile additive config and its
+file-based storage. Move it aside, keeping `~/.local/share/opencode/bin`, which
+holds the installed binary:
+
+```bash
+retired="$HOME/opencode-legacy-default-$stamp"
+mkdir -p "$retired/config" "$retired/data"
+mv "$HOME/.config/opencode" "$retired/config/opencode"
+for item in opencode.db opencode.db-wal opencode.db-shm \
+  opencode-next.db opencode-next.db-wal opencode-next.db-shm \
+  auth.json storage; do
+  test -e "$HOME/.local/share/opencode/$item" &&
+    mv "$HOME/.local/share/opencode/$item" "$retired/data"/
 done
 ```
 
-Run the equivalent loop with `test` included if the test profile has state you
-want to preserve:
+## 3. Link the new config trees
 
 ```bash
-# Change `home work` above to `home work test`.
+scripts/link-config.py --opencode --force
+readlink -f ~/.config/opencode/opencode.json
+readlink -f ~/.config/opencode-v2/opencode/opencode.json
 ```
 
-Do not commit copied data, database files, credentials, or backups to this
-repository.
+They should resolve to `opencode/v1/default/opencode.json` and
+`opencode/v2/default/opencode.json` in this repository.
 
-## 3. Verify the copied state
+## 4. Create empty target databases with the target binaries
 
-With V1 still closed, verify that source and destination match:
+Do not hand-build a schema, and do not copy a database from a different CLI
+version. Let each binary create its own database in the new namespace so the
+schema and applied migrations match the version you actually run:
 
 ```bash
-for profile in home work; do
-  old="$HOME/.config/opencode/xdg-$profile/"
-  new="$HOME/.local/share/opencode-v1-$profile/"
-  rsync -aHn --checksum --delete --itemize-changes "$old" "$new"
-done
+opencode auth list >/dev/null     # creates ~/.local/share/opencode/opencode.db
+opencode2 auth list >/dev/null    # creates the opencode-v2 database
+opencode2 service stop || true    # nothing should hold the target open
 ```
 
-The command should print no changes. Optionally validate the copied V1 SQLite
-databases using Python's built-in SQLite module:
+Confirm both files exist and are otherwise empty before merging.
+
+## 5. Merge the retired session databases
+
+`scripts/migrate_opencode_sessions.py` merges sources into an existing target in
+foreign-key dependency order. It backs up every database first, refuses to touch
+a database with a hot WAL, deduplicates projects by worktree while remapping
+dependent rows, never merges migration bookkeeping or account/credential tables,
+and validates the result.
+
+Rehearse first — `--dry-run` replays the whole merge on a temporary copy:
+
+```bash
+uv run scripts/migrate_opencode_sessions.py --kind v1 --dry-run \
+  --target ~/.local/share/opencode/opencode.db \
+  --source ~/.local/share/opencode-v1-home/opencode/opencode.db \
+  --source ~/.local/share/opencode-v1-work/opencode/opencode.db
+```
+
+Then merge V1, including the out-of-database storage trees:
+
+```bash
+uv run scripts/migrate_opencode_sessions.py --kind v1 \
+  --target ~/.local/share/opencode/opencode.db \
+  --source ~/.local/share/opencode-v1-home/opencode/opencode.db \
+  --source ~/.local/share/opencode-v1-work/opencode/opencode.db \
+  --storage ~/.local/share/opencode-v1-home/opencode/storage:$HOME/.local/share/opencode/storage \
+  --storage ~/.local/share/opencode-v1-work/opencode/storage:$HOME/.local/share/opencode/storage
+```
+
+And V2:
+
+```bash
+uv run scripts/migrate_opencode_sessions.py --kind v2 \
+  --target ~/.local/share/opencode-v2/opencode/opencode-next.db \
+  --source ~/.local/share/opencode-v2-home/opencode/opencode-next.db
+```
+
+A source whose applied-migration set differs from the target is refused, because
+merging into a mismatched schema silently drops or misplaces data. Upgrade that
+profile by launching its own CLI version once, or accept a reduced merge with
+`--allow-schema-drift`, which copies only the columns both databases share. A
+primary-key collision with differing content aborts by default; choose
+`--on-collision=skip` to keep the target row or `--on-collision=rename` to keep
+both.
+
+The tool prints `PRAGMA integrity_check`, `PRAGMA foreign_key_check`, and a
+per-table source/before/inserted/skipped/after table. Any nonzero delta or
+violation fails the run with a nonzero exit status.
+
+V2 keeps provider credentials in the database rather than `auth.json`, and the
+tool never merges credential rows. Reconnect each provider in the new V2
+profile with `opencode2 auth login`.
+
+## 6. Merge V1 credentials
+
+V1 keeps credentials in `auth.json`, keyed by provider, so the retired accounts
+can be combined directly. Take the union and drop providers you no longer use:
 
 ```bash
 python3 - <<'PY'
-import os
-import sqlite3
+import json, pathlib
 
-for profile in ("home", "work"):
-    database = os.path.expanduser(
-        f"~/.local/share/opencode-v1-{profile}/opencode/opencode.db"
-    )
-    connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
-    try:
-        print(f"{profile}: {connection.execute('PRAGMA integrity_check').fetchone()[0]}")
-    finally:
-        connection.close()
+target = pathlib.Path.home() / ".local/share/opencode/auth.json"
+merged = {}
+for profile in ("opencode-v1-work", "opencode-v1-home"):
+    path = pathlib.Path.home() / ".local/share" / profile / "opencode/auth.json"
+    if path.is_file():
+        # The home account wins a provider both accounts authenticated.
+        merged.update(json.loads(path.read_text()))
+target.write_text(json.dumps(merged, indent=2))
+print(sorted(merged))
 PY
+chmod 600 ~/.local/share/opencode/auth.json
 ```
 
-This should report `ok` for each profile. If you run this check before the
-`rsync` comparison, run a final `rsync -aH --delete` afterward: SQLite may
-touch its shared-memory sidecar while opening the database.
+## 7. Copy the V2 auxiliary state
 
-## 4. Start a new shell and validate the profiles
-
-Start a new terminal, or reload the Bash configuration. Then confirm the
-expected provider lists:
+V2 stores snapshots, shell history, and tool output beside its database. Copy
+them so merged sessions can still show their history:
 
 ```bash
-ocw models github-copilot
-
-# If the home profile uses OpenAI:
-och models openai
+for item in snapshot shell tool-output repos; do
+  test -d "$HOME/.local/share/opencode-v2-home/opencode/$item" &&
+    rsync -aH "$HOME/.local/share/opencode-v2-home/opencode/$item" \
+      "$HOME/.local/share/opencode-v2/opencode"/
+done
 ```
 
-Open `och` and `ocw` normally and confirm that their expected session history
-and provider connections appear. If authentication is missing, do not delete
-old data; re-check the copy first, then reconnect only the affected profile.
+## 8. Validate
+
+Start a new terminal so the new helpers are loaded, then:
+
+```bash
+opencode auth list       # union of the retired V1 accounts
+opencode                 # session list shows both accounts' history
+opencode2 service status
+opencode2                # session list shows the retired V2 home sessions
+```
+
+Open one session that originated in each retired profile and confirm it resumes
+with its messages intact. Only then delete the backups and the old profile
+trees:
+
+```bash
+rm -rf ~/.config/opencode-v1-home ~/.config/opencode-v1-work \
+  ~/.config/opencode-v2-home ~/.config/opencode-v2-work \
+  ~/.local/share/opencode-v1-home ~/.local/share/opencode-v1-work \
+  ~/.local/share/opencode-v2-home ~/.local/share/opencode-v2-work
+```
 
 ## Rollback
 
-The old V1 data trees are retained, and the previous destination state is
-saved under a timestamped `.before-state-migration-*` directory. To roll back
-the shell behavior, restore the previous wrapper functions from Git and open a
-new shell. No repository data or credential data needs to be deleted.
+Nothing is deleted by this procedure. Restore `~/.config/opencode` and
+`~/.local/share/opencode` from the retired-legacy directory, restore the profile
+trees from the backup directory, check out the previous revision of
+`dotfiles/bashrc.d/opencode.sh` and `links.yaml`, rerun
+`scripts/link-config.py --opencode --force`, and open a new shell. The merge
+tool's own timestamped backup directory holds the pre-merge copy of every
+database it touched.
 
-## V2 coexistence
+## Notes
 
-Do not convert any file under `opencode/v1/` to V2-native configuration. Keep
-these files in V1 format while `opencode` is still in use. The V2-native config
-is maintained separately at `opencode/v2/opencode.json`. V2 currently does not
-support the V1-style profile selection mechanism.
-
-After pulling a revision that introduces this split, relink with
-`scripts/link-config.py --opencode --force`.
+- Do not convert any file under `opencode/v1/` to V2-native configuration.
+  Keep those files in V1 format while `opencode` is still in use.
+- Do not commit copied data, database files, credentials, or backups to this
+  repository.

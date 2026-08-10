@@ -147,30 +147,30 @@ class LinkConfigTests(unittest.TestCase):
 
     def test_desktop_conflict_prevents_manifest_link_mutations(self) -> None:
         with tempfile.TemporaryDirectory() as home:
-            desktop = Path(home) / ".local/share/applications/opencode-home.desktop"
+            desktop = Path(home) / ".local/share/applications/opencode.desktop"
             desktop.parent.mkdir(parents=True)
             desktop.write_text("mine")
             result = self.run_linker(home, "--opencode")
             self.assertNotEqual(result.returncode, 0)
             first_link = (
                 Path(home)
-                / ".config/opencode-v2-home/opencode/opencode.json"
+                / ".config/opencode-v2/opencode/opencode.json"
             )
             self.assertFalse(first_link.exists())
             self.assertEqual(desktop.read_text(), "mine")
 
-    def test_opencode_unlink_removes_icons_but_keeps_generated_desktop_files(self) -> None:
+    def test_opencode_unlink_installs_no_icons_and_keeps_generated_desktop_files(self) -> None:
         with tempfile.TemporaryDirectory() as home:
             self.assertEqual(self.run_linker(home, "--opencode").returncode, 0)
             data_home = Path(home) / ".local/share"
-            icon = data_home / "icons/hicolor/scalable/apps/opencode-home.png"
-            desktop = data_home / "applications/opencode-home.desktop"
-            self.assertTrue(icon.is_symlink())
+            icons = data_home / "icons"
+            desktop = data_home / "applications/opencode.desktop"
+            self.assertFalse(icons.exists())
             self.assertTrue(desktop.is_file())
 
             result = self.run_linker(home, "--opencode", "--unlink")
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertFalse(icon.exists())
+            self.assertFalse(icons.exists())
             self.assertTrue(desktop.is_file())
 
     def test_real_manifest_contains_one_source_to_many_destinations(self) -> None:
@@ -178,8 +178,8 @@ class LinkConfigTests(unittest.TestCase):
             with mock.patch.dict(os.environ, self.environment(home), clear=True):
                 plan = load_linker().build_plan({"opencode"})
             cli_links = [link for link in plan if link.source == ROOT / "opencode/v2/shared/cli.json"]
-            self.assertEqual(len(cli_links), 3)
-            self.assertEqual(len({link.destination for link in cli_links}), 3)
+            self.assertEqual(len(cli_links), 2)
+            self.assertEqual(len({link.destination for link in cli_links}), 2)
 
     def test_build_plan_rejects_duplicate_destinations(self) -> None:
         self.assert_plan_conflict(["$HOME/target", "$HOME/target"], "duplicate destination")
@@ -304,12 +304,12 @@ class LinkConfigTests(unittest.TestCase):
                 self.assertEqual(keep.read_text(), "keep")
                 self.assertEqual(excluded.read_text(), "source data")
 
-    def test_opencode_check_validates_desktops_and_icons_without_actions(self) -> None:
+    def test_opencode_check_validates_desktop_files_without_actions(self) -> None:
         with tempfile.TemporaryDirectory() as home:
             self.assertNotEqual(self.run_linker(home, "--opencode", "--check").returncode, 0)
             self.assertEqual(self.run_linker(home, "--opencode").returncode, 0)
             self.assertEqual(self.run_linker(home, "--opencode", "--check").returncode, 0)
-            desktop = Path(home) / ".local/share/applications/opencode-home.desktop"
+            desktop = Path(home) / ".local/share/applications/opencode.desktop"
             desktop.write_text("wrong")
             self.assertNotEqual(self.run_linker(home, "--opencode", "--check").returncode, 0)
 
@@ -367,7 +367,7 @@ class LinkConfigTests(unittest.TestCase):
             self.assertTrue(target.is_symlink())
             self.assertEqual(target.resolve(), ROOT / "herdr" / "config.toml")
 
-    def test_opencode_links_all_v2_profiles_without_service_files(self) -> None:
+    def test_opencode_links_surviving_profiles_without_service_files(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_home:
             config_home = Path(temporary_home) / ".config"
             binary_directory = Path(temporary_home) / "bin"
@@ -411,9 +411,9 @@ class LinkConfigTests(unittest.TestCase):
                 text=True,
             )
             self.assertEqual(repeat.returncode, 0, repeat.stderr)
-            self.assertFalse((config_home / "opencode").exists())
-            for profile in ("home", "work", "test"):
-                target = config_home / f"opencode-v2-{profile}" / "opencode"
+            for profile in ("default", "test"):
+                suffix = "" if profile == "default" else f"-{profile}"
+                target = config_home / f"opencode-v2{suffix}" / "opencode"
                 self.assertEqual(
                     target.joinpath("opencode.json").resolve(),
                     ROOT / "opencode" / "v2" / profile / "opencode.json",
@@ -443,7 +443,12 @@ class LinkConfigTests(unittest.TestCase):
                     ROOT / "opencode" / "v2" / "shared" / "plugins" / "herdr-session-title.js",
                 )
                 self.assertFalse(target.joinpath("service.json").exists())
-                v1_target = config_home / f"opencode-v1-{profile}" / "opencode"
+            # The V1 default profile owns the true XDG root, so its config sits
+            # directly in $CONFIG_HOME/opencode.
+            for v1_target in (
+                config_home / "opencode",
+                config_home / "opencode-v1-test" / "opencode",
+            ):
                 self.assertEqual(
                     v1_target.joinpath("plugins", "herdr-agent-state.js").resolve(),
                     ROOT / "opencode" / "v1" / "shared" / "plugins" / "herdr-agent-state.js",
@@ -452,49 +457,27 @@ class LinkConfigTests(unittest.TestCase):
                     v1_target.joinpath("plugins", "herdr-session-title.js").resolve(),
                     ROOT / "opencode" / "v1" / "shared" / "plugins" / "herdr-session-title.js",
                 )
-            for profile, plugin in (
-                ("work", "model-filter.js"),
-                ("test", "hide-opencode-zen.js"),
-            ):
-                source = ROOT / "opencode" / "v2" / profile / "plugins"
-                target = config_home / f"opencode-v2-{profile}" / "opencode" / "plugins"
-                if source.is_dir():
-                    self.assertEqual(target.resolve(), source)
-                    self.assertEqual(target.joinpath(plugin).resolve(), source / plugin)
-                else:
-                    self.assertFalse(target.exists())
             applications = Path(environment["XDG_DATA_HOME"]) / "applications"
-            for name in ("opencode-home.desktop", "opencode-work.desktop"):
-                launcher = applications / name
-                self.assertTrue(launcher.is_file())
-                self.assertIn(
-                    f"GH_CONFIG_DIR={config_home}/gh",
-                    launcher.read_text(),
-                )
+            launcher = applications / "opencode.desktop"
+            self.assertTrue(launcher.is_file())
+            self.assertIn(f"GH_CONFIG_DIR={config_home}/gh", launcher.read_text())
+            self.assertFalse((Path(environment["XDG_DATA_HOME"]) / "icons").exists())
             self.assertEqual(
                 service_log.read_text().splitlines(),
                 [
                     "service set hostname 127.0.0.1",
-                    "service set port 4098",
-                    "service set hostname 127.0.0.1",
-                    "service set port 4097",
-                    "service set hostname 127.0.0.1",
                     "service set port 4099",
-                    "service set hostname 127.0.0.1",
-                    "service set port 4098",
-                    "service set hostname 127.0.0.1",
-                    "service set port 4097",
                     "service set hostname 127.0.0.1",
                     "service set port 4099",
                 ],
             )
 
-    def test_profile_roots_do_not_nest_when_linker_runs_in_a_v1_profile(self) -> None:
+    def test_profile_roots_do_not_nest_when_linker_runs_in_a_profile(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_home:
             base = Path(temporary_home) / ".config"
             environment = os.environ | {
                 "HOME": temporary_home,
-                "XDG_CONFIG_HOME": str(base / "opencode-v1-home"),
+                "XDG_CONFIG_HOME": str(base / "opencode-v1-test"),
                 "XDG_DATA_HOME": str(Path(temporary_home) / ".local" / "share"),
                 "XDG_STATE_HOME": str(Path(temporary_home) / ".local" / "state"),
                 "XDG_CACHE_HOME": str(Path(temporary_home) / ".cache"),
@@ -509,8 +492,8 @@ class LinkConfigTests(unittest.TestCase):
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertTrue((base / "opencode-v2-home" / "opencode" / "opencode.json").is_symlink())
-            self.assertFalse((base / "opencode-v1-home" / "opencode-v2-home").exists())
+            self.assertTrue((base / "opencode-v2" / "opencode" / "opencode.json").is_symlink())
+            self.assertFalse((base / "opencode-v1-test" / "opencode-v2").exists())
 
 
 if __name__ == "__main__":
