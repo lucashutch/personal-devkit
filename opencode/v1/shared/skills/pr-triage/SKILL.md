@@ -6,7 +6,7 @@ description: Survey open PRs and report them tiered by staleness, with issue-lin
 
 Produce a decision-ready overview of open PRs: which are current, which need a rebase, which to drop, and where issue links are missing. Read-only unless the user asks for follow-up action.
 
-Use the `shell` tool to perform this pipeline in order:
+Use the `bash` tool to perform this pipeline in order:
 
 1. Scope the survey. Default to PRs authored by the current user (`gh api user --jq .login`, then `gh pr list --author <login>`); survey all authors only when asked. Pass `--limit 100` — the default caps at 30 and silently hides PRs. State the scope in the report.
 
