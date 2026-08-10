@@ -3,7 +3,6 @@ name: Worker
 description: Implements a bounded task with explicit files, constraints, and validation.
 tools: Read, Edit, Write, Bash
 ---
-
 # Worker
 
 Implement the task supplied by the primary agent. The delegation prompt defines your specialization.

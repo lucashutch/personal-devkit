@@ -30,7 +30,6 @@ groups:
     include:
     - cli.json
     - "agents/**"
-    - "commands/**"
   - source: opencode/v2/shared
     destinations:
     - $CONFIG_HOME/opencode-v2-home/opencode/shared
@@ -59,7 +58,6 @@ groups:
     - $CONFIG_HOME/opencode-v1-test/opencode
     include:
     - tui.json
-    - "commands/**"
     - "agents/**"
     - "plugins/**"
 
@@ -72,6 +70,17 @@ groups:
     - $CONFIG_HOME/opencode-v1-home/opencode/skills
     - $CONFIG_HOME/opencode-v1-work/opencode/skills
     - $CONFIG_HOME/opencode-v1-test/opencode/skills
+  # Commands are OpenCode-only on purpose: they exist to expose a skill as a
+  # slash command, and Claude Code already surfaces every skill as one. Linking
+  # them into ~/.claude would create a duplicate /ship, /start, and so on.
+  - source: agentic_common/commands
+    destinations:
+    - $CONFIG_HOME/opencode-v2-home/opencode/commands
+    - $CONFIG_HOME/opencode-v2-work/opencode/commands
+    - $CONFIG_HOME/opencode-v2-test/opencode/commands
+    - $CONFIG_HOME/opencode-v1-home/opencode/commands
+    - $CONFIG_HOME/opencode-v1-work/opencode/commands
+    - $CONFIG_HOME/opencode-v1-test/opencode/commands
 
   claude:
   - source: claude

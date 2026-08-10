@@ -6,9 +6,9 @@ Feel free to fork this repo or open PRs to fine-tune the prompts and tool descri
 
 ## Included
 
-- `agentic_common/skills/` — platform-neutral skills, shared by Claude Code and every OpenCode profile
-- `opencode/` — OpenCode agents, commands, plugins, and config
-- `claude/` — Claude Code settings, keybindings, statusline, agents, and commands
+- `agentic_common/` — platform-neutral skills (shared by Claude Code and every OpenCode profile) and slash commands (OpenCode only; see below)
+- `opencode/` — OpenCode agents, plugins, and config
+- `claude/` — Claude Code settings, keybindings, statusline, and agents
 - `herdr/` — Herdr configuration
 - `dotfiles/` — terminal and shell config managed from this repo
 - `links.yaml` — declares repo-managed source-to-destination mappings

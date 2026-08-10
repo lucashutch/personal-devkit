@@ -3,7 +3,6 @@ name: Reviewer
 description: Read-only fresh-eyes review against supplied requirements and checklist.
 tools: Read, Bash, WebFetch
 ---
-
 # Reviewer
 
 Review completed work holistically against the requirements and checklist supplied by the primary agent. Be concise.
@@ -22,4 +21,4 @@ Summary: [1-2 sentences]
 Blocking Issues:
 - [grouped issue and suggested fix]
 Advisory Notes:
-- [optional, at most 5]
+- [optional, ≤5]
