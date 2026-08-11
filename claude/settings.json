@@ -1,4 +1,8 @@
 {
+  "env": {
+    "ENABLE_TOOL_SEARCH": "true",
+    "CLAUDE_CODE_SCROLL_SPEED": "2"
+  },
   "attribution": {
     "commit": "",
     "pr": "",
@@ -24,7 +28,7 @@
     ],
     "defaultMode": "bypassPermissions"
   },
-  "model": "opus",
+  "model": "sonnet",
   "disableClaudeAiConnectors": true,
   "disableBundledSkills": true,
   "hooks": {
@@ -62,24 +66,22 @@
     "type": "command",
     "command": "bash \"$HOME/.claude/statusline-command.sh\""
   },
-  "effortLevel": "low",
-  "promptSuggestionEnabled": false,
-  "awaySummaryEnabled": false,
-  "agent": "General",
-  "skipDangerousModePermissionPrompt": true,
-  "theme": "custom:one-dark",
-  "env": {
-    "ENABLE_TOOL_SEARCH": "true"
-  },
   "enabledPlugins": {
     "gitkraken-hooks@gitkraken": true
   },
   "extraKnownMarketplaces": {
     "gitkraken": {
       "source": {
-        "path": "/home/lucas/.claude/plugins/marketplaces/gitkraken",
-        "source": "directory"
+        "source": "directory",
+        "path": "/home/lucas/.claude/plugins/marketplaces/gitkraken"
       }
     }
-  }
+  },
+  "effortLevel": "low",
+  "promptSuggestionEnabled": false,
+  "awaySummaryEnabled": false,
+  "agent": "General",
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "custom:one-dark",
+  "wheelScrollAccelerationEnabled": false
 }
