@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import shutil
@@ -428,6 +429,45 @@ def execute_generated(files: list[GeneratedFile], *, dry_run: bool) -> None:
             destination.write_text(artifact.content)
 
 
+def install_opencode_v2_tui_dependencies(npm: str) -> list[str]:
+    """Install the V2 TUI plugin tree from the `next` channel.
+
+    The renderer is shared between host and plugin, so `@opentui` and `solid-js`
+    must be the exact builds the host was compiled against, not their latest
+    releases. `@opencode-ai/plugin` publishes those builds as optional peers,
+    which npm skips, so resolve them from the installed package and install them
+    unsaved. Nothing here is version-pinned: an OpenCode upgrade changes the
+    peers and the next run follows.
+    """
+    directory = root() / "opencode/v2"
+
+    def run(arguments: list[str], label: str) -> str | None:
+        result = subprocess.run(
+            [npm, *arguments], cwd=directory, capture_output=True, text=True
+        )
+        if not result.returncode:
+            return None
+        detail = result.stderr.strip() or result.stdout.strip() or "command failed"
+        return f"opencode-v2-tui-dependencies ({label} failed: {detail})"
+
+    base = ["install", "--ignore-scripts", "--no-package-lock"]
+    if error := run(base, "npm install"):
+        return [error]
+    manifest = directory / "node_modules/@opencode-ai/plugin/package.json"
+    try:
+        peers = json.loads(manifest.read_text()).get("peerDependencies", {})
+    except (OSError, json.JSONDecodeError) as detail:
+        return [f"opencode-v2-tui-dependencies (could not read peers: {detail})"]
+    if not peers:
+        info("installed: opencode-v2-tui-dependencies")
+        return []
+    specifiers = [f"{name}@{version}" for name, version in sorted(peers.items())]
+    if error := run([*base, "--no-save", *specifiers], "npm install (peers)"):
+        return [error]
+    info(f"installed: opencode-v2-tui-dependencies ({len(specifiers)} host peers)")
+    return []
+
+
 def actions(dry_run: bool) -> list[str]:
     if dry_run:
         info("would configure: opencode-v2-test service")
@@ -471,17 +511,7 @@ def actions(dry_run: bool) -> list[str]:
     if not npm:
         info("skipped V2 TUI plugin dependencies: npm is not on PATH")
     else:
-        result = subprocess.run(
-            [npm, "install", "--ignore-scripts", "--no-package-lock"],
-            cwd=root() / "opencode/v2",
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode:
-            detail = result.stderr.strip() or result.stdout.strip() or "command failed"
-            errors.append(f"opencode-v2-tui-dependencies (npm install failed: {detail})")
-        else:
-            info("installed: opencode-v2-tui-dependencies")
+        errors.extend(install_opencode_v2_tui_dependencies(npm))
     return errors
 
 

@@ -6,9 +6,12 @@ Verified with `@opencode-ai/cli@0.0.0-next-16621` on Linux/WSL2.
 
 - TUI plugins are listed in `shared/cli.json` as file paths, not directories.
 - Both plugins use `@opencode-ai/plugin/tui` and `@opentui/solid` JSX.
-- Dependencies are declared in `opencode/v2/package.json`; the OpenCode
-  packages track `next` without a lockfile. Run `npm install` after CLI
-  upgrades.
+- `opencode/v2/package.json` declares only `@opencode-ai/plugin@next`. The
+  renderer-sharing packages (`@opentui/*`, `solid-js`, `@opencode-ai/theme`) come
+  from that package's optional peer dependencies, resolved at install time by
+  `scripts/link-config.py --opencode`. Never pin or range them by hand: a semver
+  range resolves ahead of the host build and the shared renderer then rejects
+  plugin JSX.
 - The profile config links `shared` into the active OpenCode config directory.
 - External plugin errors appear as red TUI `Plugin` toasts.
 
@@ -24,9 +27,12 @@ Both use the `sidebar.content` slot, which is an additive slot; order follows
 ## Upgrade checklist
 
 1. Update the CLI.
-2. Run `npm install --no-package-lock` in `opencode/v2`.
+2. Run `scripts/link-config.py --opencode`, which reinstalls the plugin tree at
+   the host's peer versions.
 3. Check `@opencode-ai/plugin/dist/tui/context.d.ts` for changed slot and data
-   APIs.
+   APIs. This surface has already broken twice: `ui.slot(path, render)` became
+   `ui.slot({ append: path, render })`, and `@opentui`'s `<text bold>` became
+   `attributes={TextAttributes.BOLD}`.
 4. Restart the relevant OpenCode service; it keeps plugin modules in memory.
 5. Check for plugin toasts, quota output, and a parent session with subagents.
 

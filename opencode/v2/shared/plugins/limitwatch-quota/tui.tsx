@@ -1,5 +1,6 @@
 /** @jsxImportSource @opentui/solid */
 import { Plugin } from "@opencode-ai/plugin/tui"
+import { TextAttributes } from "@opentui/core"
 import { createSignal } from "solid-js"
 
 const DEFAULT_COMMAND = "limitwatch show --json"
@@ -204,14 +205,10 @@ const plugin = Plugin.define({
 
     let timer: ReturnType<typeof setInterval> | undefined
     let refreshQueued = false
-    let disposeSlot: (() => void) | undefined
-    let slotReady = false
 
-    const remountSlot = () => {
-      if (!slotReady) return
-      disposeSlot?.()
-      disposeSlot = registerSlot()
-    }
+    // A mounted slot repaints in place; the host just needs to be asked. Do not
+    // reintroduce a dispose/re-register cycle, which resets sidebar scroll.
+    const repaint = () => context.renderer.requestRender()
     const refresh = async () => {
       if (state().refreshing) {
         refreshQueued = true
@@ -221,14 +218,14 @@ const plugin = Plugin.define({
       try {
         const lines = await fetchQuotaLines()
         setState({ lines, updatedAt: Date.now(), refreshing: false })
-        remountSlot()
+        repaint()
       } catch (error) {
         setState({
           lines: [`Error: ${error instanceof Error ? error.message : String(error)}`],
           updatedAt: Date.now(),
           refreshing: false,
         })
-        remountSlot()
+        repaint()
       } finally {
         if (refreshQueued) {
           refreshQueued = false
@@ -249,7 +246,7 @@ const plugin = Plugin.define({
 
       return (
         <box flexDirection="column">
-          <text bold>Quotas</text>
+          <text attributes={TextAttributes.BOLD}>Quotas</text>
           {state().lines.map((line) => typeof line === "string" ? (
             <text fg={theme.text.subdued}>{line}</text>
           ) : (
@@ -269,18 +266,15 @@ const plugin = Plugin.define({
       )
     }
 
-    function registerSlot() {
-      return context.ui.slot("sidebar.content", () => <QuotaSidebar />)
-    }
-
-    disposeSlot = registerSlot()
-    slotReady = true
+    const disposeSlot = context.ui.slot({
+      append: "sidebar.content",
+      render: () => <QuotaSidebar />,
+    })
 
     return () => {
-      slotReady = false
       if (timer) clearInterval(timer)
       disposeStatus()
-      disposeSlot?.()
+      disposeSlot()
     }
   },
 })

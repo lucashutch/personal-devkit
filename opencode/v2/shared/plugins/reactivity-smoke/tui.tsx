@@ -20,6 +20,9 @@ function ReactivitySmoke(props: { renderer: CliRenderer }) {
 export default Plugin.define({
   id: "reactivity-smoke-plugin",
   setup(context) {
-    return context.ui.slot("sidebar.content", () => <ReactivitySmoke renderer={context.renderer} />)
+    return context.ui.slot({
+      append: "sidebar.content",
+      render: () => <ReactivitySmoke renderer={context.renderer} />,
+    })
   },
 })

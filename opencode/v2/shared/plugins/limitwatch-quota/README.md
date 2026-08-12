@@ -20,10 +20,11 @@ When `LIMITWATCH_CONFIG_DIR` is unset, the plugin resets `XDG_CONFIG_HOME` to
 `$HOME/.config` for the child process so profile-specific OpenCode config does
 not hide the normal Limitwatch accounts.
 
-The plugin remounts its slot after asynchronous updates. With `next-17028`, a
-minimal component-local Solid timer remained at its initial value until the
-sidebar was hidden and shown, confirming that mounted external slots do not
-currently react even when state is entirely plugin-local.
+The plugin calls `context.renderer.requestRender()` after asynchronous updates.
+It previously remounted its slot instead, because with `next-17028` a mounted
+external component never repainted; the `reactivity-smoke` plugin later isolated
+that to a missing renderer flush rather than a disconnected Solid computation, so
+a repaint request is sufficient and the slot claim now survives a refresh.
 
 ## Troubleshooting
 

@@ -30,13 +30,15 @@ limit when that metadata is available.
   events
 
 V2 plugin dependencies intentionally track the current `next` channel. Do not
-add a lockfile or pin preview builds; run `npm install --no-package-lock` from
-`opencode/v2` after upgrading `opencode2`.
+add a lockfile or pin preview builds; run `scripts/link-config.py --opencode`
+after upgrading `opencode2`, which reinstalls the tree at the host's peer
+versions.
 
-The event handlers update a plugin-local Solid signal and remount the slot. With
-`next-17028`, a minimal component-local Solid timer remained at its initial
-value until the sidebar was hidden and shown, confirming that mounted external
-slots do not currently react even when state is entirely plugin-local.
+The event handlers update a plugin-local Solid signal and then call
+`context.renderer.requestRender()`. They previously remounted the slot instead,
+which discarded sidebar scroll position and the component's known-child set on
+every event; a repaint request is sufficient because the component's revision
+effect already rebuilds the list.
 
 Status event payloads are retained directly as well. The host session-status
 cache can still contain `running` when the event announcing `idle` triggers a

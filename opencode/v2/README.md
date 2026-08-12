@@ -73,20 +73,30 @@ of crashing with `No renderer found`. The Limitwatch quota and subagent-session
 plugins and a minimal reactivity smoke test are enabled in `shared/cli.json` and load from
 `shared/plugins/*/tui.tsx`.
 
-Their dependencies are declared in `opencode/v2/package.json` and installed by
-`scripts/link-config.py --opencode` from the current `next` channel without a
-lockfile. They must be installed from
-that directory because the plugin loader resolves imports from the plugin source
-tree. The OpenCode packages track the `next` channel; run `npm install` when
-upgrading the CLI to expose extension API breakage.
-Both plugins use the additive `sidebar.content` slot. See
+`opencode/v2/package.json` declares only `@opencode-ai/plugin` on the `next`
+channel, without a lockfile. `@opentui/*`, `solid-js`, and `@opencode-ai/theme`
+are deliberately not declared: the host shares its renderer with the plugin, so
+they must be the exact builds the host was compiled against, and their latest
+published releases do not match. `@opencode-ai/plugin` names those builds in its
+peer dependencies, but marks them optional so npm skips them, so
+`scripts/link-config.py --opencode` reads the peers off the installed package and
+installs them unsaved. No version is written down anywhere; a CLI upgrade moves
+the peers and the next run follows.
+
+Install from that directory only, because the plugin loader resolves imports
+from the plugin source tree. Rerun the linker after upgrading the CLI, both to
+follow the peers and to expose extension API breakage.
+Both plugins claim the `sidebar.content` slot with `append`. See
 [limitwatch-tui-findings.md](limitwatch-tui-findings.md).
 
-External slot state still does not reliably invalidate an already-mounted host
-tree. Both plugins remount their slots after asynchronous updates. The
-subagent plugin also reconciles sessions and status once per second to handle
-event/cache ordering and missed parallel status transitions.
+A mounted external slot now updates in place: the host repaints on
+`context.renderer.requestRender()` rather than needing the slot torn down. Both
+plugins call it after asynchronous state changes instead of disposing and
+re-registering their claim, which also used to discard sidebar scroll position
+and per-component child state. The subagent plugin still reconciles sessions and
+status once per second to handle event/cache ordering and missed parallel status
+transitions; that polling is unrelated to repainting.
 
-The `reactivity-smoke` plugin isolates this behavior with a component-local
-one-second Solid counter. It remains enabled until a published build updates
-mounted external slots without forcing a sidebar or route remount.
+The `reactivity-smoke` plugin isolates repainting with a component-local
+one-second Solid counter. It is what confirms the host still updates mounted
+external slots, so keep it enabled while the extension API is beta.

@@ -1,5 +1,5 @@
 /** @jsxImportSource @opentui/solid */
-import type { ScrollBoxRenderable } from "@opentui/core"
+import { TextAttributes, type ScrollBoxRenderable } from "@opentui/core"
 import { Plugin } from "@opencode-ai/plugin/tui"
 import { createEffect, createSignal, For, onCleanup, Show } from "solid-js"
 
@@ -73,14 +73,12 @@ export default Plugin.define({
     const observedStatuses = new Map<string, "idle" | "running">()
     const statusEventTimes = new Map<string, number>()
     const observedTokenCounts = new Map<string, number>()
-    let disposeSlot: (() => void) | undefined
-    let slotReady = false
+    // The component's revision effect rebuilds the list; a mounted slot then
+    // repaints in place once the host is asked. Do not reintroduce a
+    // dispose/re-register cycle, which also discarded scroll and child state.
     const refreshSessions = () => {
       setRevision((value) => value + 1)
-      if (slotReady) {
-        disposeSlot?.()
-        disposeSlot = registerSlot()
-      }
+      context.renderer.requestRender()
     }
     const rememberSession = (event: { data: Omit<ChildSession, "id"> & { sessionID: string } }) => {
       observedSessions.set(event.data.sessionID, { ...event.data, id: event.data.sessionID })
@@ -220,7 +218,7 @@ export default Plugin.define({
         <box flexDirection="column" marginTop={1}>
           <box flexDirection="row" onMouseDown={() => setOpen((value) => !value)}>
             <text fg={theme.text.subdued}>{open() ? "▼ " : "▶ "}</text>
-            <text bold>{`Subagents (${state().children.length})`}</text>
+            <text attributes={TextAttributes.BOLD}>{`Subagents (${state().children.length})`}</text>
           </box>
           <Show when={open()}>
             <scrollbox
@@ -280,14 +278,10 @@ export default Plugin.define({
       )
     }
 
-    function registerSlot() {
-      return context.ui.slot("sidebar.content", (props) => (
-        <SubagentSessions sessionID={String(props.sessionID)} />
-      ))
-    }
-
-    disposeSlot = registerSlot()
-    slotReady = true
+    const disposeSlot = context.ui.slot({
+      append: "sidebar.content",
+      render: (props) => <SubagentSessions sessionID={String(props.sessionID)} />,
+    })
 
     return () => {
       disposeCreated()
@@ -295,8 +289,7 @@ export default Plugin.define({
       disposeModelSelected()
       disposeDeleted()
       disposeStatus()
-      slotReady = false
-      disposeSlot?.()
+      disposeSlot()
     }
   },
 })
