@@ -21,7 +21,6 @@
     "input_newline": "return,shift+return,alt+return,ctrl+j"
   },
   "plugins": [
-    "./shared/plugins/reactivity-smoke/tui.tsx",
     "./shared/plugins/limitwatch-quota/tui.tsx",
     "./shared/plugins/subagent-sessions/tui.tsx"
   ],

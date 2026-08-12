@@ -70,7 +70,7 @@ the ported commands explicitly tell General to load the corresponding skill.
 `next-16902` exposes the host renderer to external plugins
 (`context.renderer`), so plugin-local `@opentui/solid` JSX now renders instead
 of crashing with `No renderer found`. The Limitwatch quota and subagent-session
-plugins and a minimal reactivity smoke test are enabled in `shared/cli.json` and load from
+plugins are enabled in `shared/cli.json` and load from
 `shared/plugins/*/tui.tsx`.
 
 `opencode/v2/package.json` declares only `@opencode-ai/plugin` on the `next`
@@ -97,6 +97,8 @@ and per-component child state. The subagent plugin still reconciles sessions and
 status once per second to handle event/cache ordering and missed parallel status
 transitions; that polling is unrelated to repainting.
 
-The `reactivity-smoke` plugin isolates repainting with a component-local
-one-second Solid counter. It is what confirms the host still updates mounted
-external slots, so keep it enabled while the extension API is beta.
+A retired `reactivity-smoke` plugin established that repainting works: a
+component-local one-second Solid counter, which distinguished a missing renderer
+flush from a disconnected computation. Recreate it as a bare counter in a
+`sidebar.content` claim if a future build appears to stop updating mounted
+slots.

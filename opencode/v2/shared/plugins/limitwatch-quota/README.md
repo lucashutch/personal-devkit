@@ -22,9 +22,9 @@ not hide the normal Limitwatch accounts.
 
 The plugin calls `context.renderer.requestRender()` after asynchronous updates.
 It previously remounted its slot instead, because with `next-17028` a mounted
-external component never repainted; the `reactivity-smoke` plugin later isolated
-that to a missing renderer flush rather than a disconnected Solid computation, so
-a repaint request is sufficient and the slot claim now survives a refresh.
+external component never repainted; that turned out to be a missing renderer
+flush rather than a disconnected Solid computation, so a repaint request is
+sufficient and the slot claim now survives a refresh.
 
 ## Troubleshooting
 
