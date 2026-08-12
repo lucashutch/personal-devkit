@@ -36,6 +36,7 @@ MERGE_ORDER = {
         "project_directory",
         "workspace",
         "permission",
+        "session_v2",
         "session",
         "message",
         "part",
@@ -46,6 +47,11 @@ MERGE_ORDER = {
         "session_pending",
     ),
 }
+
+# V2 replaced the V1-shaped session/message/part tables with a single session_v2
+# table. Tables that reference "the session" need to know which one is live for
+# the generation being merged.
+SESSION_TABLE = {"v1": "session", "v2": "session_v2"}
 
 # The target keeps its own migration bookkeeping; merging it would lie about history.
 METADATA_TABLES = ("migration", "data_migration", "__drizzle_migrations")
@@ -67,6 +73,12 @@ REFERENCES = {
     "workspace": {"project_id": "project"},
     "permission": {"project_id": "project"},
     "session": {"project_id": "project", "parent_id": "session", "workspace_id": "workspace"},
+    "session_v2": {
+        "project_id": "project",
+        "workspace_id": "workspace",
+        "parent_id": "session_v2",
+        "fork_session_id": "session_v2",
+    },
     "message": {"session_id": "session"},
     "part": {"message_id": "message", "session_id": "session"},
     "todo": {"session_id": "session"},
@@ -76,10 +88,25 @@ REFERENCES = {
     "session_pending": {"session_id": "session"},
 }
 
+# session_message, session_pending, instruction_entry, and instruction_state exist
+# in both generations, keyed to whichever session table that generation uses.
+KIND_REFERENCE_OVERRIDES = {
+    "v2": {
+        "session_message": {"session_id": "session_v2", "message_id": "message"},
+        "session_pending": {"session_id": "session_v2"},
+        "instruction_entry": {"session_id": "session_v2"},
+        "instruction_state": {"session_id": "session_v2"},
+    }
+}
+
+
+def references_for(kind: str, table: str) -> dict[str, str]:
+    return KIND_REFERENCE_OVERRIDES.get(kind, {}).get(table, REFERENCES.get(table, {}))
+
 STORAGE_KINDS = ("message", "part", "session", "session_diff", "project")
 
 # A self-referencing table must be copied parent-first; no foreign key enforces it.
-COPY_ORDER_COLUMNS = {"session": "time_created"}
+COPY_ORDER_COLUMNS = {"session": "time_created", "session_v2": "time_created"}
 
 
 @dataclass
@@ -260,8 +287,10 @@ def insert_row(target: sqlite3.Connection, table: str, values: dict[str, object]
         ) from error
 
 
-def remap(values: dict[str, object], table: str, mapping: dict[str, dict[str, str]]) -> None:
-    for column, referenced in REFERENCES.get(table, {}).items():
+def remap(
+    values: dict[str, object], table: str, mapping: dict[str, dict[str, str]], kind: str
+) -> None:
+    for column, referenced in references_for(kind, table).items():
         current = values.get(column)
         if isinstance(current, str) and current in mapping.get(referenced, {}):
             values[column] = mapping[referenced][current]
@@ -303,6 +332,7 @@ def copy_table(
     mapping: dict[str, dict[str, str]],
     outcome: Outcome,
     *,
+    kind: str,
     tag: str,
     on_collision: str,
 ) -> None:
@@ -322,7 +352,7 @@ def copy_table(
         if len(keys) == 1 and mapping.get(table, {}).get(values[keys[0]]) is not None:
             stats.skipped += 1
             continue
-        remap(values, table, mapping)
+        remap(values, table, mapping, kind)
         store_row(
             target, table, values, keys, mapping, outcome, tag=tag, on_collision=on_collision
         )
@@ -334,10 +364,12 @@ def copy_events(
     mapping: dict[str, dict[str, str]],
     outcome: Outcome,
     *,
+    kind: str,
     tag: str,
     on_collision: str,
 ) -> None:
     """Merge the event log, offsetting source seq numbers past aggregates the target already has."""
+    session_table = SESSION_TABLE.get(kind, "session")
     shared = {"event_sequence", "event"} & table_names(target) & table_names(source)
     if "event_sequence" not in shared:
         return
@@ -352,7 +384,7 @@ def copy_events(
     sequence_selection = ", ".join(f'"{column}"' for column in sequence_columns)
     for row in source.execute(f"SELECT {sequence_selection} FROM event_sequence"):
         sequence_stats.source_rows += 1
-        aggregate = mapping.get("session", {}).get(row["aggregate_id"], row["aggregate_id"])
+        aggregate = mapping.get(session_table, {}).get(row["aggregate_id"], row["aggregate_id"])
         existing = target.execute(
             "SELECT seq FROM event_sequence WHERE aggregate_id = ?", (aggregate,)
         ).fetchone()
@@ -384,7 +416,7 @@ def copy_events(
         values = {column: row[column] for column in columns_shared}
         aggregate = values.get("aggregate_id")
         if isinstance(aggregate, str):
-            values["aggregate_id"] = mapping.get("session", {}).get(aggregate, aggregate)
+            values["aggregate_id"] = mapping.get(session_table, {}).get(aggregate, aggregate)
         # An event already present under its own key was merged before; its seq must not shift.
         if keys and existing_row(target, "event", keys, values) is not None:
             stats.skipped += 1
@@ -428,11 +460,12 @@ def merge_source(
                         table,
                         mapping,
                         outcome,
+                        kind=kind,
                         tag=tag,
                         on_collision=on_collision,
                     )
             copy_events(
-                target, source, mapping, outcome, tag=tag, on_collision=on_collision
+                target, source, mapping, outcome, kind=kind, tag=tag, on_collision=on_collision
             )
         except (MergeError, sqlite3.Error) as error:
             target.execute("ROLLBACK")
