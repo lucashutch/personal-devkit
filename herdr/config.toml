@@ -2,6 +2,10 @@ onboarding = false
 # Herdr configuration managed by personal-devkit.
 # See https://herdr.dev/docs/configuration/ for available settings.
 
+[keys]
+# Leave ctrl+b free for the agent CLIs' own background shortcut.
+prefix = "ctrl+space"
+
 [terminal]
 shell_mode = "auto"
 new_cwd = "follow"
@@ -11,9 +15,10 @@ new_cwd = "follow"
 agent_panel_sort = "priority"
 pane_borders = true
 pane_gaps = true
+show_agent_labels_on_pane_borders = true
 
 [ui.toast]
-delivery = "terminal"
+delivery = "herdr"
 delay_seconds = 1
 
 [ui.sound]
