@@ -14,8 +14,6 @@ export const slimDescriptions = Object.freeze({
   write: "Create or overwrite a file. Prefer edit for existing files.",
   glob: "Find files by glob pattern.",
   grep: "Search file contents by regex. Returns matching files, line numbers, and previews.",
-  patch:
-    "Edit files with one patch containing add, update, and delete operations. Operations apply sequentially; earlier operations remain applied if a later one fails.",
   skill:
     "Load a skill's full instructions by ID when its description matches the current task. Follow the loaded instructions.",
   question:
