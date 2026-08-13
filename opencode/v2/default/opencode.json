@@ -63,6 +63,11 @@
             "effect": "allow"
         },
         {
+            "action": "external_directory",
+            "resource": "/home/lucas/0000-work/**",
+            "effect": "allow"
+        },
+        {
             "action": "question",
             "resource": "*",
             "effect": "allow"

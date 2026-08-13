@@ -16,7 +16,8 @@
         },
         "external_directory": {
             "/tmp/**": "allow",
-            "/home/lucas/ncs/**": "allow"
+            "/home/lucas/ncs/**": "allow",
+            "/home/lucas/0000-work/**": "allow"
         },
         "task": "deny",
         "question": "allow",
