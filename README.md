@@ -180,19 +180,16 @@ Current bash snippets include:
 `tailnet home` and `tailnet work` read their accounts from
 `TAILNET_HOME_ACCOUNT` and `TAILNET_WORK_ACCOUNT` and refuse to switch when the
 requested one is unset. Accounts are personal data, so this repository never
-carries them. Set them on each machine in a local file the loop above picks up
-but this repository does not manage:
+carries them. `~/.config/bashrc.d` is a symlink into this repository, so private
+values go in `~/.bashrc.local`, which `05-local-env.sh` sources when readable:
 
 ```sh
-cat > "$HOME/.config/bashrc.d/05-local-env.sh" <<'EOF'
+cat > "$HOME/.bashrc.local" <<'EOF'
 export TAILNET_HOME_ACCOUNT="you@example.com"
 export TAILNET_WORK_ACCOUNT="you@example.org"
 EOF
-chmod 600 "$HOME/.config/bashrc.d/05-local-env.sh"
+chmod 600 "$HOME/.bashrc.local"
 ```
-
-`link-config.py` refuses to touch unmanaged objects, so this file survives
-relinking.
 
 The helper calls `tailscale` without `sudo`, which needs the local user granted
 operator rights once per machine:
