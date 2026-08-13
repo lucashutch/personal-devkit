@@ -175,6 +175,35 @@ Current bash snippets include:
 - `opencode2`, short alias `oc2` — OpenCode V2 in its own `opencode-v2` namespace
 - `o2t` — isolated OpenCode V2 test profile (service on `127.0.0.1:4099`)
 
+### Tailscale switching
+
+`tailnet home` and `tailnet work` read their accounts from
+`TAILNET_HOME_ACCOUNT` and `TAILNET_WORK_ACCOUNT` and refuse to switch when the
+requested one is unset. Accounts are personal data, so this repository never
+carries them. Set them on each machine in a local file the loop above picks up
+but this repository does not manage:
+
+```sh
+cat > "$HOME/.config/bashrc.d/05-local-env.sh" <<'EOF'
+export TAILNET_HOME_ACCOUNT="you@example.com"
+export TAILNET_WORK_ACCOUNT="you@example.org"
+EOF
+chmod 600 "$HOME/.config/bashrc.d/05-local-env.sh"
+```
+
+`link-config.py` refuses to touch unmanaged objects, so this file survives
+relinking.
+
+The helper calls `tailscale` without `sudo`, which needs the local user granted
+operator rights once per machine:
+
+```sh
+sudo tailscale set --operator="$USER"
+```
+
+Verify with `tailscale debug prefs | grep OperatorUser`. Without it, every
+`tailscale` call fails on permissions rather than falling back to `sudo`.
+
 The helpers in `dotfiles/bashrc.d/opencode.sh` are plain shell functions that
 run the real binary. `opencode` sets no XDG override, so V1 uses
 `~/.config/opencode` and `~/.local/share/opencode` and any external tool that

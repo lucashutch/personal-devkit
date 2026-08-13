@@ -1,6 +1,7 @@
 # Quickly switch between Tailscale tailnets.
 # Accounts are personal data, so they come from the environment. Set
 # TAILNET_HOME_ACCOUNT and TAILNET_WORK_ACCOUNT outside this repository.
+# Running without sudo needs `sudo tailscale set --operator="$USER"` per machine.
 tailnet() {
   local target account
   case "$1" in
@@ -8,7 +9,7 @@ tailnet() {
     work) target="WORK" account="$TAILNET_WORK_ACCOUNT" ;;
     *)
       echo "Usage: tailnet [home|work]"
-      sudo tailscale switch --list
+      tailscale switch --list
       return 0
       ;;
   esac
@@ -20,5 +21,5 @@ tailnet() {
   fi
 
   echo "Switching to $target Tailnet ($account)..."
-  sudo tailscale switch "$account"
+  tailscale switch "$account"
 }
