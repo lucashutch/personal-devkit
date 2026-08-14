@@ -35,7 +35,8 @@
     "paste": "compact"
   },
   "attention": {
-    "enabled": true
+    "enabled": true,
+    "sound": false
   },
   "debug": {
     "turn_tokens": false,
