@@ -165,7 +165,7 @@ Current bash snippets include:
 - PATH setup for Bun, Cargo, Go, npm, pi-node, LM Studio, and ARM toolchains
 - lazy-loaded `nvm`
 - `venv` activation and completion for environments in `~/.venvs`
-- optional CellX Build and nrfutil completions
+- optional CellX Build, nrfutil, and OpenCode V2 completions
 - workstation aliases, including Ghostty updates and GPU selection
 - `tailnet` switching for home and work Tailscale accounts
 - OpenCode helpers:
@@ -174,6 +174,9 @@ Current bash snippets include:
 - `oct` — isolated OpenCode V1 test profile (prompt-capture proxy, experimental providers)
 - `opencode2`, short alias `oc2` — OpenCode V2 in its own `opencode-v2` namespace
 - `o2t` — isolated OpenCode V2 test profile (service on `127.0.0.1:4099`)
+
+When `opencode2` is installed, Bash loads its generated completions from
+`opencode2 --completions bash` during shell startup.
 
 ### Tailscale switching
 

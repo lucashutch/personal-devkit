@@ -11,6 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 HELPERS = ROOT / "dotfiles" / "bashrc.d" / "opencode.sh"
+COMPLETIONS = ROOT / "dotfiles" / "bashrc.d" / "30-completions.sh"
 
 # Records the argv and the profile-relevant environment of the real binary.
 STUB = """#!/usr/bin/env bash
@@ -146,6 +147,30 @@ class OpenCodeHelperTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), "unset")
+
+    def test_v2_completions_are_loaded_when_binary_is_installed(self) -> None:
+        stub = self.bin_dir / "opencode2"
+        stub.write_text(
+            "#!/usr/bin/env bash\n"
+            "if [[ $1 == --completions && $2 == bash ]]; then\n"
+            "  printf '%s\\n' 'complete -W \\\"run\\\" opencode2'\n"
+            "fi\n"
+        )
+        stub.chmod(0o755)
+        script = (
+            f'set -u; source "{HELPERS}"; source "{COMPLETIONS}"; '
+            'complete -p opencode2; complete -p oc2'
+        )
+        result = subprocess.run(
+            ["bash", "-c", script],
+            capture_output=True,
+            text=True,
+            cwd=self.home,
+            env={"HOME": str(self.home), "PATH": f"{self.bin_dir}:/usr/bin:/bin"},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("complete -F _opencode2 opencode2", result.stdout)
+        self.assertIn("complete -F _opencode2 oc2", result.stdout)
 
 
 if __name__ == "__main__":
