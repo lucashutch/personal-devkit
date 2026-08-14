@@ -105,7 +105,7 @@ function formatQuotaLabel(quota: any) {
 
   if (source === "openai codex") {
     const key = label.toLowerCase()
-    if (key.includes("primary")) return "5H"
+    if (key.includes("primary")) return "7d"
     if (key.includes("secondary")) return "7d"
   }
 
