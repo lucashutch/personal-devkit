@@ -6,6 +6,10 @@
 - Use comments only for non-obvious constraints; do not narrate code or justify a change to reviewers.
 - Before destructive or outward-facing actions, confirm authorization and inspect existing targets before overwriting or deleting them.
 
+# Git workflow
+
+- Unless explicitly stated otherwise, commit changes directly to `main`.
+
 # Prompt sources
 
 - Skills and commands live once under `agentic_common/` and are linked to every host. Edit that copy; never reintroduce a per-host copy.
