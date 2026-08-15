@@ -101,6 +101,14 @@
                 "grok-4.5"
             ]
         },
+        "openrouter": {
+            "options": {
+                "apiKey": "{env:OPENROUTER_API_KEY}"
+            },
+            "whitelist": [
+                "google/gemini-3.7-flash"
+            ]
+        },
         "github-copilot": {
             "whitelist": [
                 "claude-opus-5",
