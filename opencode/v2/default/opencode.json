@@ -28,13 +28,6 @@
         "./shared/plugins/herdr-agent-state.js",
         "./shared/plugins/herdr-session-title.js"
     ],
-    "providers": {
-        "openrouter": {
-            "settings": {
-                "apiKey": "{env:OPENROUTER_API_KEY}"
-            }
-        }
-    },
     "websearch": {
         "provider": "chatgpt"
     },
