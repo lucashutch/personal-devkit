@@ -11,6 +11,7 @@ opencode() {
   # A subshell keeps the exported variable out of the calling shell.
   (
     export OPENCODE_EXPERIMENTAL_WEBSOCKETS=true
+    export OPENCODE_EXPERIMENTAL_OPENAI_RESPONSES_WEBSOCKET=true
 
     # `exec` runs an external program, so it bypasses this function without
     # needing `command`, which `exec` cannot invoke.
@@ -29,6 +30,7 @@ oct() {
     export XDG_CACHE_HOME="$HOME/.cache/opencode-v1-test"
     export GH_CONFIG_DIR="${GH_CONFIG_DIR:-$HOME/.config/gh}"
     export OPENCODE_EXPERIMENTAL_WEBSOCKETS=true
+    export OPENCODE_EXPERIMENTAL_OPENAI_RESPONSES_WEBSOCKET=true
 
     exec opencode "$@"
   )
@@ -55,6 +57,7 @@ _opencode_v2() {
     XDG_STATE_HOME="$(_opencode_v2_profile_root "${XDG_STATE_HOME:-$HOME/.local/state}" "$profile")" \
     XDG_CACHE_HOME="$(_opencode_v2_profile_root "${XDG_CACHE_HOME:-$HOME/.cache}" "$profile")" \
     GH_CONFIG_DIR="${GH_CONFIG_DIR:-$HOME/.config/gh}" \
+    OPENCODE_EXPERIMENTAL_OPENAI_RESPONSES_WEBSOCKET=true \
     command opencode2 "$@"
 }
 
