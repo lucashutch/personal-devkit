@@ -53,8 +53,8 @@ function requestOnce(method, params) {
   })
 }
 
-export function createTabRenamer(send = request) {
-  let tabId
+export function createTabRenamer(send = request, initialTabID = process.env.HERDR_TAB_ID) {
+  let tabId = initialTabID
 
   return async (title) => {
     const label = title?.trim()
@@ -91,6 +91,15 @@ export function createSessionTitleHandler(ctx, renameTab) {
 
     if (event?.type === "session.renamed" && event.data?.sessionID === selectedSessionID) {
       await renameTab(event.data.title)
+      return
+    }
+
+    if (event?.type === "session.renamed" && !selectedSessionID && event.data?.sessionID) {
+      const session = await ctx.session.get({ sessionID: event.data.sessionID })
+      if (!session?.parentID) {
+        selectedSessionID = event.data.sessionID
+        await renameTab(event.data.title)
+      }
     }
   }
 }

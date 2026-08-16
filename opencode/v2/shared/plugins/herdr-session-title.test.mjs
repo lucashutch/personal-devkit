@@ -41,13 +41,30 @@ test("root session creation provides a fallback before a TUI selection event", a
   assert.deepEqual(titles, ["Root"])
 })
 
-test("tab renamer resolves the pane once and ignores empty titles", async () => {
+test("a root session rename provides a fallback when the plugin starts after creation", async () => {
+  const titles = []
+  const sessions = new Map([
+    ["root", { id: "root", title: "Renamed root" }],
+    ["child", { id: "child", parentID: "root", title: "Renamed child" }],
+  ])
+  const handle = createSessionTitleHandler(
+    { session: { get: async ({ sessionID }) => sessions.get(sessionID) } },
+    async (title) => titles.push(title),
+  )
+
+  await handle({ type: "session.renamed", data: { sessionID: "child", title: "Renamed child" } })
+  await handle({ type: "session.renamed", data: { sessionID: "root", title: "Renamed root" } })
+
+  assert.deepEqual(titles, ["Renamed root"])
+})
+
+test("tab renamer resolves the pane once when no tab id is available and ignores empty titles", async () => {
   const requests = []
   const rename = createTabRenamer(async (method, params) => {
     requests.push([method, params])
     if (method === "pane.get") return { result: { pane: { tab_id: "tab-1" } } }
     return undefined
-  })
+  }, null)
 
   await rename("Untitled")
   await rename(" First title ")
@@ -58,6 +75,18 @@ test("tab renamer resolves the pane once and ignores empty titles", async () => 
     ["tab.rename", { tab_id: "tab-1", label: "First title" }],
     ["tab.rename", { tab_id: "tab-1", label: "Second title" }],
   ])
+})
+
+test("tab renamer uses Herdr's injected tab id", async () => {
+  const requests = []
+  const rename = createTabRenamer(
+    async (method, params) => requests.push([method, params]),
+    "tab-1",
+  )
+
+  await rename("First title")
+
+  assert.deepEqual(requests, [["tab.rename", { tab_id: "tab-1", label: "First title" }]])
 })
 
 test("V2 plugin exposes a descriptor instead of the V1 hook object", () => {
