@@ -54,9 +54,14 @@ Cost of each candidate as total prompt tokens for one trivial turn, against a
 | prose spec, terse | 422 | 2,676 | - | - |
 | prose spec, full builtin text | 1,086 | 2,705 | 1,820 | - |
 
-Showing the format costs a fraction of explaining it, and the shipped example is
-fewer characters than the one-liner that omits the format entirely. Dropping the
-`patchText` parameter description saved a further 17 tokens.
+Showing the format costs a fraction of explaining it, and the example as measured
+was fewer characters than the one-liner that omits the format entirely. Dropping
+the `patchText` parameter description saved a further 17 tokens.
+
+The shipped description has since grown to 168 characters, adding a second `+`
+line under `*** Add File` (see Field failures). The token columns above were
+measured before that and were not re-measured; the addition is one short line, so
+expect a couple of tokens, not a re-ordering of the table.
 
 Tokenisers disagree about which text is cheap: the same 153 characters cost
 DeepSeek 20 tokens above its floor and Luna 27. DeepSeek pays for prose, GPT pays
@@ -94,6 +99,41 @@ Findings:
   it as unproven: patch takes one large multi-line string, which is exactly what
   stresses argument escaping.
 - `grok-4.5` could not be tested; its Zen endpoint was unavailable.
+
+## Field failures
+
+90 patch calls from the V2 session database, after the example description
+shipped. 13 failed, and every one recovered: no task ended with an unapplied
+patch.
+
+| Family | Calls | Failures | Rate |
+|---|---:|---:|---:|
+| gpt-* | 83 | 9 | 10.8% |
+| non-gpt (gemini-3.7-flash) | 7 | 4 | 57% |
+
+The two families fail differently, and only one is a description problem:
+
+- **gpt-\***: all 9 are content mismatches, 8 reporting `Failed to find expected
+  lines` and one passing line numbers (`@@ -395,9 +395,10 @@`) where a context
+  line belongs. The models quote a line that exists nowhere in the file, usually
+  long HTML or a Python assertion full of escaped quotes; successive attempts on
+  the same target differ only in backslashes. No format text fixes this.
+- **non-gpt**: 2 envelope rejections, plus 2 where a large `*** Add File` body
+  lost the `+` prefix partway through. The second mode is why the Add File block
+  now shows two `+` lines.
+
+Uniqueness of `@@` context is not worth teaching. 8 of the 9 gpt failures emitted
+a bare `@@` and placed the hunk from surrounding lines alone, which matches the
+earlier finding that a line appearing 40 times still resolved. `Failed to find
+expected lines` means zero matches, and uniqueness advice addresses too many.
+
+Re-reading before patching is not worth putting in the description either. Of the
+recoveries, roughly half re-read first and half succeeded on a straight retry, so
+models already do it when it helps. The only expensive case, one `gpt-5.6-sol`
+run that burned four consecutive patches on the escaped-quote assertion, had
+already read the file: the failure was reproducing the escaping through JSON, not
+stale knowledge. If this recurs, the agent prompt is the place, and the rule is
+about what to do after a rejection rather than a pre-emptive read.
 
 ## Measurement notes
 

@@ -53,6 +53,15 @@ test("the description carries the envelope and every operation header", () => {
   ]) {
     assert.ok(patchDescription.includes(marker), `description is missing ${marker}`)
   }
+
+  // Consecutive '+' lines under Add File. With one, models dropped the prefix
+  // partway through large file bodies.
+  const added = patchDescription.split("\n")
+  const start = added.indexOf("*** Add File: a.txt")
+  assert.ok(
+    added[start + 1].startsWith("+") && added[start + 2].startsWith("+"),
+    "Add File body must show more than one '+' line",
+  )
 })
 
 test("slim-tools no longer owns the patch description", () => {

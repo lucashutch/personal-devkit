@@ -1,15 +1,19 @@
 // Shared by the V2 patch-only-tools plugin.
 
 // The format taught by example rather than prose. Measured cheaper than every
-// prose specification tried, and cheaper in characters than the one-line
-// description that omits the format entirely: 20 DeepSeek tokens above that
-// floor against roughly 107 for a full prose spec. Models that have to be told
-// the format need the shape, not the explanation.
+// prose specification tried: 20 DeepSeek tokens above the one-line description
+// that omits the format entirely, against roughly 107 for a full prose spec.
+// Models that have to be told the format need the shape, not the explanation.
+//
+// The Add File body is two lines because one line reads as "a new file has a +
+// line" rather than "every line of a new file has +". Gemini dropped the prefix
+// partway through large file bodies against the single-line form.
 export const patchDescription = [
   "Edit files with one patch:",
   "*** Begin Patch",
   "*** Add File: a.txt",
-  "+new line",
+  "+first line",
+  "+second line",
   "*** Update File: b.txt",
   "@@ context",
   "-old",

@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gemini Flash — Details Actions & Direct Approval Mockup</title>
+  <style>
+    :root {
+      --surface-950: #0b0d12;
+      --surface-900: #10141d;
+      --surface-850: #171c26;
+      --surface-800: #1f2633;
+      --surface-750: #2a3344;
+      --line: rgba(148, 163, 184, 0.16);
+      --line-soft: rgba(148, 163, 184, 0.09);
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --muted-2: #64748b;
+      --brand: #3b82f6;
+      --brand-400: #60a5fa;
+      --stage-color: #38bdf8;
+      --stage-bg: rgba(56, 189, 248, 0.12);
+      --stage-hover: #0284c7;
+      --approve-color: #34d399;
+      --approve-bg: rgba(52, 211, 153, 0.13);
+      --approve-hover: #059669;
+      --reject-color: #f87171;
+      --reject-bg: rgba(248, 113, 113, 0.12);
+      --reject-hover: #dc2626;
+      --search-color: #a78bfa;
+      --search-bg: rgba(167, 139, 250, 0.13);
+      --search-hover: #7c3aed;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--surface-950);
+      color: var(--text);
+      font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 24px 16px;
+    }
+
+    .mockup-header {
+      max-width: 1360px;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px 20px;
+    }
+    .mockup-header h2 { margin: 0 0 6px; font-size: 16px; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .mockup-header p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .mockup-header .highlights { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+    .highlight-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+    .modal {
+      max-width: 1360px;
+      margin: 0 auto;
+      background: var(--surface-900);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 24px;
+      background: var(--surface-850);
+      border-bottom: 1px solid var(--line);
+    }
+    .modal-header h1 { font-size: 18px; margin: 0; font-weight: 700; color: #fff; }
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+    .cols { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 720px; }
+
+    /* Left rail */
+    .rail {
+      padding: 20px 18px;
+      border-right: 1px solid var(--line);
+      background: var(--surface-900);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .poster {
+      width: 100%;
+      aspect-ratio: 2 / 3;
+      border-radius: 10px;
+      background: linear-gradient(145deg, #1e293b, #0f172a);
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted-2);
+      font-size: 13px;
+    }
+    .rail-actions { display: flex; flex-direction: column; gap: 8px; }
+
+    /* Main area */
+    .center { min-width: 0; display: flex; flex-direction: column; }
+    .center-head {
+      padding: 18px 24px 14px;
+      border-bottom: 1px solid var(--line-soft);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--line-soft);
+      background: rgba(15, 20, 29, 0.6);
+    }
+    .action-legend { display: flex; align-items: center; gap: 16px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+
+    .results { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* Season / Episode Collapsibles */
+    .season {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface-850);
+      overflow: hidden;
+    }
+    .season > summary, .episode > summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+    }
+    .season > summary::-webkit-details-marker, .episode > summary::-webkit-details-marker { display: none; }
+    
+    .season > summary {
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface-800);
+    }
+    .season > summary:hover { background: #252e3d; }
+    .season .name { font-weight: 700; font-size: 15px; }
+    .season-meta { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+
+    .season-body {
+      border-top: 1px solid var(--line-soft);
+      padding: 8px 14px 14px;
+    }
+
+    .episode {
+      border-radius: 8px;
+      margin-top: 6px;
+      transition: background 0.15s;
+    }
+    .episode + .episode { border-top: 1px solid var(--line-soft); padding-top: 6px; }
+    .episode > summary {
+      padding: 10px 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-radius: 8px;
+    }
+    .episode > summary:hover { background: var(--surface-800); }
+    .episode .ep-badge {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      background: var(--surface-900);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--line-soft);
+    }
+    .episode .title { font-weight: 600; font-size: 13.5px; flex: 1; min-width: 0; }
+    .episode-right { display: flex; align-items: center; gap: 10px; }
+
+    /* Release Card */
+    .releases-list {
+      padding: 8px 8px 10px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .release {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 14px;
+      border: 1px solid var(--line-soft);
+      border-radius: 10px;
+      background: var(--surface-900);
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .release:hover {
+      border-color: rgba(148, 163, 184, 0.3);
+      background: #131822;
+    }
+    .release .score-pill {
+      min-width: 42px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      background: rgba(52, 211, 153, 0.1);
+      color: #34d399;
+      font-size: 14px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      border: 1px solid rgba(52, 211, 153, 0.2);
+    }
+    .release.staged-item { border-left: 3px solid var(--stage-color); }
+    .release.approved-item { border-left: 3px solid var(--approve-color); }
+
+    .release-body { min-width: 0; flex: 1; }
+    .release-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f8fafc;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .release-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+    .release-meta .sep { color: var(--muted-2); }
+
+    /* Standard Buttons & Badges */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: var(--surface-800);
+      color: var(--text);
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 7px 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: 0.15s;
+    }
+    .btn:hover { background: var(--surface-750); }
+    .btn-primary { background: var(--brand); color: #fff; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-quiet { background: transparent; border-color: var(--line); color: var(--muted); }
+    .btn-quiet:hover { background: var(--surface-800); color: var(--text); }
+    .btn-sm { padding: 4px 10px; font-size: 11.5px; }
+    .link-danger { color: #f87171; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 2px 9px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+    .badge-cyan { background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.25); }
+    .badge-green { background: rgba(52, 211, 153, 0.16); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.25); }
+    .badge-yellow { background: rgba(251, 191, 36, 0.16); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.25); }
+    .badge-gray { background: rgba(148, 163, 184, 0.14); color: var(--muted); border: 1px solid var(--line-soft); }
+
+    /* Coloured Icon Actions */
+    .action-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface-850);
+      padding: 3px 5px;
+      border-radius: 8px;
+      border: 1px solid var(--line-soft);
+    }
+    .icon-btn {
+      position: relative;
+      width: 32px;
+      height: 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+    }
+    .icon-btn svg { width: 16px; height: 16px; }
+    
+    /* Stage Button */
+    .btn-action-stage {
+      color: var(--stage-color);
+      background: var(--stage-bg);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+    .btn-action-stage:hover {
+      background: var(--stage-hover);
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+    }
+
+    /* Approve Button (Always visible direct action) */
+    .btn-action-approve {
+      color: var(--approve-color);
+      background: var(--approve-bg);
+      border-color: rgba(52, 211, 153, 0.3);
+    }
+    .btn-action-approve:hover {
+      background: var(--approve-hover);
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(52, 211, 153, 0.4);
+    }
+
+    /* Reject Button */
+    .btn-action-reject {
+      color: var(--reject-color);
+      background: var(--reject-bg);
+      border-color: rgba(248, 113, 113, 0.3);
+    }
+    .btn-action-reject:hover {
+      background: var(--reject-hover);
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(248, 113, 113, 0.4);
+    }
+
+    /* Search Button (Re-trigger search anywhere) */
+    .btn-action-search {
+      color: var(--search-color);
+      background: var(--search-bg);
+      border-color: rgba(167, 139, 250, 0.3);
+    }
+    .btn-action-search:hover {
+      background: var(--search-hover);
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(167, 139, 250, 0.4);
+    }
+
+    /* Episode level search trigger pill */
+    .ep-search-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      height: 28px;
+      padding: 0 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      border-radius: 6px;
+      color: var(--search-color);
+      background: var(--search-bg);
+      border: 1px solid rgba(167, 139, 250, 0.3);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .ep-search-btn svg { width: 13px; height: 13px; }
+    .ep-search-btn:hover {
+      background: var(--search-hover);
+      color: #fff;
+    }
+
+    .tooltip-hint {
+      font-size: 11px;
+      color: var(--muted-2);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="mockup-header">
+    <h2>
+      <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24" style="color: #60a5fa;"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Gemini Flash Proposed Design: Direct Quick Actions & Unified Search
+    </h2>
+    <p>
+      Key updates: <b>1)</b> Both <b>Stage</b> and <b>Approve</b> are persistently visible simultaneously on every release item—allowing 1-click immediate approval skipping staging entirely. <b>2)</b> Vibrantly tinted, high-contrast icon action buttons (Stage, Approve, Reject, Search). <b>3)</b> Dedicated search re-trigger button placed alongside release actions & episode rows regardless of status (Available, Staged, Pending).
+    </p>
+    <div class="highlights">
+      <div class="highlight-tag"><span class="dot" style="background:var(--stage-color)"></span><b>Stage (Blue)</b>: Mark release for review</div>
+      <div class="highlight-tag"><span class="dot" style="background:var(--approve-color)"></span><b>Approve (Green)</b>: Direct 1-click download</div>
+      <div class="highlight-tag"><span class="dot" style="background:var(--reject-color)"></span><b>Reject (Red)</b>: Discard candidate</div>
+      <div class="highlight-tag"><span class="dot" style="background:var(--search-color)"></span><b>Search (Purple)</b>: Instant re-search scope</div>
+    </div>
+  </div>
+
+  <div class="modal">
+    <!-- Modal Header -->
+    <header class="modal-header">
+      <h1>Top Gear</h1>
+      <span class="badge badge-gray">TV</span>
+      <span class="badge badge-yellow">pending</span>
+      <span style="font-size: 12px; color: var(--muted);">Release: 2002-10-20</span>
+      <div class="header-right">
+        <button class="btn btn-quiet btn-sm">← Prev</button>
+        <button class="btn btn-quiet btn-sm">Next →</button>
+        <span style="font-size: 12px; color: var(--muted-2);">4 of 12</span>
+        <button class="btn btn-quiet btn-sm" aria-label="Close">✕</button>
+      </div>
+    </header>
+
+    <div class="cols">
+      <!-- Left Rail -->
+      <aside class="rail">
+        <div class="poster">Poster Image</div>
+        <div class="rail-actions">
+          <button class="btn btn-primary">↻ Search for new</button>
+          <button class="btn">⌕ Full series search</button>
+          <button class="btn">Open in Overseerr ↗</button>
+          <button class="btn btn-quiet link-danger">Deny request</button>
+        </div>
+      </aside>
+
+      <!-- Main Results Area -->
+      <main class="center">
+        <div class="center-head">
+          <div>
+            <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: .08em; color: var(--muted-2);">Search results</div>
+            <div style="font-size: 12.5px; color: var(--muted); margin-top: 2px;">
+              Ranked by release score. Click <b>Approve</b> to trigger direct download instantly, or <b>Stage</b> to queue.
+            </div>
+          </div>
+          <div style="font-size: 12px; color: var(--muted-2);">148 of 230 available</div>
+        </div>
+
+        <!-- Legend Toolbar -->
+        <div class="toolbar">
+          <div class="action-legend">
+            <div class="legend-item"><button class="icon-btn btn-action-stage" style="width:24px; height:24px;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 12h14M12 5l7 7-7 7"/></svg></button> Stage</div>
+            <div class="legend-item"><button class="icon-btn btn-action-approve" style="width:24px; height:24px;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="m5 12 4 4L19 6"/></svg></button> Direct Approve</div>
+            <div class="legend-item"><button class="icon-btn btn-action-reject" style="width:24px; height:24px;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 6l12 12M18 6 6 18"/></svg></button> Reject</div>
+            <div class="legend-item"><button class="icon-btn btn-action-search" style="width:24px; height:24px;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" stroke-width="2.2"/><path stroke-linecap="round" stroke-width="2.2" d="m16 16 4 4"/></svg></button> Re-search</div>
+          </div>
+        </div>
+
+        <!-- Tree Results -->
+        <div class="results">
+          <details class="season" open>
+            <summary>
+              <span style="color: var(--muted-2);">⌄</span>
+              <span class="name">Season 7</span>
+              <span style="font-size: 12px; color: var(--muted);">1/7 available · 5 pending</span>
+              
+              <div class="season-meta">
+                <span class="badge badge-cyan">staged</span>
+                <button class="ep-search-btn" title="Search all Season 7 episodes">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" stroke-width="2.2"/><path stroke-linecap="round" stroke-width="2.2" d="m16 16 4 4"/></svg>
+                  Search Season
+                </button>
+              </div>
+            </summary>
+
+            <div class="season-body">
+              
+              <!-- Episode 1 (Staged state) -->
+              <details class="episode" open>
+                <summary>
+                  <span style="color: var(--muted-2);">⌄</span>
+                  <span class="ep-badge">S07E01</span>
+                  <span class="title">Episode 1 — Rubicon Trail</span>
+                  
+                  <div class="episode-right">
+                    <span class="badge badge-cyan">staged</span>
+                    <!-- Individual Episode Re-Search Trigger -->
+                    <button class="ep-search-btn" title="Re-trigger search for S07E01">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" stroke-width="2.2"/><path stroke-linecap="round" stroke-width="2.2" d="m16 16 4 4"/></svg>
+                      Re-search Ep
+                    </button>
+                  </div>
+                </summary>
+
+                <!-- Releases List -->
+                <div class="releases-list">
+                  <!-- Release Item 1 (Best match) -->
+                  <div class="release staged-item">
+                    <div class="score-pill">230</div>
+                    <div class="release-body">
+                      <div class="release-title">Top Gear UK S07E01 Rubicon Trail 720p HEVC x265-MeGusta</div>
+                      <div class="release-meta">
+                        <span style="color:#60a5fa; font-weight:600;">720p</span>
+                        <span class="sep">•</span>
+                        <span>x265</span>
+                        <span class="sep">•</span>
+                        <span>0.79 GB</span>
+                        <span class="sep">•</span>
+                        <span style="color:#34d399;">14 seeders</span>
+                        <span class="sep">•</span>
+                        <span>IPTorrents</span>
+                      </div>
+                    </div>
+                    
+                    <!-- Unified 4-Action Button Cluster -->
+                    <div class="action-group">
+                      <button class="icon-btn btn-action-stage" title="Stage release (queue for review)" aria-label="Stage">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      </button>
+                      <button class="icon-btn btn-action-approve" title="Direct Approve (Send directly to grab/download)" aria-label="Approve">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="m5 12 4 4L19 6"/></svg>
+                      </button>
+                      <button class="icon-btn btn-action-reject" title="Reject release" aria-label="Reject">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 6l12 12M18 6 6 18"/></svg>
+                      </button>
+                      <button class="icon-btn btn-action-search" title="Re-search this release / episode" aria-label="Search">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" stroke-width="2.2"/><path stroke-linecap="round" stroke-width="2.2" d="m16 16 4 4"/></svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Release Item 2 -->
+                  <div class="release">
+                    <div class="score-pill" style="color: #60a5fa; background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.2);">185</div>
+                    <div class="release-body">
+                      <div class="release-title">Top.Gear.S07E01.1080p.iP.WEB-DL.AAC2.0.H.264-RTN</div>
+                      <div class="release-meta">
+                        <span style="color:#60a5fa; font-weight:600;">1080p</span>
+                        <span class="sep">•</span>
+                        <span>H.264</span>
+                        <span class="sep">•</span>
+                        <span>1.42 GB</span>
+                        <span class="sep">•</span>
+                        <span style="color:#34d399;">8 seeders</span>
+                        <span class="sep">•</span>
+                        <span>TorrentLeech</span>
+                      </div>
+                    </div>
+                    
+                    <!-- Unified 4-Action Button Cluster -->
+                    <div class="action-group">
+                      <button class="icon-btn btn-action-stage" title="Stage release (queue for review)" aria-label="Stage">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      </button>
+                      <button class="icon-btn btn-action-approve" title="Direct Approve (Send directly to grab/download)" aria-label="Approve">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="m5 12 4 4L19 6"/></svg>
+                      </button>
+                      <button class="icon-btn btn-action-reject" title="Reject release" aria-label="Reject">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 6l12 12M18 6 6 18"/></svg>
+                      </button>
+                      <button class="icon-btn btn-action-search" title="Re-search this release / episode" aria-label="Search">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" stroke-width="2.2"/><path stroke-linecap="round" stroke-width="2.2" d="m16 16 4 4"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- Episode 2 (Pending state) -->
+              <details class="episode">
+                <summary>
+                  <span style="color: var(--muted-2);">›</span>
+                  <span class="ep-badge">S07E02</span>
+                  <span class="title">Episode 2 — The Big Race</span>
+                  
+                  <div class="episode-right">
+                    <span class="badge badge-yellow">pending</span>
+                    <!-- Even when pending, search is directly available -->
+                    <button class="ep-search-btn" title="Re-trigger search for S07E02">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" stroke-width="2.2"/><path stroke-linecap="round" stroke-width="2.2" d="m16 16 4 4"/></svg>
+                      Search Ep
+                    </button>
+                  </div>
+                </summary>
+              </details>
+
+              <!-- Episode 3 (Available state) -->
+              <details class="episode">
+                <summary>
+                  <span style="color: var(--muted-2);">›</span>
+                  <span class="ep-badge">S07E03</span>
+                  <span class="title">Episode 3 — The Convertible</span>
+                  
+                  <div class="episode-right">
+                    <span class="badge badge-green">available</span>
+                    <!-- Even when already available, search is directly available for upgrades/re-runs -->
+                    <button class="ep-search-btn" title="Re-trigger search for S07E03 (e.g. upgrades)">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" stroke-width="2.2"/><path stroke-linecap="round" stroke-width="2.2" d="m16 16 4 4"/></svg>
+                      Search Ep
+                    </button>
+                  </div>
+                </summary>
+              </details>
+
+            </div>
+          </details>
+        </div>
+      </main>
+    </div>
+  </div>
+
+</body>
+</html>
