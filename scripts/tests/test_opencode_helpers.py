@@ -80,14 +80,14 @@ class OpenCodeHelperTests(unittest.TestCase):
         self.assertEqual(seen["data"], "")
         self.assertEqual(seen["state"], "")
         self.assertEqual(seen["cache"], "")
-        self.assertEqual(seen["websockets"], "true")
+        self.assertEqual(seen["websockets"], "")
         self.assertEqual(self.systemctl_calls(), [])
 
     def test_v1_short_alias_matches_the_default(self) -> None:
         seen = self.run_helper("oc --model anthropic/claude /tmp")
         self.assertEqual(seen["argv"], ["--model", "anthropic/claude", "/tmp"])
         self.assertEqual(seen["config"], "")
-        self.assertEqual(seen["websockets"], "true")
+        self.assertEqual(seen["websockets"], "")
 
     def test_v1_test_profile_applies_its_namespace(self) -> None:
         seen = self.run_helper("oct")
@@ -97,7 +97,7 @@ class OpenCodeHelperTests(unittest.TestCase):
         self.assertEqual(seen["cache"], f"{self.home}/.cache/opencode-v1-test")
         # gh stays shared so one login covers every profile.
         self.assertEqual(seen["gh"], f"{self.home}/.config/gh")
-        self.assertEqual(seen["websockets"], "true")
+        self.assertEqual(seen["websockets"], "")
 
     def test_v2_default_applies_its_namespace(self) -> None:
         seen = self.run_helper("opencode2")
