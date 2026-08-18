@@ -2,39 +2,15 @@
 
 from __future__ import annotations
 
-from program_installers.common import (
-    STATUS_SKIPPED,
-    command_exists,
-    error,
-    info,
-    run_command,
-    should_skip_tool,
-    version_for,
-)
+from program_installers.common import STATUS_SKIPPED, should_skip_tool
+from program_installers.node import npm_global_install
+
+# @opencode-ai/cli ships its bin as opencode2; the opencode name belongs to the V1 package.
+PACKAGE = "@opencode-ai/cli@next"
+BINARY = "opencode2"
 
 
 def install_opencode(options: object) -> int:
-    if should_skip_tool("opencode", reinstall=options.reinstall):  # type: ignore[attr-defined]
+    if should_skip_tool(BINARY, reinstall=options.reinstall, display_name="opencode"):  # type: ignore[attr-defined]
         return STATUS_SKIPPED
-
-    if not command_exists("npm"):
-        error("npm is required to install opencode. Install npm or put opencode on PATH and rerun.")
-        return 1
-
-    info("Installing OpenCode V2 next with npm.")
-    result = run_command(
-        ["npm", "install", "--global", "@opencode-ai/cli@next"], check=False
-    )
-    if result.returncode != 0:
-        return 1
-
-    if not command_exists("opencode"):
-        error("opencode installation completed, but opencode was not found on PATH.")
-        return 1
-
-    version = version_for("opencode")
-    if version:
-        info(f"Installed opencode ({version}).")
-    else:
-        info("Installed opencode.")
-    return 0
+    return npm_global_install(PACKAGE, BINARY, "OpenCode V2 next")

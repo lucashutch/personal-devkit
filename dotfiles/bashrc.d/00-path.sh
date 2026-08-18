@@ -18,4 +18,6 @@ path_prepend "/opt/gcc-arm-13_2_1/bin"
 path_prepend "$HOME/go/bin"
 path_prepend "$HOME/.lmstudio/bin"
 path_prepend "$HOME/.npm-global/bin"
-path_prepend "$HOME/.local/share/pi-node/current/bin"
+
+# Managed Node.js LTS and other locally linked binaries; keep last so it wins.
+path_prepend "$HOME/.local/bin"

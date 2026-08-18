@@ -17,7 +17,7 @@ Feel free to fork this repo or open PRs to fine-tune the prompts and tool descri
 
 ## Tool installer
 
-`scripts/install.py` is the Linux-only Python 3.11+ entrypoint for installing default developer tools used by this repo: `fzf`, `starship`, `npm`/`npx`, OpenCode CLI and Desktop, Herdr, and Visual Studio Code. Herdr is installed with its official installer from `herdr.dev`. The installer installs tools only; it does not call `scripts/link-config.py`, link files into `~/.config`, or modify repo-managed dotfiles.
+`scripts/install.py` is the Linux-only Python 3.11+ entrypoint for installing default developer tools used by this repo: `fzf`, `starship`, Node.js LTS (`node`/`npm`/`npx`), `bun`, OpenCode CLI and Desktop, Claude Code, Codex CLI, `tokscale`, `ghui`, Herdr, and Visual Studio Code. Node.js LTS is installed from the official `nodejs.org` release tarball into `~/.local/share/node` and linked into `~/.local/bin`, so it does not depend on the distribution's `npm` package. Herdr, Claude Code, and `bun` are installed with their official upstream installers. The installer installs tools only; it does not call `scripts/link-config.py`, link files into `~/.config`, or modify repo-managed dotfiles.
 
 The Herdr OpenCode integration plugin is managed at `opencode/v1/shared/plugins/herdr-agent-state.js` and is linked into every V1 profile by `scripts/link-config.py --opencode`. It reports OpenCode lifecycle state and session identity when OpenCode runs inside Herdr. The plugin is generated from Herdr's official integration installer; update it with `herdr integration install opencode` when Herdr publishes a newer integration version, then copy the generated plugin into that repository path.
 
@@ -27,7 +27,7 @@ The Herdr Claude integration is likewise managed in `claude/hooks/herdr-agent-st
 scripts/install.py --help
 scripts/install.py              # default: install all supported tools, including Visual Studio Code
 scripts/install.py --fzf
-scripts/install.py --npm
+scripts/install.py --node
 scripts/install.py --vscode
 scripts/install.py --starship --opencode
 scripts/install.py --herdr
@@ -39,8 +39,13 @@ CLI flags:
 - `--all` — select all supported tools. This is the default when no per-tool flag is provided.
 - `--fzf` — select `fzf` only, unless combined with other tool flags.
 - `--starship` — select `starship` only, unless combined with other tool flags.
-- `--npm` — select npm and its bundled `npx` command only, unless combined with other tool flags.
+- `--node` — select Node.js LTS with `npm` and `npx` only, unless combined with other tool flags.
+- `--bun` — select `bun` only, unless combined with other tool flags.
 - `--opencode` — select OpenCode CLI and Desktop, unless combined with other tool flags.
+- `--claude` — select Claude Code, unless combined with other tool flags.
+- `--codex` — select Codex CLI, unless combined with other tool flags.
+- `--tokscale` — select `tokscale`, unless combined with other tool flags.
+- `--ghui` — select `ghui`, unless combined with other tool flags.
 - `--herdr` — select Herdr, unless combined with other tool flags.
 - `--vscode` — select Visual Studio Code only, unless combined with other tool flags.
 - `--reinstall` — do not skip a selected tool that is already present on `PATH`.

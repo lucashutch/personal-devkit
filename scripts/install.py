@@ -16,12 +16,17 @@ from program_installers.common import (
     info,
     prepend_existing_fzf_path,
 )
+from program_installers.bun import install_bun
+from program_installers.claude import install_claude
+from program_installers.codex import install_codex
 from program_installers.fzf import install_fzf
+from program_installers.ghui import install_ghui
 from program_installers.herdr import install_herdr
-from program_installers.npm import install_npm
+from program_installers.node import install_node
 from program_installers.opencode import install_opencode
 from program_installers.opencode_desktop import install_opencode_desktop
 from program_installers.starship import install_starship
+from program_installers.tokscale import install_tokscale
 from program_installers.vscode import install_vscode
 from program_installers.wslu import install_wslu
 
@@ -56,8 +61,13 @@ def build_parser() -> argparse.ArgumentParser:
     options.add_argument("--all", action="store_true", help="Select all tools (default when no tool flag is provided)")
     options.add_argument("--fzf", action="store_true", help="Select fzf")
     options.add_argument("--starship", action="store_true", help="Select starship")
-    options.add_argument("--npm", action="store_true", help="Select npm and npx")
+    options.add_argument("--node", action="store_true", help="Select Node.js LTS, npm, and npx")
+    options.add_argument("--bun", action="store_true", help="Select bun")
     options.add_argument("--opencode", action="store_true", help="Select OpenCode CLI and Desktop")
+    options.add_argument("--claude", action="store_true", help="Select Claude Code")
+    options.add_argument("--codex", action="store_true", help="Select Codex CLI")
+    options.add_argument("--tokscale", action="store_true", help="Select tokscale")
+    options.add_argument("--ghui", action="store_true", help="Select ghui")
     options.add_argument("--herdr", action="store_true", help="Select Herdr")
     options.add_argument("--vscode", action="store_true", help="Select Visual Studio Code")
     options.add_argument("--wslu", action="store_true", help="Select wslu (WSL only)")
@@ -77,8 +87,13 @@ class Options:
     reinstall: bool = False
     install_fzf: bool = False
     install_starship: bool = False
-    install_npm: bool = False
+    install_node: bool = False
+    install_bun: bool = False
     install_opencode: bool = False
+    install_claude: bool = False
+    install_codex: bool = False
+    install_tokscale: bool = False
+    install_ghui: bool = False
     install_herdr: bool = False
     install_vscode: bool = False
     install_wslu: bool = False
@@ -86,8 +101,13 @@ class Options:
     def select_all_tools(self) -> None:
         self.install_fzf = True
         self.install_starship = True
-        self.install_npm = True
+        self.install_node = True
+        self.install_bun = True
         self.install_opencode = True
+        self.install_claude = True
+        self.install_codex = True
+        self.install_tokscale = True
+        self.install_ghui = True
         self.install_herdr = True
         self.install_vscode = True
         self.install_wslu = True
@@ -139,13 +159,32 @@ def parse_args(argv: list[str]) -> Options | int:
         options.select_all_tools()
     options.install_fzf = options.install_fzf or parsed.fzf
     options.install_starship = options.install_starship or parsed.starship
-    options.install_npm = options.install_npm or parsed.npm
+    options.install_node = options.install_node or parsed.node
+    options.install_bun = options.install_bun or parsed.bun
     options.install_opencode = options.install_opencode or parsed.opencode
+    options.install_claude = options.install_claude or parsed.claude
+    options.install_codex = options.install_codex or parsed.codex
+    options.install_tokscale = options.install_tokscale or parsed.tokscale
+    options.install_ghui = options.install_ghui or parsed.ghui
     options.install_herdr = options.install_herdr or parsed.herdr
     options.install_vscode = options.install_vscode or parsed.vscode
     options.install_wslu = options.install_wslu or parsed.wslu
 
-    selected_any = parsed.all or parsed.fzf or parsed.starship or parsed.npm or parsed.opencode or parsed.herdr or parsed.vscode or parsed.wslu
+    selected_any = (
+        parsed.all
+        or parsed.fzf
+        or parsed.starship
+        or parsed.node
+        or parsed.bun
+        or parsed.opencode
+        or parsed.claude
+        or parsed.codex
+        or parsed.tokscale
+        or parsed.ghui
+        or parsed.herdr
+        or parsed.vscode
+        or parsed.wslu
+    )
     if not selected_any:
         options.select_all_tools()
     return options
@@ -160,6 +199,13 @@ def run_tool(summary: Summary, tool: str, installer: object, options: Options) -
     else:
         summary.failed.append(tool)
     return rc
+
+
+def run_npm_tool(summary: Summary, tool: str, installer: object, options: Options, node_ready: bool) -> None:
+    if node_ready:
+        run_tool(summary, tool, installer, options)
+    else:
+        summary.failed.append(tool)
 
 
 def main(argv: list[str]) -> int:
@@ -179,15 +225,24 @@ def main(argv: list[str]) -> int:
         run_tool(summary, "fzf", install_fzf, parsed)
     if parsed.install_starship:
         run_tool(summary, "starship", install_starship, parsed)
-    npm_rc = STATUS_SKIPPED
-    if parsed.install_npm or parsed.install_opencode:
-        npm_rc = run_tool(summary, "npm", install_npm, parsed)
+    node_rc = STATUS_SKIPPED
+    npm_tools = (parsed.install_opencode, parsed.install_codex, parsed.install_tokscale, parsed.install_ghui)
+    if parsed.install_node or any(npm_tools):
+        node_rc = run_tool(summary, "node", install_node, parsed)
+    node_ready = node_rc in (0, STATUS_SKIPPED)
+    if parsed.install_bun:
+        run_tool(summary, "bun", install_bun, parsed)
     if parsed.install_opencode:
-        if npm_rc in (0, STATUS_SKIPPED):
-            run_tool(summary, "opencode CLI", install_opencode, parsed)
-        else:
-            summary.failed.append("opencode CLI")
+        run_npm_tool(summary, "opencode CLI", install_opencode, parsed, node_ready)
         run_tool(summary, "OpenCode Desktop", install_opencode_desktop, parsed)
+    if parsed.install_claude:
+        run_tool(summary, "claude", install_claude, parsed)
+    if parsed.install_codex:
+        run_npm_tool(summary, "codex", install_codex, parsed, node_ready)
+    if parsed.install_tokscale:
+        run_npm_tool(summary, "tokscale", install_tokscale, parsed, node_ready)
+    if parsed.install_ghui:
+        run_npm_tool(summary, "ghui", install_ghui, parsed, node_ready)
     if parsed.install_herdr:
         run_tool(summary, "herdr", install_herdr, parsed)
     if parsed.install_vscode:
