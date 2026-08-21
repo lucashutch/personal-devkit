@@ -13,7 +13,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from program_installers.common import (
+from .common import (
     STATUS_SKIPPED,
     command_exists,
     command_path,
@@ -134,7 +134,7 @@ def _foreign_node_on_path() -> str | None:
 
 
 def install_node(options: object) -> int:
-    reinstall = bool(getattr(options, "reinstall"))
+    reinstall = bool(options.reinstall)
     installed_major = _installed_major()
     if not reinstall and installed_major is not None and installed_major >= MINIMUM_MAJOR and command_exists("npm"):
         info(f"Skipping Node.js; already installed ({version_for('node')}) with npm.")

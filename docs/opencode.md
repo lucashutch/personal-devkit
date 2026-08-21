@@ -3,7 +3,7 @@
 Link OpenCode configuration before using a profile:
 
 ```sh
-scripts/link-config.py --opencode
+uv run pdklink --opencode
 ```
 
 The repository maintains one default profile and one isolated test profile for each OpenCode generation.
@@ -39,6 +39,6 @@ Use `opencode2 service status` and `o2t service status` to check isolation.
 
 The V1 Herdr plugin is managed at `opencode/v1/shared/plugins/herdr-agent-state.js`; refresh it with `herdr integration install opencode` and copy the generated plugin into that path. V2 uses the TUI plugin at `opencode/v2/shared/plugins/herdr-tui-pane.js`, registered in `opencode/v2/shared/cli.json`, because V2's shared background service cannot reliably identify the originating pane from a server-side plugin.
 
-Claude's Herdr hook is managed at `claude/hooks/herdr-agent-state.sh` and in `claude/settings.json`; link it with `scripts/link-config.py --claude`.
+Claude's Herdr hook is managed at `claude/hooks/herdr-agent-state.sh` and in `claude/settings.json`; link it with `pdklink --claude`.
 
 For V2 plugin compatibility, model profiles, and validation notes, see the [V2 extension compatibility guide](../opencode/v2/README.md). For migration from the retired account profiles, see the [V1 migration guide](../opencode/v1/MIGRATION.md).

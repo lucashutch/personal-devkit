@@ -3,26 +3,21 @@
 from __future__ import annotations
 
 import os
-import importlib.util
 import subprocess
 import sys
 import tempfile
 import unittest
-from unittest import mock
 from pathlib import Path
-
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 LINKER = ROOT / "scripts" / "link-config.py"
 
 
 def load_linker():
-    sys.path.insert(0, str(ROOT / "scripts"))
-    spec = importlib.util.spec_from_file_location("link_config", LINKER)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
+    from personal_devkit import link_config
+
+    return link_config
 
 
 class LinkConfigTests(unittest.TestCase):

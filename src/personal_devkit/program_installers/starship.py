@@ -4,11 +4,18 @@ from __future__ import annotations
 
 import subprocess
 
-from program_installers.common import STATUS_SKIPPED, command_exists, error, info, should_skip_tool, version_for
+from .common import (
+    STATUS_SKIPPED,
+    command_exists,
+    error,
+    info,
+    should_skip_tool,
+    version_for,
+)
 
 
 def install_starship(options: object) -> int:
-    reinstall = bool(getattr(options, "reinstall"))
+    reinstall = bool(options.reinstall)
     if should_skip_tool("starship", reinstall=reinstall):
         return STATUS_SKIPPED
 

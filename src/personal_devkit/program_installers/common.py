@@ -9,7 +9,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 STATUS_SKIPPED = 10
 SUPPORTED_TOOLS = (
     "fzf",
@@ -92,7 +91,7 @@ def command_exists(command: str) -> bool:
 
 
 def run_command(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(command, text=True, **kwargs)
+    return subprocess.run(command, text=True, **kwargs)  # noqa: PLW1510
 
 
 def version_for(tool: str, *, timeout: int = 10) -> str:

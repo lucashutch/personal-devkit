@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from program_installers.common import (
+from .common import (
     STATUS_SKIPPED,
     command_exists,
     error,
@@ -18,7 +18,7 @@ from program_installers.common import (
 
 
 def install_fzf(options: object) -> int:
-    if not getattr(options, "reinstall") and command_exists("fzf") and fzf_supports_bash():
+    if not options.reinstall and command_exists("fzf") and fzf_supports_bash():
         version = version_for("fzf")
         if version:
             info(f"Skipping fzf; already installed with current bash integration support ({version}).")

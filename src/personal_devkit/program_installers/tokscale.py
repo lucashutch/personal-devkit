@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from program_installers.common import STATUS_SKIPPED, should_skip_tool
-from program_installers.node import npm_global_install
+from .common import STATUS_SKIPPED, should_skip_tool
+from .node import npm_global_install
 
 
 def install_tokscale(options: object) -> int:

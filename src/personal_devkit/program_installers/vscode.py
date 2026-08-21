@@ -7,7 +7,14 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from program_installers.common import STATUS_SKIPPED, command_exists, error, info, run_command, should_skip_tool
+from .common import (
+    STATUS_SKIPPED,
+    command_exists,
+    error,
+    info,
+    run_command,
+    should_skip_tool,
+)
 
 
 def _code_version(timeout: int = 2) -> str:
@@ -54,7 +61,7 @@ def _verify_code() -> bool:
 
 
 def install_vscode(options: object) -> int:
-    reinstall = bool(getattr(options, "reinstall"))
+    reinstall = bool(options.reinstall)
     if should_skip_tool(
         "code",
         reinstall=reinstall,

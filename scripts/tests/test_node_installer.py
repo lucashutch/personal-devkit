@@ -3,18 +3,13 @@
 from __future__ import annotations
 
 import shutil
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
-
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "scripts"))
-
-from program_installers import node  # noqa: E402
-from program_installers.common import STATUS_SKIPPED, force_symlink  # noqa: E402
+from personal_devkit.program_installers import node
+from personal_devkit.program_installers.common import STATUS_SKIPPED, force_symlink
 
 
 class Options:

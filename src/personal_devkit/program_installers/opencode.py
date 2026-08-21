@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from program_installers.common import STATUS_SKIPPED, should_skip_tool
-from program_installers.node import npm_global_install
+from .common import STATUS_SKIPPED, should_skip_tool
+from .node import npm_global_install
 
 # @opencode-ai/cli ships its bin as opencode2; the opencode name belongs to the V1 package.
 PACKAGE = "@opencode-ai/cli@next"

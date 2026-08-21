@@ -1,19 +1,30 @@
 [project]
 name = "personal-devkit"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Personal developer toolkit scripts for OpenCode, Claude Code, Herdr, and dotfiles."
 requires-python = ">=3.11"
 dependencies = ["PyYAML>=6.0"]
 
+[project.scripts]
+pdkinstall = "personal_devkit.install:main"
+pdklink = "personal_devkit.link_config:main"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
 [dependency-groups]
 dev = ["pytest>=8.0", "ruff>=0.6"]
 
-[tool.uv]
-package = false
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/personal_devkit"]
 
 [tool.pytest.ini_options]
 testpaths = ["scripts/tests"]
-pythonpath = ["scripts"]
+pythonpath = ["src"]
 
 [tool.ruff]
 target-version = "py311"

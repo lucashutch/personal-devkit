@@ -3,7 +3,7 @@
 The `dotfiles` linker group manages Starship, Ghostty, Bash snippets, and `.asoundrc`:
 
 ```sh
-scripts/link-config.py --dotfiles
+uv run pdklink --dotfiles
 ```
 
 It links `dotfiles/bashrc.d/` to `~/.config/bashrc.d` and `dotfiles/.asoundrc` to `~/.asoundrc`. The ALSA configuration routes clients through PulseAudio for WSLg notification sounds.

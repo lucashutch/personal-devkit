@@ -1,0 +1,259 @@
+#!/usr/bin/env python3
+"""Install personal development tools on Linux."""
+
+from __future__ import annotations
+
+import argparse
+import platform
+import sys
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from .program_installers.bun import install_bun
+from .program_installers.claude import install_claude
+from .program_installers.codex import install_codex
+from .program_installers.common import (
+    STATUS_SKIPPED,
+    configure_logging,
+    fail,
+    info,
+    prepend_existing_fzf_path,
+)
+from .program_installers.fzf import install_fzf
+from .program_installers.ghui import install_ghui
+from .program_installers.herdr import install_herdr
+from .program_installers.node import install_node
+from .program_installers.opencode import install_opencode
+from .program_installers.opencode_desktop import install_opencode_desktop
+from .program_installers.starship import install_starship
+from .program_installers.tokscale import install_tokscale
+from .program_installers.vscode import install_vscode
+from .program_installers.wslu import install_wslu
+
+
+def script_name() -> str:
+    return Path(sys.argv[0]).name
+
+
+class HelpFormatter(argparse.RawTextHelpFormatter):
+    def format_help(self) -> str:
+        return super().format_help().replace("usage:", "Usage:", 1)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog=script_name(),
+        usage="%(prog)s [OPTIONS]",
+        description=(
+            "Install personal dev tools on Linux. By default, all supported tools are selected.\n"
+            "This installer installs tools only; it does not link or modify dotfiles/config."
+        ),
+        epilog=(
+            "Behavior:\n"
+            "  - Linux only; exits without changes on other operating systems.\n"
+            "  - Idempotent by default; tools already found on PATH are skipped.\n"
+            "  - Tool installers run noninteractively where supported."
+        ),
+        formatter_class=HelpFormatter,
+        add_help=False,
+    )
+    options = parser.add_argument_group("Options")
+    options.add_argument("--all", action="store_true", help="Select all tools (default when no tool flag is provided)")
+    options.add_argument("--fzf", action="store_true", help="Select fzf")
+    options.add_argument("--starship", action="store_true", help="Select starship")
+    options.add_argument("--node", action="store_true", help="Select Node.js LTS, npm, and npx")
+    options.add_argument("--bun", action="store_true", help="Select bun")
+    options.add_argument("--opencode", action="store_true", help="Select OpenCode CLI and Desktop")
+    options.add_argument("--claude", action="store_true", help="Select Claude Code")
+    options.add_argument("--codex", action="store_true", help="Select Codex CLI")
+    options.add_argument("--tokscale", action="store_true", help="Select tokscale")
+    options.add_argument("--ghui", action="store_true", help="Select ghui")
+    options.add_argument("--herdr", action="store_true", help="Select Herdr")
+    options.add_argument("--vscode", action="store_true", help="Select Visual Studio Code")
+    options.add_argument("--wslu", action="store_true", help="Select wslu (WSL only)")
+    options.add_argument("--reinstall", action="store_true", help="Do not skip tools that are already available on PATH")
+    options.add_argument("-h", "--help", action="store_true", help="Show this help text")
+    return parser
+
+
+def require_linux() -> int:
+    if platform.system() != "Linux":
+        return fail(f"{script_name()} supports Linux only.")
+    return 0
+
+
+@dataclass
+class Options:
+    reinstall: bool = False
+    install_fzf: bool = False
+    install_starship: bool = False
+    install_node: bool = False
+    install_bun: bool = False
+    install_opencode: bool = False
+    install_claude: bool = False
+    install_codex: bool = False
+    install_tokscale: bool = False
+    install_ghui: bool = False
+    install_herdr: bool = False
+    install_vscode: bool = False
+    install_wslu: bool = False
+
+    def select_all_tools(self) -> None:
+        self.install_fzf = True
+        self.install_starship = True
+        self.install_node = True
+        self.install_bun = True
+        self.install_opencode = True
+        self.install_claude = True
+        self.install_codex = True
+        self.install_tokscale = True
+        self.install_ghui = True
+        self.install_herdr = True
+        self.install_vscode = True
+        self.install_wslu = True
+
+
+@dataclass
+class Summary:
+    installed: list[str] = field(default_factory=list)
+    skipped: list[str] = field(default_factory=list)
+    failed: list[str] = field(default_factory=list)
+
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+    CYAN = "\033[36m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    RED = "\033[31m"
+
+    @staticmethod
+    def join_tools(tools: list[str]) -> str:
+        return ", ".join(tools) if tools else "none"
+
+    @classmethod
+    def line(cls, emoji: str, color: str, label: str, tools: list[str]) -> str:
+        return f"{emoji} {color}{label}:{cls.RESET} {cls.join_tools(tools)}"
+
+    def print(self) -> None:
+        info("")
+        info(f"{self.BOLD}{self.CYAN}📦 Installation summary{self.RESET}")
+        info(self.line("✅", self.GREEN, "Installed", self.installed))
+        info(self.line("⏭️", self.YELLOW, "Skipped", self.skipped))
+        info(self.line("❌", self.RED, "Failed", self.failed))
+
+
+def parse_args(argv: list[str]) -> Options | int:
+    parser = build_parser()
+    known_options = {option for action in parser._actions for option in action.option_strings}
+    for arg in argv:
+        if arg in ("-h", "--help"):
+            parser.print_help(sys.stdout)
+            return 0
+        if arg not in known_options:
+            parser.print_help(sys.stderr)
+            return fail(f"Unknown option: {arg}")
+
+    parsed = parser.parse_args(argv)
+    options = Options(reinstall=parsed.reinstall)
+    if parsed.all:
+        options.select_all_tools()
+    options.install_fzf = options.install_fzf or parsed.fzf
+    options.install_starship = options.install_starship or parsed.starship
+    options.install_node = options.install_node or parsed.node
+    options.install_bun = options.install_bun or parsed.bun
+    options.install_opencode = options.install_opencode or parsed.opencode
+    options.install_claude = options.install_claude or parsed.claude
+    options.install_codex = options.install_codex or parsed.codex
+    options.install_tokscale = options.install_tokscale or parsed.tokscale
+    options.install_ghui = options.install_ghui or parsed.ghui
+    options.install_herdr = options.install_herdr or parsed.herdr
+    options.install_vscode = options.install_vscode or parsed.vscode
+    options.install_wslu = options.install_wslu or parsed.wslu
+
+    selected_any = (
+        parsed.all
+        or parsed.fzf
+        or parsed.starship
+        or parsed.node
+        or parsed.bun
+        or parsed.opencode
+        or parsed.claude
+        or parsed.codex
+        or parsed.tokscale
+        or parsed.ghui
+        or parsed.herdr
+        or parsed.vscode
+        or parsed.wslu
+    )
+    if not selected_any:
+        options.select_all_tools()
+    return options
+
+
+def run_tool(summary: Summary, tool: str, installer: object, options: Options) -> int:
+    rc = installer(options)  # type: ignore[operator]
+    if rc == 0:
+        summary.installed.append(tool)
+    elif rc == STATUS_SKIPPED:
+        summary.skipped.append(tool)
+    else:
+        summary.failed.append(tool)
+    return rc
+
+
+def run_npm_tool(summary: Summary, tool: str, installer: object, options: Options, node_ready: bool) -> None:
+    if node_ready:
+        run_tool(summary, tool, installer, options)
+    else:
+        summary.failed.append(tool)
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    configure_logging()
+    prepend_existing_fzf_path()
+
+    parsed = parse_args(argv)
+    if isinstance(parsed, int):
+        return parsed
+
+    linux_rc = require_linux()
+    if linux_rc != 0:
+        return linux_rc
+
+    summary = Summary()
+    if parsed.install_fzf:
+        run_tool(summary, "fzf", install_fzf, parsed)
+    if parsed.install_starship:
+        run_tool(summary, "starship", install_starship, parsed)
+    node_rc = STATUS_SKIPPED
+    npm_tools = (parsed.install_opencode, parsed.install_codex, parsed.install_tokscale, parsed.install_ghui)
+    if parsed.install_node or any(npm_tools):
+        node_rc = run_tool(summary, "node", install_node, parsed)
+    node_ready = node_rc in (0, STATUS_SKIPPED)
+    if parsed.install_bun:
+        run_tool(summary, "bun", install_bun, parsed)
+    if parsed.install_opencode:
+        run_npm_tool(summary, "opencode CLI", install_opencode, parsed, node_ready)
+        run_tool(summary, "OpenCode Desktop", install_opencode_desktop, parsed)
+    if parsed.install_claude:
+        run_tool(summary, "claude", install_claude, parsed)
+    if parsed.install_codex:
+        run_npm_tool(summary, "codex", install_codex, parsed, node_ready)
+    if parsed.install_tokscale:
+        run_npm_tool(summary, "tokscale", install_tokscale, parsed, node_ready)
+    if parsed.install_ghui:
+        run_npm_tool(summary, "ghui", install_ghui, parsed, node_ready)
+    if parsed.install_herdr:
+        run_tool(summary, "herdr", install_herdr, parsed)
+    if parsed.install_vscode:
+        run_tool(summary, "vscode", install_vscode, parsed)
+    if parsed.install_wslu:
+        run_tool(summary, "wslu", install_wslu, parsed)
+
+    summary.print()
+    return 1 if summary.failed else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

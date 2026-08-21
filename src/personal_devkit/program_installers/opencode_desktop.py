@@ -12,8 +12,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from program_installers.common import STATUS_SKIPPED, command_exists, error, info, run_command
-
+from .common import STATUS_SKIPPED, command_exists, error, info, run_command
 
 RELEASE_API = "https://api.github.com/repos/anomalyco/opencode/releases/latest"
 PACKAGE_NAME = "opencode"
@@ -98,7 +97,7 @@ def _download_and_verify(url: str, expected_sha256: str, destination: Path) -> b
 
 def install_opencode_desktop(options: object) -> int:
     """Install the official OpenCode Desktop DEB, or skip an existing install."""
-    reinstall = bool(getattr(options, "reinstall"))
+    reinstall = bool(options.reinstall)
     installed = _installed_version()
     if installed and not reinstall:
         info(f"Skipping OpenCode Desktop; already installed ({installed}).")

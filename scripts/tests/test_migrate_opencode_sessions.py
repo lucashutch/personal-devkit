@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib.util
 import sqlite3
 import subprocess
 import sys
@@ -108,12 +107,9 @@ DRIZZLE_HASHES = ("aaaa", "bbbb")
 
 
 def load_migrator():
-    sys.path.insert(0, str(ROOT / "scripts"))
-    spec = importlib.util.spec_from_file_location("migrate_opencode_sessions", MIGRATOR)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
+    from personal_devkit import migrate_opencode_sessions
+
+    return migrate_opencode_sessions
 
 
 def create(path: Path, schema: str = V1_SCHEMA) -> None:

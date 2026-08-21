@@ -6,7 +6,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from program_installers.common import (
+from .common import (
     STATUS_SKIPPED,
     command_exists,
     error,
@@ -19,7 +19,7 @@ INSTALL_URL = "https://bun.com/install"
 
 
 def install_bun(options: object) -> int:
-    reinstall = bool(getattr(options, "reinstall"))
+    reinstall = bool(options.reinstall)
     if should_skip_tool("bun", reinstall=reinstall):
         return STATUS_SKIPPED
 

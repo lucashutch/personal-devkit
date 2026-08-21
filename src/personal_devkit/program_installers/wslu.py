@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-from program_installers.common import (
+from .common import (
     STATUS_SKIPPED,
     command_exists,
     error,
@@ -29,7 +29,7 @@ def install_wslu(options: object) -> int:
         info("Skipping wslu; not running inside WSL.")
         return STATUS_SKIPPED
 
-    reinstall = bool(getattr(options, "reinstall"))
+    reinstall = bool(options.reinstall)
     if should_skip_tool("wslview", reinstall=reinstall, display_name="wslu"):
         return STATUS_SKIPPED
 

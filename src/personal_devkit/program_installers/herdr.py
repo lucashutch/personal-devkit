@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import subprocess
 
-from program_installers.common import (
+from .common import (
     STATUS_SKIPPED,
     command_exists,
     error,
@@ -15,7 +15,7 @@ from program_installers.common import (
 
 
 def install_herdr(options: object) -> int:
-    reinstall = bool(getattr(options, "reinstall"))
+    reinstall = bool(options.reinstall)
     if should_skip_tool("herdr", reinstall=reinstall):
         return STATUS_SKIPPED
 

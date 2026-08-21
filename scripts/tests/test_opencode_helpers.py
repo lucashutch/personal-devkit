@@ -8,7 +8,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 HELPERS = ROOT / "dotfiles" / "bashrc.d" / "opencode.sh"
 COMPLETIONS = ROOT / "dotfiles" / "bashrc.d" / "30-completions.sh"

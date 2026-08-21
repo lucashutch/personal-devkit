@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import subprocess
 
-from program_installers.common import (
+from .common import (
     STATUS_SKIPPED,
     command_exists,
     error,
@@ -18,7 +18,7 @@ CHANNEL = "stable"
 
 
 def install_claude(options: object) -> int:
-    reinstall = bool(getattr(options, "reinstall"))
+    reinstall = bool(options.reinstall)
     if should_skip_tool("claude", reinstall=reinstall, display_name="Claude Code"):
         return STATUS_SKIPPED
 

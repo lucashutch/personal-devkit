@@ -19,20 +19,20 @@ Fork it or open a PR to adapt the prompts and tool descriptions to your own work
 On Linux, install the default tool set:
 
 ```sh
-scripts/install.py
+uv run pdkinstall
 ```
 
 Link all managed configuration. The linker requires PyYAML; [uv](https://docs.astral.sh/uv/) runs it without a separate setup step:
 
 ```sh
-uv run scripts/link-config.py --all
+uv run pdklink --all
 ```
 
 To inspect changes before applying them:
 
 ```sh
-uv run scripts/link-config.py --all --dry-run
-uv run scripts/link-config.py --all --check
+uv run pdklink --all --dry-run
+uv run pdklink --all --check
 ```
 
 ## Documentation
@@ -46,5 +46,5 @@ uv run scripts/link-config.py --all --check
 
 ## Notes
 
-- Run `scripts/link-config.py --help` or `scripts/install.py --help` for the complete CLI reference.
+- Run `uv run pdklink --help` or `uv run pdkinstall --help` for the complete CLI reference. The scripts in `scripts/` remain compatibility wrappers.
 - Repository-managed sources belong here, not in their linked locations under `~/.config` or `~/.claude`.
