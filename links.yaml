@@ -44,6 +44,9 @@ groups:
     - $CONFIG_HOME/opencode-v1-test/opencode
     include:
     - tui.json
+    # herdr's opencode-tui integration installs this at the config root and
+    # rewrites it on update; keep the repo copy as the linked source.
+    - herdr-tui-session.js
     - "agents/**"
     - "plugins/**"
 

@@ -3,7 +3,8 @@
     "theme": "one-dark",
     "plugin": [
         "./plugins/limitwatch-quota-plugin",
-        "./plugins/subagent-sessions-plugin"
+        "./plugins/subagent-sessions-plugin",
+        "./herdr-tui-session.js"
     ],
     "keybinds": {
         "input_submit": [
