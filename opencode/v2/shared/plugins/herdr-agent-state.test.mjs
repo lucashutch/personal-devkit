@@ -9,7 +9,7 @@ function recorder() {
     calls,
     send: {
       reportState: async (state, sessionID) => calls.push(["state", state, sessionID]),
-      reportSession: async (sessionID, source) => calls.push(["session", sessionID, source]),
+      reportSession: async (sessionID) => calls.push(["session", sessionID]),
     },
   }
 }
@@ -28,7 +28,6 @@ test("root session lifecycle reports working, blocked and idle", async () => {
   await handle({ type: "session.deleted", data: { sessionID: "root" } })
 
   assert.deepEqual(calls, [
-    ["session", "root", "new"],
     ["state", "working", "root"],
     ["state", "working", "root"],
     ["state", "blocked", "root"],
@@ -50,7 +49,6 @@ test("subagent events never clobber the root session id", async () => {
   await handle({ type: "session.idle", data: { sessionID: "child" } })
 
   assert.deepEqual(calls, [
-    ["session", "root", "new"],
     ["state", "blocked", undefined],
     ["state", "working", undefined],
   ])
@@ -66,6 +64,18 @@ test("forked sessions are tracked as subagents", async () => {
   assert.deepEqual(calls, [["state", "blocked", undefined]])
 })
 
+test("session.created is remembered without claiming the pane", async () => {
+  const { calls, send } = recorder()
+  const handle = createAgentStateHandler(send)
+
+  // Creation is server-global: another attached client may own the new session,
+  // so only the TUI plugin's selection report may bind the pane.
+  await handle({ type: "session.created", data: { sessionID: "root", title: "Root" } })
+  await handle({ type: "session.renamed", data: { sessionID: "root", title: "Renamed" } })
+
+  assert.deepEqual(calls, [])
+})
+
 test("session.status maps V2 status objects to pane states", async () => {
   const { calls, send } = recorder()
   const handle = createAgentStateHandler(send)
@@ -79,7 +89,7 @@ test("session.status maps V2 status objects to pane states", async () => {
     ["state", "working", "root"],
     ["state", "working", "root"],
     ["state", "idle", "root"],
-    ["session", "root", undefined],
+    ["session", "root"],
   ])
 })
 
@@ -90,7 +100,7 @@ test("session rename reports the root session id only once", async () => {
   await handle({ type: "session.renamed", data: { sessionID: "root", title: "Root" } })
   await handle({ type: "session.renamed", data: { sessionID: "root", title: "Root again" } })
 
-  assert.deepEqual(calls, [["session", "root", undefined]])
+  assert.deepEqual(calls, [["session", "root"]])
 })
 
 test("V2 plugin exposes a descriptor instead of the V1 hook object", () => {

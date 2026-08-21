@@ -75,11 +75,9 @@ function requestOnce(method, params) {
   })
 }
 
-export function reportSession(sessionID, sessionStartSource) {
+export function reportSession(sessionID) {
   if (!sessionID) return Promise.resolve()
-  const params = { agent_session_id: sessionID }
-  if (sessionStartSource) params.session_start_source = sessionStartSource
-  return request("pane.report_agent_session", params)
+  return request("pane.report_agent_session", { agent_session_id: sessionID })
 }
 
 export function reportState(state, sessionID) {
@@ -130,10 +128,9 @@ export function createAgentStateHandler(send = { reportState, reportSession }) {
 
     switch (type) {
       case "session.created":
-        // A root session.created is a genuine new-session start (subagent
-        // creates are dropped above). Signal it so herdr replaces the pane's
-        // prior session id instead of treating the change as cross-talk.
-        await send.reportSession(sessionID, "new")
+        // Creation is server-global, so an attached client may own it. The
+        // TUI plugin separately reports the root selected in this pane.
+        reportedRootSessionID = sessionID
         break
       case "session.renamed":
       case "session.moved":

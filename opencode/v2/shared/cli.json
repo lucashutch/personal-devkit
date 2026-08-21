@@ -22,7 +22,8 @@
   },
   "plugins": [
     "./shared/plugins/limitwatch-quota/tui.tsx",
-    "./shared/plugins/subagent-sessions/tui.tsx"
+    "./shared/plugins/subagent-sessions/tui.tsx",
+    "./shared/plugins/herdr-tui-session.js"
   ],
   "tabs": {
     "enabled": false,
