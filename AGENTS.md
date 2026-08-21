@@ -10,6 +10,10 @@
 
 - Unless explicitly stated otherwise, commit changes directly to `main`.
 
+# Writing
+
+- Load the `unslop` skill before producing or editing any user-facing text, including chat replies.
+
 # Prompt sources
 
 - Skills and commands live once under `agentic_common/` and are linked to every host. Edit that copy; never reintroduce a per-host copy.
