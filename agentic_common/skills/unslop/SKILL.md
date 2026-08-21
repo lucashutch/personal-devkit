@@ -1,7 +1,8 @@
 ---
 name: unslop
-description: Edit text to remove AI writing patterns and add human voice. Use when polishing prose, docs, or messages.
+description: Cut AI tells from any writing. Must always apply.
 ---
+
 # Unslop
 
 Edit text to remove AI patterns and add human voice.
