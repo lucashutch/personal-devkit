@@ -40,7 +40,9 @@ enabled until hand-blocked). Until whitelist support returns, the shared
 `personal.model-filter` plugin (`shared/plugins/model-filter.js`) applies each
 profile's `model_config.json` at the catalog level, following the same
 per-profile config pattern as delegate profiles. Rules are `provider/model`
-strings (`provider/*` matches all models of a provider) in one of two modes:
+strings with `*` glob wildcards (`provider/*` matches all models of a
+provider); a model-only glob such as `*free*` matches free-named models from
+every provider. Rules operate in one of two modes:
 `allow` disables everything unlisted; `deny` disables only the listed models.
 Remove the plugin and configs once V2 regains native whitelisting.
 

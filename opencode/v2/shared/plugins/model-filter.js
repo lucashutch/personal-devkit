@@ -7,7 +7,8 @@ import { join } from "node:path"
 // V2 regains native whitelist support; per-model `disabled` blocklists rot as
 // providers add models, so profiles declare a small allowlist instead.
 //
-// Config shape (rules are "provider/model" strings; "provider/*" matches all):
+// Config shape (rules are "provider/model" strings; `*` is a glob wildcard).
+// A model-only glob such as "*free*" applies to every provider.
 //   { "allow": [...] }  -> whitelist mode: everything unlisted is disabled
 //   { "deny": [...] }   -> blocklist mode: only listed models are disabled
 
@@ -36,11 +37,15 @@ function parseRuleList(source, label) {
   if (!Array.isArray(source)) throw new Error(`model-filter settings.${label} must be an array`)
   return source.map((value, index) => {
     const ref = `model-filter settings.${label}[${index}]`
-    if (typeof value !== "string") throw new Error(`${ref} must be a provider/model string`)
+    if (typeof value !== "string") throw new Error(`${ref} must be a provider/model string or model glob`)
     const providerEnd = value.indexOf("/")
+    if (providerEnd === -1) {
+      if (!value.includes("*")) throw new Error(`${ref} must be a provider/model string or model glob`)
+      return { providerID: "*", id: value }
+    }
     const providerID = value.slice(0, providerEnd)
     const id = value.slice(providerEnd + 1)
-    if (providerEnd <= 0 || !id) throw new Error(`${ref} must be a provider/model string`)
+    if (providerEnd <= 0 || !id) throw new Error(`${ref} must be a provider/model string or model glob`)
     return { providerID, id }
   })
 }
@@ -58,7 +63,15 @@ export function parseRules(configured) {
 }
 
 export function matches(rules, providerID, id) {
-  return rules.some((rule) => rule.providerID === providerID && (rule.id === "*" || rule.id === id))
+  return rules.some((rule) => globMatches(rule.providerID, providerID) && globMatches(rule.id, id))
+}
+
+function globMatches(pattern, value) {
+  const expression = pattern
+    .split("*")
+    .map((part) => part.replace(/[|\\{}()[\]^$+?.]/g, "\\$&"))
+    .join(".*")
+  return new RegExp(`^${expression}$`).test(value)
 }
 
 export function createModelFilterPlugin() {

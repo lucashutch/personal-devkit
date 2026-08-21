@@ -13,10 +13,11 @@ import {
 } from "./model-filter.js"
 
 test("parseRules accepts an allowlist", () => {
-  const { allow, deny } = parseRules({ allow: ["openai/gpt-5.6-sol", "opencode/*"] })
+  const { allow, deny } = parseRules({ allow: ["openai/gpt-5.6-sol", "opencode/*", "*free*"] })
   assert.deepEqual(allow, [
     { providerID: "openai", id: "gpt-5.6-sol" },
     { providerID: "opencode", id: "*" },
+    { providerID: "*", id: "*free*" },
   ])
   assert.deepEqual(deny, [])
 })
@@ -30,12 +31,14 @@ test("parseRules rejects malformed and ambiguous settings", () => {
   assert.throws(() => parseRules({ deny: ["openai/"] }), /provider\/model/)
 })
 
-test("matches honors exact IDs and provider wildcards", () => {
-  const { allow } = parseRules({ allow: ["openai/gpt-5.6-sol", "opencode/*"] })
+test("matches honors exact IDs and glob wildcards", () => {
+  const { allow } = parseRules({ allow: ["openai/gpt-5.6-sol", "opencode/*", "*free*"] })
   assert.equal(matches(allow, "openai", "gpt-5.6-sol"), true)
   assert.equal(matches(allow, "openai", "gpt-5.6-sol-fast"), false)
   assert.equal(matches(allow, "opencode", "big-pickle"), true)
   assert.equal(matches(allow, "github-copilot", "gpt-5.6-sol"), false)
+  assert.equal(matches(allow, "opencode", "deepseek-v4-flash-free"), true)
+  assert.equal(matches(allow, "other-provider", "free-model"), true)
 })
 
 test("loadSettings reports missing and invalid config files", () => {
