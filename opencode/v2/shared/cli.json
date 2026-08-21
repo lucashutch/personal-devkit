@@ -17,13 +17,13 @@
   },
   "animations": true,
   "keybinds": {
-    "input_submit": "ctrl+return",
-    "input_newline": "return,shift+return,alt+return,ctrl+j"
+    "input.submit": "ctrl+return",
+    "input.newline": "return,shift+return,alt+return,ctrl+j"
   },
   "plugins": [
     "./shared/plugins/limitwatch-quota/tui.tsx",
     "./shared/plugins/subagent-sessions/tui.tsx",
-    "./shared/plugins/herdr-tui-session.js"
+    "./shared/plugins/herdr-tui-pane.js"
   ],
   "tabs": {
     "enabled": false,

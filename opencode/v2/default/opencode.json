@@ -24,9 +24,7 @@
         "./shared/plugins/slim-tools.js",
         "./shared/plugins/slim-skills.js",
         "./shared/plugins/patch-only-tools.js",
-        "./shared/plugins/delegate-profiles.js",
-        "./shared/plugins/herdr-agent-state.js",
-        "./shared/plugins/herdr-session-title.js"
+        "./shared/plugins/delegate-profiles.js"
     ],
     "websearch": {
         "provider": "chatgpt"

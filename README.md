@@ -21,6 +21,8 @@ Feel free to fork this repo or open PRs to fine-tune the prompts and tool descri
 
 The Herdr OpenCode integration plugin is managed at `opencode/v1/shared/plugins/herdr-agent-state.js` and is linked into every V1 profile by `scripts/link-config.py --opencode`. It reports OpenCode lifecycle state and session identity when OpenCode runs inside Herdr. The plugin is generated from Herdr's official integration installer; update it with `herdr integration install opencode` when Herdr publishes a newer integration version, then copy the generated plugin into that repository path.
 
+V2 cannot reuse either integration. Its TUI talks to one shared background service, and that service inherits `HERDR_PANE_ID` and `HERDR_TAB_ID` from whichever pane happened to start it, so a server-side plugin reports every pane's state and every tab's title to that first pane. `opencode/v2/shared/plugins/herdr-tui-pane.js` therefore runs as a TUI plugin (registered in `opencode/v2/shared/cli.json`, not `opencode.json`) and owns session identity, pane state, and tab labels together, keyed off the root session the pane has selected.
+
 The Herdr Claude integration is likewise managed in `claude/hooks/herdr-agent-state.sh` and the Herdr hook entries in `claude/settings.json`. Run `scripts/link-config.py --claude` to link both into `~/.claude`.
 
 ```sh
