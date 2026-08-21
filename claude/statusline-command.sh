@@ -42,20 +42,13 @@ git_info() {
     printf '%s' "$data"
 }
 
-# Compact cwd: inside a git repo, show "repo-root-name/relative/path".
+# Show the full cwd inside a git repo.
 # Outside a git repo: show ~ for $HOME, else "parent/base" (last two segments).
 compact_path() {
     local p=$1
     local toplevel=$2
     if [ -n "$toplevel" ]; then
-        local repo_name rel
-        repo_name=$(basename "$toplevel")
-        if [ "$p" = "$toplevel" ]; then
-            printf '%s' "$repo_name"
-        else
-            rel=${p#"$toplevel"/}
-            printf '%s/%s' "$repo_name" "$rel"
-        fi
+        printf '%s' "$p"
         return
     fi
 
