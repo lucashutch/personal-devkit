@@ -21,6 +21,8 @@ from .program_installers.common import (
 )
 from .program_installers.fzf import install_fzf
 from .program_installers.ghui import install_ghui
+from .program_installers.glow import install_glow
+from .program_installers.glowm import install_glowm
 from .program_installers.herdr import install_herdr
 from .program_installers.node import install_node
 from .program_installers.opencode import install_opencode
@@ -68,6 +70,8 @@ def build_parser() -> argparse.ArgumentParser:
     options.add_argument("--codex", action="store_true", help="Select Codex CLI")
     options.add_argument("--tokscale", action="store_true", help="Select tokscale")
     options.add_argument("--ghui", action="store_true", help="Select ghui")
+    options.add_argument("--glow", action="store_true", help="Select glow")
+    options.add_argument("--glowm", action="store_true", help="Select glowm")
     options.add_argument("--herdr", action="store_true", help="Select Herdr")
     options.add_argument("--vscode", action="store_true", help="Select Visual Studio Code")
     options.add_argument("--wslu", action="store_true", help="Select wslu (WSL only)")
@@ -94,6 +98,8 @@ class Options:
     install_codex: bool = False
     install_tokscale: bool = False
     install_ghui: bool = False
+    install_glow: bool = False
+    install_glowm: bool = False
     install_herdr: bool = False
     install_vscode: bool = False
     install_wslu: bool = False
@@ -108,6 +114,8 @@ class Options:
         self.install_codex = True
         self.install_tokscale = True
         self.install_ghui = True
+        self.install_glow = True
+        self.install_glowm = True
         self.install_herdr = True
         self.install_vscode = True
         self.install_wslu = True
@@ -166,6 +174,8 @@ def parse_args(argv: list[str]) -> Options | int:
     options.install_codex = options.install_codex or parsed.codex
     options.install_tokscale = options.install_tokscale or parsed.tokscale
     options.install_ghui = options.install_ghui or parsed.ghui
+    options.install_glow = options.install_glow or parsed.glow
+    options.install_glowm = options.install_glowm or parsed.glowm
     options.install_herdr = options.install_herdr or parsed.herdr
     options.install_vscode = options.install_vscode or parsed.vscode
     options.install_wslu = options.install_wslu or parsed.wslu
@@ -181,6 +191,8 @@ def parse_args(argv: list[str]) -> Options | int:
         or parsed.codex
         or parsed.tokscale
         or parsed.ghui
+        or parsed.glow
+        or parsed.glowm
         or parsed.herdr
         or parsed.vscode
         or parsed.wslu
@@ -244,6 +256,10 @@ def main(argv: list[str] | None = None) -> int:
         run_npm_tool(summary, "tokscale", install_tokscale, parsed, node_ready)
     if parsed.install_ghui:
         run_npm_tool(summary, "ghui", install_ghui, parsed, node_ready)
+    if parsed.install_glow:
+        run_tool(summary, "glow", install_glow, parsed)
+    if parsed.install_glowm:
+        run_tool(summary, "glowm", install_glowm, parsed)
     if parsed.install_herdr:
         run_tool(summary, "herdr", install_herdr, parsed)
     if parsed.install_vscode:
