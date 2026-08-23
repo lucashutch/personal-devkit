@@ -35,6 +35,19 @@ o2t service restart
 
 Use `opencode2 service status` and `o2t service status` to check isolation.
 
+## Remote access to the V2 web interface
+
+The V2 service serves the API and the web interface the TUI renders from on the same port, behind HTTP basic auth. Bind it to all interfaces and set a password to reach it from another device on the Tailscale network:
+
+```sh
+oc2 service set hostname 0.0.0.0
+oc2 service set password "$(openssl rand -base64 24)"
+```
+
+Each `set` stops the service, so the next `oc2` launch applies the change. `oc2 pair` then prints the URLs, the password, and a QR code for the phone. The basic-auth username is always `opencode` and cannot be changed.
+
+Both settings live in `service.json` under the profile config directory. The linker does not manage that file, because it stores the password in plaintext.
+
 ## Herdr
 
 The V1 Herdr plugin is managed at `opencode/v1/shared/plugins/herdr-agent-state.js`; refresh it with `herdr integration install opencode` and copy the generated plugin into that path. V2 uses the TUI plugin at `opencode/v2/shared/plugins/herdr-tui-pane.js`, registered in `opencode/v2/shared/cli.json`, because V2's shared background service cannot reliably identify the originating pane from a server-side plugin.
