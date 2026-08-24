@@ -6,9 +6,6 @@
     "max_lines": 100,
     "max_bytes": 16384
   },
-  "compaction": {
-    "prune": false
-  },
   "instructions": [
     "AGENTS.md",
     ".vscode/lucas.md"
