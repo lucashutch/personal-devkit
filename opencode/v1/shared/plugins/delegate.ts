@@ -267,11 +267,9 @@ const createPlugin: Plugin = async ({ client }) => {
       subagent_type: z.string().describe("Agent to run"),
       task_id: z.string().optional().describe("Existing delegated session to resume"),
       model_profile: z.enum(modelProfiles).describe(
-        "Execution tier. `fast`: bounded, low-risk lookup, extraction, or mechanical work. "
-        + "`balanced`: default for implementation, analysis, testing, and review. "
-        + "`deep`: difficult, ambiguous, high-stakes, or multi-step reasoning where quality outweighs latency and cost. "
-        + "`inherit`: intentionally use the parent model and reasoning level. "
-        + "Prefer the least expensive tier likely to succeed; a resumed task can be escalated if necessary.",
+        "Execution tier. Start at `fast`. Escalate to `balanced` when the task needs judgement or spans "
+        + "several files, and to `deep` when it is ambiguous, high-stakes, or needs multi-step reasoning. "
+        + "`inherit` deliberately matches the parent model and reasoning level.",
       ),
     },
     execute,

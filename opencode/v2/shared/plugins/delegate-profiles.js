@@ -77,7 +77,9 @@ export function addModelProfile(schema, agents = []) {
       type: "string",
       enum: profileOrder,
       description:
-        "Execution tier. fast is cheapest, standard is the default, deep favors quality, and inherit uses the selected agent or parent model.",
+        "Execution tier. Start at fast. Escalate to standard when the task needs judgement or spans several "
+        + "files, and to deep when it is ambiguous, high-stakes, or needs multi-step reasoning. "
+        + "inherit deliberately matches the selected agent or parent model and reasoning level.",
     },
   }
   input.required = [...new Set([...(input.required ?? []), "model_profile"])]
