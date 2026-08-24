@@ -1,7 +1,0 @@
-{
-  "presets": {
-    "fast": { "model": "openai/gpt-5.6-luna", "variant": "low" },
-    "balanced": { "model": "openai/gpt-5.6-terra", "variant": "low" },
-    "deep": { "model": "openai/gpt-5.6-sol", "variant": "low" }
-  }
-}

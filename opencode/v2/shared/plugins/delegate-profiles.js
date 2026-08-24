@@ -1,29 +1,8 @@
-import { existsSync, readFileSync } from "node:fs"
-import { homedir } from "node:os"
-import { join } from "node:path"
-import { Plugin } from "@opencode-ai/plugin"
+// Delegate model profiles, configured through this plugin's options in the
+// profile's opencode.json:
+//   { "presets": { "fast": { "model": "provider/model", "variant": "low" }, ... } }
 
 const profileOrder = ["fast", "standard", "deep", "inherit"]
-
-export function delegateConfigPath() {
-  const configHome = process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config")
-  return join(configHome, "opencode", "delegate_config.json")
-}
-
-export function loadSettings(path = delegateConfigPath()) {
-  if (!existsSync(path)) {
-    throw new Error(
-      `delegate-profiles config not found at ${path}. The active profile has not linked its `
-      + "delegate_config.json; run scripts/link-config.py for this profile and restart OpenCode.",
-    )
-  }
-  try {
-    return JSON.parse(readFileSync(path, "utf8"))
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`delegate-profiles config ${path}: ${message}`)
-  }
-}
 
 export function parseModelRef(value, label = "model") {
   if (typeof value !== "string") throw new Error(`${label} must be a provider/model string`)
@@ -46,7 +25,7 @@ export function parseModelRef(value, label = "model") {
 export function parseProfiles(configured) {
   const source = configured?.presets
   if (!source || typeof source !== "object" || Array.isArray(source)) {
-    throw new Error("delegate-profiles settings.presets must be an object")
+    throw new Error("delegate-profiles options.presets must be an object")
   }
   return Object.fromEntries(
     profileOrder.slice(0, 3).map((profile) => {
@@ -56,17 +35,17 @@ export function parseProfiles(configured) {
       const presetName = profile === "standard" && source.standard === undefined ? "balanced" : profile
       const preset = source[presetName]
       if (!preset || typeof preset !== "object" || Array.isArray(preset)) {
-        throw new Error(`delegate-profiles settings.presets.${presetName} must be an object`)
+        throw new Error(`delegate-profiles options.presets.${presetName} must be an object`)
       }
       if (preset.variant !== undefined && (typeof preset.variant !== "string" || !preset.variant.trim())) {
-        throw new Error(`delegate-profiles settings.presets.${presetName}.variant must be a non-empty string when provided`)
+        throw new Error(`delegate-profiles options.presets.${presetName}.variant must be a non-empty string when provided`)
       }
       if (typeof preset.model !== "string") {
-        throw new Error(`delegate-profiles settings.presets.${presetName}.model must be a provider/model string`)
+        throw new Error(`delegate-profiles options.presets.${presetName}.model must be a provider/model string`)
       }
       const model = parseModelRef(
         `${preset.model}${preset.variant ? `#${preset.variant}` : ""}`,
-        `delegate-profiles settings.presets.${presetName}.model`,
+        `delegate-profiles options.presets.${presetName}.model`,
       )
       return [profile, model]
     }),
@@ -108,10 +87,10 @@ export function aliasID(agent, profile) {
 }
 
 export function createDelegateProfilesPlugin() {
-  return Plugin.define({
+  return {
     id: "personal.delegate-profiles",
     setup: async (ctx) => {
-      const profiles = parseProfiles(loadSettings())
+      const profiles = parseProfiles(ctx.options)
       const registrations = []
       const aliases = new Map()
 
@@ -177,7 +156,7 @@ export function createDelegateProfilesPlugin() {
         for (const registration of registrations.toReversed()) await registration.dispose()
       }
     },
-  })
+  }
 }
 
 export default createDelegateProfilesPlugin()

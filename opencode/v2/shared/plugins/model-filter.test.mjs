@@ -1,16 +1,7 @@
 import assert from "node:assert/strict"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
 import test from "node:test"
 
-import {
-  createModelFilterPlugin,
-  loadSettings,
-  matches,
-  modelConfigPath,
-  parseRules,
-} from "./model-filter.js"
+import { createModelFilterPlugin, matches, parseRules } from "./model-filter.js"
 
 test("parseRules accepts an allowlist", () => {
   const { allow, deny } = parseRules({ allow: ["openai/gpt-5.6-sol", "opencode/*", "*free*"] })
@@ -41,31 +32,6 @@ test("matches honors exact IDs and glob wildcards", () => {
   assert.equal(matches(allow, "other-provider", "free-model"), true)
 })
 
-test("loadSettings reports missing and invalid config files", () => {
-  const dir = mkdtempSync(join(tmpdir(), "model-filter-"))
-  try {
-    const path = join(dir, "model_config.json")
-    assert.throws(() => loadSettings(path), /not found/)
-    writeFileSync(path, "{ not json")
-    assert.throws(() => loadSettings(path), /model-filter config/)
-    writeFileSync(path, JSON.stringify({ deny: ["opencode/*"] }))
-    assert.deepEqual(loadSettings(path), { deny: ["opencode/*"] })
-  } finally {
-    rmSync(dir, { recursive: true, force: true })
-  }
-})
-
-test("modelConfigPath resolves inside XDG_CONFIG_HOME", () => {
-  const previous = process.env.XDG_CONFIG_HOME
-  process.env.XDG_CONFIG_HOME = "/tmp/xdg-example"
-  try {
-    assert.equal(modelConfigPath(), "/tmp/xdg-example/opencode/model_config.json")
-  } finally {
-    if (previous === undefined) delete process.env.XDG_CONFIG_HOME
-    else process.env.XDG_CONFIG_HOME = previous
-  }
-})
-
 function fakeCatalog(models) {
   return {
     provider: {
@@ -75,53 +41,27 @@ function fakeCatalog(models) {
 }
 
 test("setup applies allowlist mode across the catalog", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "model-filter-"))
-  const previous = process.env.XDG_CONFIG_HOME
-  process.env.XDG_CONFIG_HOME = dir
-  mkdirSync(join(dir, "opencode"))
-  writeFileSync(
-    join(dir, "opencode", "model_config.json"),
-    JSON.stringify({ allow: ["openai/gpt-5.6-sol"] }),
-  )
-  try {
-    const models = [
-      { providerID: "openai", id: "gpt-5.6-sol", enabled: true },
-      { providerID: "openai", id: "gpt-5.6", enabled: true },
-      { providerID: "opencode", id: "big-pickle", enabled: true },
-    ]
-    await createModelFilterPlugin().setup({
-      catalog: { transform: async (fn) => fn(fakeCatalog(models)) },
-    })
-    assert.deepEqual(models.map((m) => m.enabled), [true, false, false])
-  } finally {
-    if (previous === undefined) delete process.env.XDG_CONFIG_HOME
-    else process.env.XDG_CONFIG_HOME = previous
-    rmSync(dir, { recursive: true, force: true })
-  }
+  const models = [
+    { providerID: "openai", id: "gpt-5.6-sol", enabled: true },
+    { providerID: "openai", id: "gpt-5.6", enabled: true },
+    { providerID: "opencode", id: "big-pickle", enabled: true },
+  ]
+  await createModelFilterPlugin().setup({
+    options: { allow: ["openai/gpt-5.6-sol"] },
+    catalog: { transform: async (fn) => fn(fakeCatalog(models)) },
+  })
+  assert.deepEqual(models.map((m) => m.enabled), [true, false, false])
 })
 
 test("setup applies denylist mode without touching other models", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "model-filter-"))
-  const previous = process.env.XDG_CONFIG_HOME
-  process.env.XDG_CONFIG_HOME = dir
-  mkdirSync(join(dir, "opencode"))
-  writeFileSync(
-    join(dir, "opencode", "model_config.json"),
-    JSON.stringify({ deny: ["opencode/*"] }),
-  )
-  try {
-    const models = [
-      { providerID: "openai", id: "gpt-5.6-sol", enabled: true },
-      { providerID: "opencode", id: "big-pickle", enabled: true },
-      { providerID: "prompt-capture-openai", id: "gpt-5.6-sol", enabled: true },
-    ]
-    await createModelFilterPlugin().setup({
-      catalog: { transform: async (fn) => fn(fakeCatalog(models)) },
-    })
-    assert.deepEqual(models.map((m) => m.enabled), [true, false, true])
-  } finally {
-    if (previous === undefined) delete process.env.XDG_CONFIG_HOME
-    else process.env.XDG_CONFIG_HOME = previous
-    rmSync(dir, { recursive: true, force: true })
-  }
+  const models = [
+    { providerID: "openai", id: "gpt-5.6-sol", enabled: true },
+    { providerID: "opencode", id: "big-pickle", enabled: true },
+    { providerID: "prompt-capture-openai", id: "gpt-5.6-sol", enabled: true },
+  ]
+  await createModelFilterPlugin().setup({
+    options: { deny: ["opencode/*"] },
+    catalog: { transform: async (fn) => fn(fakeCatalog(models)) },
+  })
+  assert.deepEqual(models.map((m) => m.enabled), [true, false, true])
 })

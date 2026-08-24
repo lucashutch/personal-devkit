@@ -1,43 +1,18 @@
-import { existsSync, readFileSync } from "node:fs"
-import { homedir } from "node:os"
-import { join } from "node:path"
-import { Plugin } from "@opencode-ai/plugin"
-
-// Catalog-level model filter driven by the active profile's model_config.json,
-// mirroring how delegate-profiles resolves delegate_config.json. Stopgap until
-// V2 regains native whitelist support; per-model `disabled` blocklists rot as
-// providers add models, so profiles declare a small allowlist instead.
+// Catalog-level model filter driven by its plugin options in opencode.json,
+// mirroring how delegate-profiles reads its presets. Stopgap until V2 regains
+// native whitelist support; per-model `disabled` blocklists rot as providers
+// add models, so profiles declare a small allowlist instead.
 //
-// Config shape (rules are "provider/model" strings; `*` is a glob wildcard).
+// Options shape (rules are "provider/model" strings; `*` is a glob wildcard).
 // A model-only glob such as "*free*" applies to every provider.
 //   { "allow": [...] }  -> whitelist mode: everything unlisted is disabled
 //   { "deny": [...] }   -> blocklist mode: only listed models are disabled
 
-export function modelConfigPath() {
-  const configHome = process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config")
-  return join(configHome, "opencode", "model_config.json")
-}
-
-export function loadSettings(path = modelConfigPath()) {
-  if (!existsSync(path)) {
-    throw new Error(
-      `model-filter config not found at ${path}. The active profile has not linked its `
-      + "model_config.json; run scripts/link-config.py for this profile and restart OpenCode.",
-    )
-  }
-  try {
-    return JSON.parse(readFileSync(path, "utf8"))
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`model-filter config ${path}: ${message}`)
-  }
-}
-
 function parseRuleList(source, label) {
   if (source === undefined) return []
-  if (!Array.isArray(source)) throw new Error(`model-filter settings.${label} must be an array`)
+  if (!Array.isArray(source)) throw new Error(`model-filter options.${label} must be an array`)
   return source.map((value, index) => {
-    const ref = `model-filter settings.${label}[${index}]`
+    const ref = `model-filter options.${label}[${index}]`
     if (typeof value !== "string") throw new Error(`${ref} must be a provider/model string or model glob`)
     const providerEnd = value.indexOf("/")
     if (providerEnd === -1) {
@@ -55,10 +30,10 @@ export function parseRules(configured) {
   const allow = parseRuleList(configured?.allow, "allow")
   const deny = parseRuleList(configured?.deny, "deny")
   if (allow.length > 0 && deny.length > 0) {
-    throw new Error("model-filter settings must set either allow or deny, not both")
+    throw new Error("model-filter options must set either allow or deny, not both")
   }
   if (allow.length === 0 && deny.length === 0) {
-    throw new Error("model-filter settings must list at least one allow or deny rule")
+    throw new Error("model-filter options must list at least one allow or deny rule")
   }
   return { allow, deny }
 }
@@ -76,10 +51,10 @@ function globMatches(pattern, value) {
 }
 
 export function createModelFilterPlugin() {
-  return Plugin.define({
+  return {
     id: "personal.model-filter",
     setup: async (ctx) => {
-      const { allow, deny } = parseRules(loadSettings())
+      const { allow, deny } = parseRules(ctx.options)
       await ctx.catalog.transform((catalog) => {
         for (const record of catalog.provider.list()) {
           for (const model of record.models.values()) {
@@ -92,7 +67,7 @@ export function createModelFilterPlugin() {
         }
       })
     },
-  })
+  }
 }
 
 export default createModelFilterPlugin()

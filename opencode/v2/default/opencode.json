@@ -17,10 +17,46 @@
     ],
     "plugins": [
         "opencode-chatgpt-websearch@0.1.1",
-        "./shared/plugins/model-filter.js",
+        {
+            "package": "./shared/plugins/model-filter.js",
+            "options": {
+                "allow": [
+                    "openai/gpt-5.6-terra",
+                    "openai/gpt-5.6-luna",
+                    "openai/gpt-5.6-sol",
+                    "openai/gpt-5.6-sol-fast",
+                    "openai/gpt-5.6-terra-fast",
+                    "openai/gpt-5.6-luna-fast",
+                    "*free*",
+                    "github-copilot/claude-opus-5",
+                    "github-copilot/claude-sonnet-5",
+                    "github-copilot/gpt-5.6-luna",
+                    "github-copilot/gpt-5.6-terra",
+                    "github-copilot/gpt-5.6-sol"
+                ]
+            }
+        },
         "./shared/plugins/slim-tools.js",
         "./shared/plugins/slim-skills.js",
-        "./shared/plugins/delegate-profiles.js"
+        {
+            "package": "./shared/plugins/delegate-profiles.js",
+            "options": {
+                "presets": {
+                    "fast": {
+                        "model": "openai/gpt-5.6-luna",
+                        "variant": "low"
+                    },
+                    "balanced": {
+                        "model": "openai/gpt-5.6-terra",
+                        "variant": "low"
+                    },
+                    "deep": {
+                        "model": "openai/gpt-5.6-sol",
+                        "variant": "low"
+                    }
+                }
+            }
+        }
     ],
     "websearch": {
         "provider": "chatgpt"

@@ -414,10 +414,6 @@ class LinkConfigTests(unittest.TestCase):
                     ROOT / "opencode" / "v2" / profile / "opencode.json",
                 )
                 self.assertEqual(
-                    target.joinpath("delegate_config.json").resolve(),
-                    ROOT / "opencode" / "v2" / profile / "delegate_config.json",
-                )
-                self.assertEqual(
                     target.joinpath("cli.json").resolve(),
                     ROOT / "opencode" / "v2" / "shared" / "cli.json",
                 )

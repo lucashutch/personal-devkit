@@ -11,10 +11,32 @@
     ".vscode/lucas.md"
   ],
   "plugins": [
-    "./shared/plugins/model-filter.js",
+    {
+      "package": "./shared/plugins/model-filter.js",
+      "options": {
+        "deny": [
+          "opencode/*"
+        ]
+      }
+    },
     "./shared/plugins/slim-tools.js",
     "./shared/plugins/slim-skills.js",
-    "./shared/plugins/delegate-profiles.js"
+    {
+      "package": "./shared/plugins/delegate-profiles.js",
+      "options": {
+        "presets": {
+          "fast": {
+            "model": "prompt-capture-openai/gpt-5.6-luna"
+          },
+          "balanced": {
+            "model": "prompt-capture-openai/gpt-5.6-terra"
+          },
+          "deep": {
+            "model": "prompt-capture-openai/gpt-5.6-sol"
+          }
+        }
+      }
+    }
   ],
   "providers": {
     "prompt-capture-anthropic": {

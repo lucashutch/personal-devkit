@@ -8,22 +8,21 @@ profiles on `@opencode-ai/cli@0.0.0-next-15788`. It adds a required
 native child-session executor.
 
 The supported profiles are `fast`, `standard`, `deep`, and `inherit`.
-`standard` uses the model stored as `balanced` in the settings file; the
+`standard` uses the model stored as `balanced` in the options; the
 naming adapter keeps the V2 tool vocabulary stable without changing the tool
 interface.
 
 ## Model settings
 
-Each V2 profile carries a `delegate_config.json` beside its `opencode.json`,
-matching V1. The linker places that file in the active profile's config root,
-and the plugin loads it at startup. Update the required preset in the relevant
-profile file, then restart that profile's V2 service.
-Each preset has a required `model` and an optional `variant`; test omits
-variants because its synthetic models do not declare them.
+Each V2 profile declares its presets as plugin `options` on the
+`delegate-profiles` entry in its own `opencode.json`, so the settings travel
+with the profile that loads the plugin. Update the required preset there, then
+restart that profile's V2 service. Each preset has a required `model` and an
+optional `variant`; test omits variants because its synthetic models do not
+declare them.
 
-- [home](home/delegate_config.json) uses `openai`;
-- [work](work/delegate_config.json) uses `github-copilot`; and
-- [test](test/delegate_config.json) uses `prompt-capture-openai`.
+- [default](default/opencode.json) uses `openai`; and
+- [test](test/opencode.json) uses `prompt-capture-openai`.
 
 ## How it works
 
