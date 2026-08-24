@@ -22,16 +22,6 @@ The `personal.slim-skills` plugin uses the same session-context hook to replace
 V2's verbose XML skill catalog with one `ID: description` line per skill. Skill
 IDs and descriptions are preserved, so on-demand loading is unchanged.
 
-## Patch-only editing
-
-V2 advertises the builtin patch tool to `gpt-*` models and edit plus write to
-every other model. The `personal.patch-only-tools` plugin reverses that swap for
-all models, using the same session-context hook: it drops edit and write and
-re-advertises patch. Only the advertisement is model-facing, so OpenCode's own
-executor, permissions, and diff rendering are unchanged and nothing reimplements
-patching. See [patch-only-findings.md](patch-only-findings.md) for the gate it
-reverses, the measured token costs, and the reliability runs across four models.
-
 ## Model filter
 
 V2 currently has no native provider/model whitelist, and per-model `disabled`

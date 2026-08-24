@@ -20,7 +20,6 @@
         "./shared/plugins/model-filter.js",
         "./shared/plugins/slim-tools.js",
         "./shared/plugins/slim-skills.js",
-        "./shared/plugins/patch-only-tools.js",
         "./shared/plugins/delegate-profiles.js"
     ],
     "websearch": {
