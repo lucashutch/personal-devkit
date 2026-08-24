@@ -43,6 +43,10 @@ const STATE_BY_EVENT = new Map([
   ["permission.asked", "blocked"],
   ["question.asked", "blocked"],
   ["session.execution.failed", "blocked"],
+  // V2 ends a turn with session.execution.*; it never emits session.idle or
+  // session.status, so without these the pane stays working forever.
+  ["session.execution.succeeded", "idle"],
+  ["session.execution.interrupted", "idle"],
   ["session.idle", "idle"],
 ])
 

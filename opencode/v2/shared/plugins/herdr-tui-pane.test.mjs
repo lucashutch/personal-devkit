@@ -119,6 +119,25 @@ test("state is reported for the selected session and its subagents", async () =>
   ])
 })
 
+test("a finished V2 turn returns the pane to idle", async () => {
+  // V2 has no session.idle or session.status; only session.execution.* ends a turn.
+  const { calls, syncSelection, handleEvent } = harness({ clock: () => 100_000 })
+  await syncSelection({ sessionID: "root", title: "Root" })
+  calls.length = 0
+
+  await handleEvent({ type: "session.execution.started", data: { sessionID: "root" } })
+  await handleEvent({ type: "session.execution.succeeded", data: { sessionID: "root" } })
+  await handleEvent({ type: "session.execution.started", data: { sessionID: "root" } })
+  await handleEvent({ type: "session.execution.interrupted", data: { sessionID: "root" } })
+
+  assert.deepEqual(calls, [
+    ["state", "working", "root"],
+    ["state", "idle", "root"],
+    ["state", "working", "root"],
+    ["state", "idle", "root"],
+  ])
+})
+
 test("another pane's session never touches this pane", async () => {
   // The other half of the bug: the shared service broadcasts every session's
   // events to every TUI, so the pane must filter by its own selection.
