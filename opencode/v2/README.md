@@ -7,7 +7,11 @@
 
 ## Server plugins
 
-V2 loads the profile plugins declared in each `opencode.json`. The
+V2 loads the profile plugins declared in each `opencode.json`. They export
+`Plugin.define` from `@opencode-ai/plugin`, which resolves through the linked
+plugin file back into `opencode/v2/node_modules`, so editors type the plugin
+context. Settings come from each entry's `options` object rather than a
+separate config file. The
 `personal.slim-tools` plugin uses the runtime session-context hook to shorten
 the model-facing descriptions and JSON-schema parameter descriptions of the
 built-in tools. See [slim-tools-findings.md](slim-tools-findings.md) for its
@@ -73,7 +77,8 @@ host's renderer. The Limitwatch quota and subagent-session plugins are enabled
 in `shared/cli.json` and load from `shared/plugins/*/tui.tsx`.
 
 `opencode/v2/package.json` declares only `@opencode-ai/plugin` on the `beta`
-channel, without a lockfile. `@opentui/*`, `solid-js`, and `@opencode-ai/theme`
+channel, matching the channel the installed CLI ships on, and without a
+lockfile. `@opentui/*`, `solid-js`, and `@opencode-ai/theme`
 are deliberately not declared: the host shares its renderer with the plugin, so
 they must satisfy the peer requirements of the matching plugin package.
 `@opencode-ai/plugin` declares those requirements but marks them optional, so

@@ -73,7 +73,6 @@ test("aliasID produces a concise native TUI label", () => {
 test("plugin advertises model_profile and routes execution through a hidden alias", async () => {
   const hooks = {}
   const aliases = new Map()
-  const disposed = []
   const source = {
     id: "WebResearcher",
     name: "WebResearcher",
@@ -103,24 +102,24 @@ test("plugin advertises model_profile and routes execution through a hidden alia
             aliases.set(id, value)
           },
         })
-        return { dispose: async () => disposed.push("alias") }
+        return { dispose: async () => {} }
       },
     },
     session: {
       hook: async (name, callback) => {
         hooks[name] = callback
-        return { dispose: async () => disposed.push(name) }
+        return { dispose: async () => {} }
       },
     },
     tool: {
       hook: async (name, callback) => {
         hooks[name] = callback
-        return { dispose: async () => disposed.push(name) }
+        return { dispose: async () => {} }
       },
     },
   }
 
-  const cleanup = await createDelegateProfilesPlugin().setup(ctx)
+  await createDelegateProfilesPlugin().setup(ctx)
   const context = {
     tools: {
       subagent: {
@@ -149,7 +148,4 @@ test("plugin advertises model_profile and routes execution through a hidden alia
   })
   assert.equal(aliases.get(expected).hidden, true)
   assert.deepEqual(aliases.get(expected).permissions, source.permissions)
-
-  await cleanup()
-  assert.deepEqual(disposed, ["alias", "execute.before", "context"])
 })

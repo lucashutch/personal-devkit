@@ -34,10 +34,12 @@ test("compactSkillsBlock leaves unknown formats unchanged", () => {
 test("plugin transforms text system parts", async () => {
   let hook
   await plugin.setup({ session: { hook: async (_name, callback) => { hook = callback } } })
-  const event = { system: [{ type: "text", text: block }, { type: "image", data: "unchanged" }] }
+  const original = { type: "text", text: block }
+  const event = { system: [original, { type: "image", data: "unchanged" }] }
 
   hook(event)
 
   assert.match(event.system[0].text, /- ship: Validate, commit, push, and create a PR\./)
+  assert.equal(original.text, block)
   assert.deepEqual(event.system[1], { type: "image", data: "unchanged" })
 })

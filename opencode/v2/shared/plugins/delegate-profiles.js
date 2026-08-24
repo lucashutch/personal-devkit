@@ -1,3 +1,5 @@
+import { Plugin } from "@opencode-ai/plugin"
+
 // Delegate model profiles, configured through this plugin's options in the
 // profile's opencode.json:
 //   { "presets": { "fast": { "model": "provider/model", "variant": "low" }, ... } }
@@ -87,11 +89,10 @@ export function aliasID(agent, profile) {
 }
 
 export function createDelegateProfilesPlugin() {
-  return {
+  return Plugin.define({
     id: "personal.delegate-profiles",
     setup: async (ctx) => {
       const profiles = parseProfiles(ctx.options)
-      const registrations = []
       const aliases = new Map()
 
       const ensureAlias = async (agent, profile) => {
@@ -106,14 +107,13 @@ export function createDelegateProfilesPlugin() {
             .then((result) => result?.data)
             .catch(() => undefined)
           if (!source) throw new Error(`delegate-profiles cannot find agent: ${agent}`)
-          const registration = await ctx.agent.transform((draft) => {
+          await ctx.agent.transform((draft) => {
             draft.update(id, (alias) => {
               Object.assign(alias, structuredClone(source))
               alias.hidden = true
               alias.model = profiles[profile]
             })
           })
-          registrations.push(registration)
           return id
         })().catch((error) => {
           aliases.delete(id)
@@ -123,7 +123,9 @@ export function createDelegateProfilesPlugin() {
         return pending
       }
 
-      registrations.push(await ctx.session.hook("context", async (event) => {
+      // Hooks and transforms are released with the plugin generation, so this
+      // setup owns no resource that needs an explicit cleanup function.
+      await ctx.session.hook("context", async (event) => {
         const subagent = event.tools.subagent
         if (!subagent) return
         const agents = (await ctx.agent.list()).data
@@ -138,9 +140,9 @@ export function createDelegateProfilesPlugin() {
           ...(available.length === 0 ? [] : [`Available agent roles: ${available.join(", ")}.`]),
         ].join("\n")
         subagent.input = addModelProfile(subagent.input, agents)
-      }))
+      })
 
-      registrations.push(await ctx.tool.hook("execute.before", async (event) => {
+      await ctx.tool.hook("execute.before", async (event) => {
         if (event.tool !== "subagent" || !event.input || typeof event.input !== "object") return
         const input = { ...event.input }
         const profile = input.model_profile
@@ -150,13 +152,9 @@ export function createDelegateProfilesPlugin() {
         delete input.model_profile
         if (profile !== "inherit") input.agent = await ensureAlias(input.agent, profile)
         event.input = input
-      }))
-
-      return async () => {
-        for (const registration of registrations.toReversed()) await registration.dispose()
-      }
+      })
     },
-  }
+  })
 }
 
 export default createDelegateProfilesPlugin()

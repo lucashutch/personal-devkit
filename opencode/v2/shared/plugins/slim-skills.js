@@ -23,13 +23,15 @@ export function compactSkillsBlock(text) {
 export default Plugin.define({
   id: "personal.slim-skills",
   setup: async (ctx) => {
+    // Replace parts rather than assign through `part.text`: the host declares
+    // a system part read-only and only the `system` array itself mutable.
     await ctx.session.hook("context", (event) => {
       if (!Array.isArray(event.system)) return
-      for (const part of event.system) {
-        if (part?.type === "text" && typeof part.text === "string") {
-          part.text = compactSkillsBlock(part.text)
-        }
-      }
+      event.system = event.system.map((part) =>
+        part?.type === "text" && typeof part.text === "string"
+          ? { ...part, text: compactSkillsBlock(part.text) }
+          : part,
+      )
     })
   },
 })

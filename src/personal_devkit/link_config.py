@@ -437,10 +437,17 @@ def install_opencode_v2_tui_dependencies(npm: str) -> list[str]:
     """Install the V2 TUI plugin tree from the `beta` channel.
 
     The renderer is shared between host and plugin, so `@opentui` and `solid-js`
-    must satisfy the versions declared by the matching plugin package.
-    `@opencode-ai/plugin` publishes them as optional peers, which npm skips, so
-    resolve them from the installed package and install them unsaved. An
-    OpenCode upgrade changes the peer requirements and the next run follows.
+    must be the exact builds the host was compiled against, not their latest
+    releases. `@opencode-ai/plugin` publishes those builds as optional peers,
+    which npm skips, so resolve them from the installed package and install them
+    unsaved. Nothing here is version-pinned: an OpenCode upgrade changes the
+    peers and the next run follows.
+
+    Declared dependencies are installed by explicit specifier, unsaved, because
+    a bare `npm install` leaves an already-installed package alone when its
+    dist-tag has moved on, and a saving install rewrites the tag in
+    `package.json` into a caret range that resolves to unrelated prerelease
+    builds.
     """
     directory = root() / "opencode/v2"
 
@@ -454,7 +461,12 @@ def install_opencode_v2_tui_dependencies(npm: str) -> list[str]:
         return f"opencode-v2-tui-dependencies ({label} failed: {detail})"
 
     base = ["install", "--ignore-scripts", "--no-package-lock"]
-    if error := run(base, "npm install"):
+    try:
+        declared = json.loads((directory / "package.json").read_text()).get("dependencies", {})
+    except (OSError, json.JSONDecodeError) as detail:
+        return [f"opencode-v2-tui-dependencies (could not read dependencies: {detail})"]
+    wanted = [f"{name}@{version}" for name, version in sorted(declared.items())]
+    if error := run([*base, "--no-save", *wanted], "npm install"):
         return [error]
     manifest = directory / "node_modules/@opencode-ai/plugin/package.json"
     try:

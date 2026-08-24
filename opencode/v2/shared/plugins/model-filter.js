@@ -1,3 +1,5 @@
+import { Plugin } from "@opencode-ai/plugin"
+
 // Catalog-level model filter driven by its plugin options in opencode.json,
 // mirroring how delegate-profiles reads its presets. Stopgap until V2 regains
 // native whitelist support; per-model `disabled` blocklists rot as providers
@@ -51,7 +53,7 @@ function globMatches(pattern, value) {
 }
 
 export function createModelFilterPlugin() {
-  return {
+  return Plugin.define({
     id: "personal.model-filter",
     setup: async (ctx) => {
       const { allow, deny } = parseRules(ctx.options)
@@ -67,7 +69,7 @@ export function createModelFilterPlugin() {
         }
       })
     },
-  }
+  })
 }
 
 export default createModelFilterPlugin()

@@ -27,7 +27,8 @@
   ],
   "tabs": {
     "enabled": false,
-    "scope": "global"
+    "scope": "global",
+    "layout": "vertical"
   },
   "scroll": {
     "speed": 2
@@ -40,7 +41,7 @@
     "sound": false
   },
   "debug": {
-    "turn_tokens": false,
+    "turn_tokens": true,
     "devtools": true,
     "timing": false
   }
