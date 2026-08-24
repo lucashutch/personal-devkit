@@ -69,12 +69,12 @@ Each profile owns a `delegate_config.json` beside its `opencode.json`. The linke
 
 The intended routing is:
 
-- `fast`: bounded, low-risk lookup, extraction, or mechanical work.
-- `balanced`: the default for implementation, analysis, testing, and review.
-- `deep`: difficult, ambiguous, high-stakes, or multi-step reasoning where quality outweighs latency and cost.
-- `inherit`: intentionally use the parent model and reasoning level.
+- `fast`: the starting point, and enough for bounded lookup, extraction, or mechanical work.
+- `balanced`: work that needs judgement or spans several files.
+- `deep`: ambiguous, high-stakes, or multi-step reasoning where quality outweighs latency and cost.
+- `inherit`: deliberately match the parent model and reasoning level.
 
-Prefer the least expensive tier likely to succeed; a resumed task can be escalated if necessary. Task length alone does not require `deep`: large but mechanical work may still fit `fast` or `balanced`.
+Task length alone does not require `deep`: large but mechanical work may still fit `fast` or `balanced`.
 
 `inherit` uses the parent request's model **and variant**, rather than a preset. The plugin observes `chat.message` events and caches these values by message, with a session-level fallback. A newer event missing either value clears the relevant cache rather than reusing stale settings. Consequently, inheritance works only after the running plugin has observed a parent message carrying both values. If no cached value exists (commonly immediately after a restart or for an older session), the call returns an actionable `Cannot inherit` error; send a new parent message or choose an explicit preset.
 
