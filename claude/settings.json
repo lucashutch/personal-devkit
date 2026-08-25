@@ -79,6 +79,8 @@
   },
   "effortLevel": "low",
   "promptSuggestionEnabled": false,
+  "autoMemoryEnabled": false,
+  "autoDreamEnabled": false,
   "awaySummaryEnabled": false,
   "agent": "General",
   "skipDangerousModePermissionPrompt": true,
