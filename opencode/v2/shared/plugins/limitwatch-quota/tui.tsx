@@ -104,12 +104,26 @@ function formatQuotaLabel(quota: any) {
   const label = String(quota.display_name || quota.name || quota.source_type || "Quota")
   const source = String(quota.source_type ?? quota.source ?? "").trim().toLowerCase()
 
-  if (source === "openai codex") {
-    const key = label.toLowerCase()
-    if (key.includes("primary")) return "7d"
-    if (key.includes("secondary")) return "7d"
+  if (source === "openai codex") return formatCodexWindowLabel(quota, label)
+
+  return label
+}
+
+// Codex window sizes move (the 5h primary window was withdrawn and restored),
+// so read the window from the payload rather than assuming per rate-limit slot.
+function formatCodexWindowLabel(quota: any, label: string) {
+  const seconds = typeof quota.window_seconds === "number" ? quota.window_seconds : null
+  if (seconds && seconds > 0) {
+    const hours = Math.round(seconds / 3600)
+    return hours % 24 === 0 ? `${hours / 24}d` : `${hours}h`
   }
 
+  const suffix = label.match(/\(([^)]+)\)\s*$/)?.[1]
+  if (suffix) return suffix
+
+  const key = label.toLowerCase()
+  if (key.includes("primary")) return "5h"
+  if (key.includes("secondary")) return "7d"
   return label
 }
 
