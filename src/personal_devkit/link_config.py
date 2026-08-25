@@ -434,14 +434,13 @@ def execute_generated(files: list[GeneratedFile], *, dry_run: bool) -> None:
 
 
 def install_opencode_v2_tui_dependencies(npm: str) -> list[str]:
-    """Install the V2 TUI plugin tree from the `next` channel.
+    """Install the V2 TUI plugin tree from the `beta` channel.
 
     The renderer is shared between host and plugin, so `@opentui` and `solid-js`
-    must be the exact builds the host was compiled against, not their latest
-    releases. `@opencode-ai/plugin` publishes those builds as optional peers,
-    which npm skips, so resolve them from the installed package and install them
-    unsaved. Nothing here is version-pinned: an OpenCode upgrade changes the
-    peers and the next run follows.
+    must satisfy the versions declared by the matching plugin package.
+    `@opencode-ai/plugin` publishes them as optional peers, which npm skips, so
+    resolve them from the installed package and install them unsaved. An
+    OpenCode upgrade changes the peer requirements and the next run follows.
     """
     directory = root() / "opencode/v2"
 

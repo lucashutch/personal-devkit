@@ -1,3 +1,4 @@
+import { Plugin } from "@opencode-ai/plugin"
 import { slimDescriptions, slimParamDescriptions } from "../lib/slim-tools-data.js"
 
 // V2's session context hook receives the final, permission-filtered tool
@@ -44,14 +45,11 @@ function slimTools(tools) {
   return Object.fromEntries(Object.entries(tools).map(([name, tool]) => [name, slimTool(name, tool)]))
 }
 
-export default {
+export default Plugin.define({
   id: "personal.slim-tools",
   setup: async (ctx) => {
-    // `context` is the hook name implemented by next-15779. The public docs
-    // currently call this hook `request`; retain the implementation name until
-    // the runtime and docs converge.
     await ctx.session.hook("context", (event) => {
       event.tools = slimTools(event.tools)
     })
   },
-}
+})

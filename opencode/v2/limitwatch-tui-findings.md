@@ -1,17 +1,16 @@
 # V2 TUI plugin notes
 
-Verified with `@opencode-ai/cli@0.0.0-next-16621` on Linux/WSL2.
+Verified against the `@opencode-ai/cli@beta` plugin API on Linux/WSL2.
 
 ## Shared setup
 
 - TUI plugins are listed in `shared/cli.json` as file paths, not directories.
 - Both plugins use `@opencode-ai/plugin/tui` and `@opentui/solid` JSX.
-- `opencode/v2/package.json` declares only `@opencode-ai/plugin@next`. The
+- `opencode/v2/package.json` declares only `@opencode-ai/plugin@beta`. The
   renderer-sharing packages (`@opentui/*`, `solid-js`, `@opencode-ai/theme`) come
   from that package's optional peer dependencies, resolved at install time by
-  `scripts/link-config.py --opencode`. Never pin or range them by hand: a semver
-  range resolves ahead of the host build and the shared renderer then rejects
-  plugin JSX.
+  `scripts/link-config.py --opencode`. Do not pin them separately from the
+  plugin package; the linker follows its current exact versions or ranges.
 - The profile config links `shared` into the active OpenCode config directory.
 - External plugin errors appear as red TUI `Plugin` toasts.
 

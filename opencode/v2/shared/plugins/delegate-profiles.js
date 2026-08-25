@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
+import { Plugin } from "@opencode-ai/plugin"
 
 const profileOrder = ["fast", "standard", "deep", "inherit"]
 
@@ -107,7 +108,7 @@ export function aliasID(agent, profile) {
 }
 
 export function createDelegateProfilesPlugin() {
-  return {
+  return Plugin.define({
     id: "personal.delegate-profiles",
     setup: async (ctx) => {
       const profiles = parseProfiles(loadSettings())
@@ -176,7 +177,7 @@ export function createDelegateProfilesPlugin() {
         for (const registration of registrations.toReversed()) await registration.dispose()
       }
     },
-  }
+  })
 }
 
 export default createDelegateProfilesPlugin()

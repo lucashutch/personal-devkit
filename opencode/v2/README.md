@@ -2,8 +2,8 @@
 
 ## Version
 
-- CLI: `@opencode-ai/cli@0.0.0-next-16621`
-- Verified: 2026-08-01
+- CLI channel: `@opencode-ai/cli@beta`
+- Verified: 2026-08-25
 
 ## Server plugins
 
@@ -13,10 +13,8 @@ the model-facing descriptions and JSON-schema parameter descriptions of the
 built-in tools. See [slim-tools-findings.md](slim-tools-findings.md) for its
 implementation and capture-proxy validation procedure.
 
-The public plugin documentation currently describes the hook as `request`,
-while this CLI release implements it as `context`. The plugin intentionally
-uses the runtime name. Revalidate after every V2 upgrade because this is beta
-API surface.
+The published Promise and Effect plugin APIs both expose this hook as
+`session.hook("context", ...)`.
 
 The `personal.slim-skills` plugin uses the same session-context hook to replace
 V2's verbose XML skill catalog with one `ID: description` line per skill. Skill
@@ -69,21 +67,20 @@ the ported commands explicitly tell General to load the corresponding skill.
 
 ## TUI plugins: working
 
-`next-16902` exposes the host renderer to external plugins
-(`context.renderer`), so plugin-local `@opentui/solid` JSX now renders instead
-of crashing with `No renderer found`. The Limitwatch quota and subagent-session
-plugins are enabled in `shared/cli.json` and load from
-`shared/plugins/*/tui.tsx`.
+The beta API exposes the host renderer to external plugins
+(`context.renderer`), so plugin-local `@opentui/solid` JSX renders with the
+host's renderer. The Limitwatch quota and subagent-session plugins are enabled
+in `shared/cli.json` and load from `shared/plugins/*/tui.tsx`.
 
-`opencode/v2/package.json` declares only `@opencode-ai/plugin` on the `next`
+`opencode/v2/package.json` declares only `@opencode-ai/plugin` on the `beta`
 channel, without a lockfile. `@opentui/*`, `solid-js`, and `@opencode-ai/theme`
 are deliberately not declared: the host shares its renderer with the plugin, so
-they must be the exact builds the host was compiled against, and their latest
-published releases do not match. `@opencode-ai/plugin` names those builds in its
-peer dependencies, but marks them optional so npm skips them, so
+they must satisfy the peer requirements of the matching plugin package.
+`@opencode-ai/plugin` declares those requirements but marks them optional, so
+npm skips them. Therefore,
 `scripts/link-config.py --opencode` reads the peers off the installed package and
-installs them unsaved. No version is written down anywhere; a CLI upgrade moves
-the peers and the next run follows.
+installs them unsaved. No peer version is written down anywhere; a CLI upgrade
+moves the peers and the next linker run follows.
 
 Install from that directory only, because the plugin loader resolves imports
 from the plugin source tree. Rerun the linker after upgrading the CLI, both to
@@ -98,6 +95,10 @@ re-registering their claim, which also used to discard sidebar scroll position
 and per-component child state. The subagent plugin still reconciles sessions and
 status once per second to handle event/cache ordering and missed parallel status
 transitions; that polling is unrelated to repainting.
+
+The quota plugin stores its last result with the TUI's durable plugin storage.
+New TUI instances can show cached quota data while the first refresh runs, and
+running instances receive the same stored update.
 
 A retired `reactivity-smoke` plugin established that repainting works: a
 component-local one-second Solid counter, which distinguished a missing renderer

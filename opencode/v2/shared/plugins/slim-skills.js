@@ -1,3 +1,5 @@
+import { Plugin } from "@opencode-ai/plugin"
+
 const skillsBlockPattern = /Skills provide specialized[\s\S]*?<available_skills>([\s\S]*?)<\/available_skills>/
 
 export function compactSkillsBlock(text) {
@@ -18,7 +20,7 @@ export function compactSkillsBlock(text) {
   })
 }
 
-export default {
+export default Plugin.define({
   id: "personal.slim-skills",
   setup: async (ctx) => {
     await ctx.session.hook("context", (event) => {
@@ -30,4 +32,4 @@ export default {
       }
     })
   },
-}
+})

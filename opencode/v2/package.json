@@ -4,6 +4,6 @@
   "type": "module",
   "description": "Dependencies for the V2 TUI plugins in shared/plugins.",
   "dependencies": {
-    "@opencode-ai/plugin": "next"
+    "@opencode-ai/plugin": "beta"
   }
 }

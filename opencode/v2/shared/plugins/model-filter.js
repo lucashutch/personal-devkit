@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
+import { Plugin } from "@opencode-ai/plugin"
 
 // Catalog-level model filter driven by the active profile's model_config.json,
 // mirroring how delegate-profiles resolves delegate_config.json. Stopgap until
@@ -75,7 +76,7 @@ function globMatches(pattern, value) {
 }
 
 export function createModelFilterPlugin() {
-  return {
+  return Plugin.define({
     id: "personal.model-filter",
     setup: async (ctx) => {
       const { allow, deny } = parseRules(loadSettings())
@@ -91,7 +92,7 @@ export function createModelFilterPlugin() {
         }
       })
     },
-  }
+  })
 }
 
 export default createModelFilterPlugin()

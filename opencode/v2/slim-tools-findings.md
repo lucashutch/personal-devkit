@@ -38,7 +38,7 @@ and their parameter descriptions equal `shared/lib/slim-tools-data.js`.
 ## Compatibility notes
 
 - V2 plugin APIs are beta and may change. Re-run the capture validation after
-  upgrading `@opencode-ai/cli@next`.
+  upgrading `@opencode-ai/cli@beta`.
 - Plugin load failures are logged at
   `~/.local/share/opencode-v2-<profile>/opencode/log/opencode.log`.
 - V2 loads and activates external **TUI** plugins through `cli.json`. This does

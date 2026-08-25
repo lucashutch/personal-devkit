@@ -12,6 +12,7 @@ const SERVICE_PREFIXES: Record<string, string> = {
 }
 
 type QuotaLine = string | { name: string; value: string }
+type QuotaCache = { lines: QuotaLine[]; updatedAt: number }
 
 function normalizeText(value: unknown) {
   return String(value ?? "").replace(/\r\n/g, "\n").trim()
@@ -197,11 +198,10 @@ const plugin = Plugin.define({
   id: "limitwatch-quota-plugin",
   setup(context) {
     const theme = context.theme
-    const [state, setState] = createSignal({
-      lines: ["Loading quota..."] as QuotaLine[],
-      updatedAt: 0,
-      refreshing: false,
+    const [cache, updateCache] = context.storage.store<QuotaCache>("quota", {
+      initial: { lines: [], updatedAt: 0 },
     })
+    const [refreshing, setRefreshing] = createSignal(false)
 
     let timer: ReturnType<typeof setInterval> | undefined
     let refreshQueued = false
@@ -210,23 +210,26 @@ const plugin = Plugin.define({
     // reintroduce a dispose/re-register cycle, which resets sidebar scroll.
     const repaint = () => context.renderer.requestRender()
     const refresh = async () => {
-      if (state().refreshing) {
+      if (refreshing()) {
         refreshQueued = true
         return
       }
-      setState((current) => ({ ...current, refreshing: true }))
+      setRefreshing(true)
       try {
         const lines = await fetchQuotaLines()
-        setState({ lines, updatedAt: Date.now(), refreshing: false })
+        await updateCache((draft) => {
+          draft.lines = lines
+          draft.updatedAt = Date.now()
+        })
         repaint()
       } catch (error) {
-        setState({
-          lines: [`Error: ${error instanceof Error ? error.message : String(error)}`],
-          updatedAt: Date.now(),
-          refreshing: false,
+        await updateCache((draft) => {
+          draft.lines = [`Error: ${error instanceof Error ? error.message : String(error)}`]
+          draft.updatedAt = Date.now()
         })
         repaint()
       } finally {
+        setRefreshing(false)
         if (refreshQueued) {
           refreshQueued = false
           void refresh()
@@ -240,14 +243,15 @@ const plugin = Plugin.define({
     const disposeStatus = context.data.on("session.status", () => void refresh())
 
     function QuotaSidebar() {
-      const stamp = () => state().updatedAt
-        ? `updated ${new Date(state().updatedAt).toLocaleTimeString()}`
-        : state().refreshing ? "refreshing" : ""
+      const stamp = () => cache.updatedAt
+        ? `updated ${new Date(cache.updatedAt).toLocaleTimeString()}`
+        : refreshing() ? "refreshing" : ""
+      const lines = () => cache.lines.length > 0 ? cache.lines : ["Loading quota..."]
 
       return (
         <box flexDirection="column">
           <text attributes={TextAttributes.BOLD}>Quotas</text>
-          {state().lines.map((line) => typeof line === "string" ? (
+          {lines().map((line) => typeof line === "string" ? (
             <text fg={theme.text.subdued}>{line}</text>
           ) : (
             <box flexDirection="row">
