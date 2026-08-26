@@ -33,3 +33,8 @@ cursor-style = bar
 adjust-cursor-thickness = 2
 
 bell-features = attention,title,audio
+
+# === Scrolling ===
+# discrete = lines per mouse wheel detent (default 3)
+# precision = smooth/hi-res scrolling factor (default 1)
+mouse-scroll-multiplier = precision:1,discrete:1
