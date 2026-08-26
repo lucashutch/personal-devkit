@@ -42,12 +42,17 @@ try:
     )
     copy.execute("CREATE VIEW IF NOT EXISTS session AS SELECT * FROM session_v2")
     copy.commit()
+    # The snapshot inherits the source's WAL mode, which makes readers create
+    # sidecar files next to it. Replacing only the database would then leave
+    # sidecars describing the previous copy, so keep the snapshot journalled in
+    # a single file.
+    copy.execute("PRAGMA journal_mode=DELETE").fetchone()
 finally:
-    # Closing checkpoints and removes the copy's own write-ahead log, so the
-    # single-file rename below carries the whole snapshot.
     copy.close()
     origin.close()
 os.replace(staged, snapshot)
+for stale in (snapshot.with_name(snapshot.name + suffix) for suffix in ("-wal", "-shm")):
+    stale.unlink(missing_ok=True)
 
 settings = Path(os.environ.get("TOKSCALE_CONFIG_DIR") or Path.home() / ".config/tokscale") / "settings.json"
 current = json.loads(settings.read_text()) if settings.is_file() else {}
