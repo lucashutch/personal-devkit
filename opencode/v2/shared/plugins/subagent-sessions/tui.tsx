@@ -55,7 +55,7 @@ function effortLabel(value?: string) {
 }
 
 function modelName(value?: string) {
-  return value?.split("/").at(-1)?.split("#")[0]
+  return value?.split("/").at(-1)
 }
 
 function formatTokens(value: number) {
