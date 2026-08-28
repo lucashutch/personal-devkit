@@ -31,6 +31,11 @@ test("matches honors exact IDs and glob wildcards", () => {
   assert.equal(matches(allow, "other-provider", "free-model"), true)
 })
 
+test("matches model IDs containing a slash", () => {
+  const { allow } = parseRules({ allow: ["openrouter/z-ai/glm-5.3-flash"] })
+  assert.equal(matches(allow, "openrouter", "z-ai/glm-5.3-flash"), true)
+})
+
 function fakeCatalog(models) {
   return {
     provider: {
