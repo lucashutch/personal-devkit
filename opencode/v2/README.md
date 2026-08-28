@@ -36,6 +36,9 @@ strings with `*` glob wildcards (`provider/*` matches all models of a
 provider); a model-only glob such as `*free*` matches free-named models from
 every provider. Rules operate in one of two modes:
 `allow` disables everything unlisted; `deny` disables only the listed models.
+Using both applies the allowlist first, then disables matching exclusions. This
+can keep a broad rule such as `*free*` while excluding one provider.
+Use `except` to re-enable specific models excluded by `deny`.
 Remove the plugin and its options once V2 regains native whitelisting.
 
 ## Delegate model profiles

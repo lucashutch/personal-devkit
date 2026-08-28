@@ -16,7 +16,6 @@ test("parseRules accepts an allowlist", () => {
 test("parseRules rejects malformed and ambiguous settings", () => {
   assert.throws(() => parseRules({}), /at least one/)
   assert.throws(() => parseRules({ allow: [], deny: [] }), /at least one/)
-  assert.throws(() => parseRules({ allow: ["a/b"], deny: ["c/d"] }), /not both/)
   assert.throws(() => parseRules({ allow: "openai/sol" }), /must be an array/)
   assert.throws(() => parseRules({ allow: ["no-provider"] }), /provider\/model/)
   assert.throws(() => parseRules({ deny: ["openai/"] }), /provider\/model/)
@@ -61,6 +60,19 @@ test("setup applies denylist mode without touching other models", async () => {
   ]
   await createModelFilterPlugin().setup({
     options: { deny: ["opencode/*"] },
+    catalog: { transform: async (fn) => fn(fakeCatalog(models)) },
+  })
+  assert.deepEqual(models.map((m) => m.enabled), [true, false, true])
+})
+
+test("setup applies denylist exclusions after an allowlist", async () => {
+  const models = [
+    { providerID: "openrouter", id: "glm-5.3-flash", enabled: true },
+    { providerID: "openrouter", id: "other-model-free", enabled: true },
+    { providerID: "other-provider", id: "different-model-free", enabled: true },
+  ]
+  await createModelFilterPlugin().setup({
+    options: { allow: ["*free*"], deny: ["openrouter/*"], except: ["openrouter/glm-5.3-flash"] },
     catalog: { transform: async (fn) => fn(fakeCatalog(models)) },
   })
   assert.deepEqual(models.map((m) => m.enabled), [true, false, true])

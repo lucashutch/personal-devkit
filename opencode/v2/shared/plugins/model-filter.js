@@ -9,6 +9,7 @@ import { Plugin } from "@opencode-ai/plugin"
 // A model-only glob such as "*free*" applies to every provider.
 //   { "allow": [...] }  -> whitelist mode: everything unlisted is disabled
 //   { "deny": [...] }   -> blocklist mode: only listed models are disabled
+//   { "allow": [...], "deny": [...], "except": [...] } -> whitelist mode with exclusions
 
 function parseRuleList(source, label) {
   if (source === undefined) return []
@@ -31,13 +32,11 @@ function parseRuleList(source, label) {
 export function parseRules(configured) {
   const allow = parseRuleList(configured?.allow, "allow")
   const deny = parseRuleList(configured?.deny, "deny")
-  if (allow.length > 0 && deny.length > 0) {
-    throw new Error("model-filter options must set either allow or deny, not both")
-  }
+  const except = parseRuleList(configured?.except, "except")
   if (allow.length === 0 && deny.length === 0) {
     throw new Error("model-filter options must list at least one allow or deny rule")
   }
-  return { allow, deny }
+  return { allow, deny, except }
 }
 
 export function matches(rules, providerID, id) {
@@ -56,15 +55,13 @@ export function createModelFilterPlugin() {
   return Plugin.define({
     id: "personal.model-filter",
     setup: async (ctx) => {
-      const { allow, deny } = parseRules(ctx.options)
+      const { allow, deny, except } = parseRules(ctx.options)
       await ctx.catalog.transform((catalog) => {
         for (const record of catalog.provider.list()) {
           for (const model of record.models.values()) {
-            if (allow.length > 0) {
-              model.enabled = matches(allow, model.providerID, model.id)
-            } else if (matches(deny, model.providerID, model.id)) {
-              model.enabled = false
-            }
+            const exception = matches(except, model.providerID, model.id)
+            const allowed = allow.length === 0 || matches(allow, model.providerID, model.id)
+            model.enabled = exception || (allowed && !matches(deny, model.providerID, model.id))
           }
         }
       })
