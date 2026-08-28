@@ -11,7 +11,7 @@
         "openrouter": {
             "body": {
                 "provider": {
-                    "order": ["baseten", "modal"],
+                    "order": ["together", "modal", "z-ai"],
                     "allow_fallbacks": false
                 }
             }
