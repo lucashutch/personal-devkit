@@ -11,8 +11,8 @@
         "openrouter": {
             "body": {
                 "provider": {
-                    "order": ["baseten"],
-                    "allow_fallbacks": true
+                    "only": ["baseten"],
+                    "allow_fallbacks": false
                 }
             }
         }
