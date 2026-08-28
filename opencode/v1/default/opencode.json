@@ -101,6 +101,11 @@
                 "grok-4.5"
             ]
         },
+        "openrouter": {
+            "whitelist": [
+                "glm-5.3-flash"
+            ]
+        },
         "github-copilot": {
             "whitelist": [
                 "claude-opus-5",
