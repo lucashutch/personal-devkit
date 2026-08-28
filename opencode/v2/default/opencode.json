@@ -7,6 +7,16 @@
         "max_lines": 100,
         "max_bytes": 16384
     },
+    "providers": {
+        "openrouter": {
+            "body": {
+                "provider": {
+                    "order": ["baseten"],
+                    "allow_fallbacks": true
+                }
+            }
+        }
+    },
     "warming": {
         "interval": "20 minutes",
         "duration": "90 minutes"
