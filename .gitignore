@@ -36,3 +36,6 @@ build/
 out/
 
 plan.md
+
+# Local secrets
+.llama_benchy_or_key

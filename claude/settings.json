@@ -66,17 +66,6 @@
     "type": "command",
     "command": "bash \"$HOME/.claude/statusline-command.sh\""
   },
-  "enabledPlugins": {
-    "gitkraken-hooks@gitkraken": true
-  },
-  "extraKnownMarketplaces": {
-    "gitkraken": {
-      "source": {
-        "source": "directory",
-        "path": "/home/lucas/.claude/plugins/marketplaces/gitkraken"
-      }
-    }
-  },
   "effortLevel": "low",
   "promptSuggestionEnabled": false,
   "autoMemoryEnabled": false,
