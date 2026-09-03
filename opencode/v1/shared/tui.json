@@ -4,7 +4,8 @@
     "plugin": [
         "./plugins/limitwatch-quota-plugin",
         "./plugins/subagent-sessions-plugin",
-        "./herdr-tui-session.js"
+        "./herdr-tui-session.js",
+        "./herdr-tui-title.js"
     ],
     "keybinds": {
         "input_submit": [

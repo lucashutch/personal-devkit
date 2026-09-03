@@ -9,6 +9,7 @@ Stack: TypeScript/TSX OpenCode plugins, JSON configuration, Python 3.11+, Bash
 - `opencode/v1/shared/` — V1 agents, plugins, TUI config, and plugin support data shared by all profiles.
 - `opencode/v1/shared/plugins/herdr-agent-state.js` — official Herdr OpenCode integration shared by every V1 profile.
 - `opencode/v2/shared/plugins/herdr-tui-pane.js` — Herdr integration for V2, a TUI plugin because the shared service cannot know its pane.
+- `opencode/v1/shared/herdr-tui-title.js` — V1 Herdr tab labels, a TUI plugin so the label follows a session switch.
 - `opencode/v2/{default,test}/` — V2 global configs; `default` is the union of the retired home and work accounts.
 - `opencode/v2/shared/` — V2 CLI settings and agents linked into every V2 profile.
 - `claude/` — Claude Code settings, agents, hooks, themes, and statusline.

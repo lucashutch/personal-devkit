@@ -429,10 +429,6 @@ class LinkConfigTests(unittest.TestCase):
                     target.joinpath("shared", "plugins", "herdr-agent-state.js").resolve(),
                     ROOT / "opencode" / "v2" / "shared" / "plugins" / "herdr-agent-state.js",
                 )
-                self.assertEqual(
-                    target.joinpath("shared", "plugins", "herdr-session-title.js").resolve(),
-                    ROOT / "opencode" / "v2" / "shared" / "plugins" / "herdr-session-title.js",
-                )
                 self.assertFalse(target.joinpath("service.json").exists())
             # The V1 default profile owns the true XDG root, so its config sits
             # directly in $CONFIG_HOME/opencode.
@@ -445,8 +441,8 @@ class LinkConfigTests(unittest.TestCase):
                     ROOT / "opencode" / "v1" / "shared" / "plugins" / "herdr-agent-state.js",
                 )
                 self.assertEqual(
-                    v1_target.joinpath("plugins", "herdr-session-title.js").resolve(),
-                    ROOT / "opencode" / "v1" / "shared" / "plugins" / "herdr-session-title.js",
+                    v1_target.joinpath("herdr-tui-title.js").resolve(),
+                    ROOT / "opencode" / "v1" / "shared" / "herdr-tui-title.js",
                 )
             applications = Path(environment["XDG_DATA_HOME"]) / "applications"
             launcher = applications / "opencode.desktop"

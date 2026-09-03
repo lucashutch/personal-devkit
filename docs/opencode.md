@@ -52,6 +52,12 @@ Both settings live in `service.json` under the profile config directory. The lin
 
 The V1 Herdr plugin is managed at `opencode/v1/shared/plugins/herdr-agent-state.js`; refresh it with `herdr integration install opencode` and copy the generated plugin into that path. V2 uses the TUI plugin at `opencode/v2/shared/plugins/herdr-tui-pane.js`, registered in `opencode/v2/shared/cli.json`, because V2's shared background service cannot reliably identify the originating pane from a server-side plugin.
 
+Tab labels follow the selected session, so they are set from the TUI too:
+`opencode/v1/shared/herdr-tui-title.js` (registered in `tui.json`) for V1, and
+the same pane sync inside `herdr-tui-pane` for V2. Both poll the current route,
+because a server plugin only sees the session that happens to be active and
+cannot tell one pane's session switch from another's.
+
 Claude's Herdr hook is managed at `claude/hooks/herdr-agent-state.sh` and in `claude/settings.json`; link it with `pdklink --claude`.
 
 For V2 plugin compatibility, model profiles, and validation notes, see the [V2 extension compatibility guide](../opencode/v2/README.md). For migration from the retired account profiles, see the [V1 migration guide](../opencode/v1/MIGRATION.md).

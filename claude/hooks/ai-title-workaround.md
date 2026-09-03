@@ -78,12 +78,21 @@ to reason about this.
 
 ## What the hook does
 
-1. On `UserPromptSubmit` (and `SessionStart`), label the Herdr tab using
+1. On `SessionStart`, `UserPromptSubmit` and `Stop`, label the Herdr tab using
    Claude's own precedence: `customTitle`, then an explicit `claude -n` name
-   (`nameSource == "user"`), then `aiTitle`, then the first typed prompt.
+   (`nameSource == "user"`), then `aiTitle`, then the first typed prompt, then
+   the directory name.
 2. If none of the first three exist, spawn a detached `claude -p --model haiku`
    to summarise the first prompt, append the result as an `ai-title` entry, and
-   rename the tab. Once per session; no hook ever blocks on it.
+   rename the tab. Once per session, started only from `UserPromptSubmit`; no
+   hook ever blocks on it.
+
+`SessionStart` covers a session switch: `/clear` and `/resume` both fire it, and
+the directory fallback stops a cleared session from keeping the previous title.
+`Stop` catches what neither can see in time, mainly a `/rename` mid-session and
+a generated title that landed while another pane owned the tab. Claude has no
+hook for the rename itself, so between a `/rename` and the end of the turn the
+tab keeps the old label.
 
 Entry shapes, both read by the CLI:
 

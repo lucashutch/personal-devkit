@@ -22,6 +22,10 @@
 # `claude -n` session name, then aiTitle, then the first typed prompt), so a
 # manual /rename always wins over anything generated here.
 #
+# The hook runs on SessionStart, UserPromptSubmit and Stop so the label follows
+# a session switch (/clear, /resume) and a later /rename, which has no hook of
+# its own.
+#
 # Generation runs once per session, in the background off the first prompt that
 # is worth summarising, and renames the tab itself when it finishes, so no hook
 # ever blocks on it. The tab therefore shows the raw prompt only for the few
@@ -268,6 +272,10 @@ session_id = hook_input.get("session_id")
 session_id = session_id if isinstance(session_id, str) else ""
 transcript = hook_input.get("transcript_path")
 transcript = transcript if isinstance(transcript, str) else ""
+event = hook_input.get("hook_event_name")
+event = event if isinstance(event, str) else ""
+cwd = hook_input.get("cwd")
+cwd = cwd if isinstance(cwd, str) else ""
 
 prompt = first_human_prompt(transcript)
 if prompt is None:
@@ -280,13 +288,20 @@ custom, ai = stored_titles(transcript, session_id)
 name = explicit_name(session_id)
 fallback = clean(prompt)
 
-label = custom or name or ai or fallback
+# A cleared or freshly started session knows nothing yet, and leaving the label
+# alone would keep the previous session's title on the tab, so fall back to the
+# directory name until a prompt or a generated title replaces it.
+directory = clean(Path(cwd).name) if cwd else None
+
+label = custom or name or ai or fallback or directory
 if label:
     rename_tab(label)
 
 # Generate a real title from the first prompt worth summarising. Slash commands
-# and the like are skipped by clean(), so a later prompt gets the chance.
-if session_id and transcript and fallback and not (custom or name or ai):
+# and the like are skipped by clean(), so a later prompt gets the chance. Only
+# the prompt hook starts a generation: Stop fires while an earlier one may still
+# be running, and two would race to store a title.
+if event == "UserPromptSubmit" and session_id and transcript and fallback and not (custom or name or ai):
     try:
         subprocess.Popen(
             ["sh", os.environ["HERDR_TITLE_SELF"], "generate"],
