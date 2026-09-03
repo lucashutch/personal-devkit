@@ -1,0 +1,8 @@
+{
+  "name": "herdr-tui-pane",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tui": { "import": "./tui.js" }
+  }
+}

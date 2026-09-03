@@ -8,7 +8,7 @@ and polls every two minutes.
 
 ## Configuration
 
-- Plugin entry: `shared/cli.json` → `./shared/plugins/limitwatch-quota/tui.tsx`
+- Plugin entry: `shared/cli.json` -> `./shared/plugins/limitwatch-quota`
 - Command override: `LIMITWATCH_COMMAND`
 - Account directory override: `LIMITWATCH_CONFIG_DIR`
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import plugin, { compactSkillsBlock } from "./slim-skills.js"
+import plugin, { compactSkillsBlock } from "./slim-skills/index.js"
 
 const block = `Before
 Skills provide specialized instructions and workflows for specific tasks.

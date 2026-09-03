@@ -7,7 +7,9 @@
 
 ## Server plugins
 
-V2 loads the profile plugins declared in each `opencode.json`. They export
+V2 loads the profile plugins declared in each `opencode.json`. Local plugins
+are directory packages because current V2 builds reject configured paths to
+individual source files. They export
 `Plugin.define` from `@opencode-ai/plugin`, which resolves through the linked
 plugin file back into `opencode/v2/node_modules`, so editors type the plugin
 context. Settings come from each entry's `options` object rather than a
@@ -29,7 +31,7 @@ IDs and descriptions are preserved, so on-demand loading is unchanged.
 V2 currently has no native provider/model whitelist, and per-model `disabled`
 blocklists in `opencode.json` rot as providers add models (new entries appear
 enabled until hand-blocked). Until whitelist support returns, the shared
-`personal.model-filter` plugin (`shared/plugins/model-filter.js`) applies the
+`personal.model-filter` plugin (`shared/plugins/model-filter`) applies the
 rules from its plugin `options` at the catalog level, following the same
 per-profile pattern as delegate profiles. Rules are `provider/model`
 strings with `*` glob wildcards (`provider/*` matches all models of a
@@ -77,7 +79,7 @@ the ported commands explicitly tell General to load the corresponding skill.
 The beta API exposes the host renderer to external plugins
 (`context.renderer`), so plugin-local `@opentui/solid` JSX renders with the
 host's renderer. The Limitwatch quota and subagent-session plugins are enabled
-in `shared/cli.json` and load from `shared/plugins/*/tui.tsx`.
+in `shared/cli.json` and load from their `shared/plugins/*` package directories.
 
 `opencode/v2/package.json` declares only `@opencode-ai/plugin` on the `beta`
 channel, matching the channel the installed CLI ships on, and without a

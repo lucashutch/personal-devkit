@@ -21,9 +21,9 @@
     "input.newline": "return,shift+return,alt+return,ctrl+j"
   },
   "plugins": [
-    "./shared/plugins/limitwatch-quota/tui.tsx",
-    "./shared/plugins/subagent-sessions/tui.tsx",
-    "./shared/plugins/herdr-tui-pane.js"
+    "./shared/plugins/limitwatch-quota",
+    "./shared/plugins/subagent-sessions",
+    "./shared/plugins/herdr-tui-pane"
   ],
   "tabs": {
     "enabled": false,

@@ -4,7 +4,8 @@ Verified against the `@opencode-ai/cli@beta` plugin API on Linux/WSL2.
 
 ## Shared setup
 
-- TUI plugins are listed in `shared/cli.json` as file paths, not directories.
+- TUI plugins are listed in `shared/cli.json` as directory packages. Each
+  package exposes its TUI entrypoint through `package.json`.
 - Both plugins use `@opencode-ai/plugin/tui` and `@opentui/solid` JSX.
 - `opencode/v2/package.json` declares only `@opencode-ai/plugin@beta`. The
   renderer-sharing packages (`@opentui/*`, `solid-js`, `@opencode-ai/theme`) come

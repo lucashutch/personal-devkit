@@ -27,7 +27,7 @@ declare them.
 ## How it works
 
 The implementation is
-[`shared/plugins/delegate-profiles.js`](shared/plugins/delegate-profiles.js).
+[`shared/plugins/delegate-profiles`](shared/plugins/delegate-profiles).
 It deliberately adapts the native tool instead of registering a replacement:
 
 1. The `session.context` hook modifies the provider-facing native `subagent`

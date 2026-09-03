@@ -12,17 +12,17 @@
   ],
   "plugins": [
     {
-      "package": "./shared/plugins/model-filter.js",
+      "package": "./shared/plugins/model-filter",
       "options": {
         "deny": [
           "opencode/*"
         ]
       }
     },
-    "./shared/plugins/slim-tools.js",
-    "./shared/plugins/slim-skills.js",
+    "./shared/plugins/slim-tools",
+    "./shared/plugins/slim-skills",
     {
-      "package": "./shared/plugins/delegate-profiles.js",
+      "package": "./shared/plugins/delegate-profiles",
       "options": {
         "presets": {
           "fast": {

@@ -1,0 +1,6 @@
+{
+  "name": "slim-tools",
+  "private": true,
+  "type": "module",
+  "exports": "./index.js"
+}

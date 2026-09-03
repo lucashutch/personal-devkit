@@ -7,7 +7,7 @@ import {
   createTabRenamer,
   selectedRootSession,
   stateFromSessionStatus,
-} from "./herdr-tui-pane.js"
+} from "./herdr-tui-pane/tui.js"
 
 function harness({ rootOf = (id) => id, clock = () => 0 } = {}) {
   const calls = []

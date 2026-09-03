@@ -7,7 +7,7 @@ import {
   createDelegateProfilesPlugin,
   parseModelRef,
   parseProfiles,
-} from "./delegate-profiles.js"
+} from "./delegate-profiles/index.js"
 
 const settings = {
   presets: {

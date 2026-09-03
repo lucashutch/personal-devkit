@@ -1,5 +1,5 @@
 import { Plugin } from "@opencode-ai/plugin"
-import { slimDescriptions, slimParamDescriptions } from "../lib/slim-tools-data.js"
+import { slimDescriptions, slimParamDescriptions } from "../../lib/slim-tools-data.js"
 
 // V2's session context hook receives the final, permission-filtered tool
 // record immediately before the model request is built. Unlike the previous

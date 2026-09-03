@@ -22,7 +22,7 @@ limit when that metadata is available.
 
 ## Configuration
 
-- Plugin entry: `shared/cli.json` → `./shared/plugins/subagent-sessions/tui.tsx`
+- Plugin entry: `shared/cli.json` -> `./shared/plugins/subagent-sessions`
 - Slot: `sidebar.content`
 - Child lookup: the TUI session cache plus session info retained from events,
   with a one-second server reconciliation filtered by `parentID`

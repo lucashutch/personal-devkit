@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { createModelFilterPlugin, matches, parseRules } from "./model-filter.js"
+import { createModelFilterPlugin, matches, parseRules } from "./model-filter/index.js"
 
 test("parseRules accepts an allowlist", () => {
   const { allow, deny } = parseRules({ allow: ["openai/gpt-5.6-sol", "opencode/*", "*free*"] })
