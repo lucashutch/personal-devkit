@@ -66,6 +66,12 @@ groups:
     - $CONFIG_HOME/opencode-v2-test/opencode/commands
     - $CONFIG_HOME/opencode/commands
     - $CONFIG_HOME/opencode-v1-test/opencode/commands
+  - source: agentic_common/user-instructions.md
+    destinations:
+    - $CONFIG_HOME/opencode-v2/opencode/AGENTS.md
+    - $CONFIG_HOME/opencode-v2-test/opencode/AGENTS.md
+    - $CONFIG_HOME/opencode/AGENTS.md
+    - $CONFIG_HOME/opencode-v1-test/opencode/AGENTS.md
 
   claude:
   - source: claude
@@ -76,6 +82,9 @@ groups:
   - source: agentic_common/skills
     destinations:
     - $HOME/.claude/skills
+  - source: agentic_common/user-instructions.md
+    destinations:
+    - $HOME/.claude/CLAUDE.md
 
   herdr:
   - source: herdr

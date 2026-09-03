@@ -1,6 +1,6 @@
 ---
 name: unslop
-description: Cut AI tells from any writing. Must always apply.
+description: Edit substantial user-facing prose to remove AI tells and add a natural voice.
 ---
 
 # Unslop
