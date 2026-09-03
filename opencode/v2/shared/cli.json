@@ -41,7 +41,7 @@
     "sound": false
   },
   "debug": {
-    "turn_tokens": true,
+    "turn_tokens": false,
     "devtools": true,
     "timing": false
   }
