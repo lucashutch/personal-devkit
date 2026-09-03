@@ -84,8 +84,17 @@ to reason about this.
    the directory name.
 2. If none of the first three exist, spawn a detached `claude -p --model haiku`
    to summarise the first prompt, append the result as an `ai-title` entry, and
-   rename the tab. Once per session, started only from `UserPromptSubmit`; no
-   hook ever blocks on it.
+   rename the tab. Once per session, started only from `UserPromptSubmit` and
+   claimed with an exclusive `$TMPDIR/herdr-claude-title-<session-id>` marker so
+   prompts sent while generation is still running do not each spawn their own
+   child; no hook ever blocks on it.
+
+"First typed prompt" means exactly that. A transcript's opening `type: user`
+entries can be the `isMeta` caveat and `<command-name>` wrapper that `/clear`
+leaves behind, and taking those as the prompt used to leave the tab stuck on the
+directory fallback with no generation ever starting, so the scan skips `isMeta`
+entries and anything whose `promptSource` is set to something other than
+`typed`.
 
 `SessionStart` covers a session switch: `/clear` and `/resume` both fire it, and
 the directory fallback stops a cleared session from keeping the previous title.

@@ -206,7 +206,14 @@ def explicit_name(session_id):
 
 
 def first_human_prompt(path):
-    """Returns the first typed prompt in a transcript, ignoring tool results."""
+    """Returns the first prompt in a transcript worth summarising.
+
+    A transcript's first `type: user` entries are not necessarily typed text.
+    /clear and other slash commands leave `isMeta` caveat entries and
+    `<command-name>` wrappers behind, so the scan keeps going until it finds an
+    entry the user actually typed (`promptSource == "typed"`, or an older entry
+    with no marker) whose text survives clean().
+    """
     if not isinstance(path, str) or not path:
         return None
     try:
@@ -218,12 +225,34 @@ def first_human_prompt(path):
                     continue
                 if entry.get("type") != "user" or entry.get("isSidechain"):
                     continue
+                if entry.get("isMeta"):
+                    continue
+                source = entry.get("promptSource")
+                if source is not None and source != "typed":
+                    continue
                 content = entry.get("message", {}).get("content")
-                if isinstance(content, str) and content.strip():
+                if isinstance(content, str) and clean(content):
                     return content
     except Exception:
         return None
     return None
+
+
+def claim_generation(session_id):
+    """Returns True for the first caller to claim a session's generation.
+
+    Generation takes seconds, and every prompt sent before the title lands sees
+    no stored title, so without this each one would spawn its own child and they
+    would all append the same title.
+    """
+    marker = Path(os.environ.get("TMPDIR", "/tmp")) / f"herdr-claude-title-{session_id}"
+    try:
+        os.close(os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600))
+        return True
+    except FileExistsError:
+        return False
+    except Exception:
+        return True
 
 
 if action == "generate":
@@ -301,7 +330,14 @@ if label:
 # and the like are skipped by clean(), so a later prompt gets the chance. Only
 # the prompt hook starts a generation: Stop fires while an earlier one may still
 # be running, and two would race to store a title.
-if event == "UserPromptSubmit" and session_id and transcript and fallback and not (custom or name or ai):
+if (
+    event == "UserPromptSubmit"
+    and session_id
+    and transcript
+    and fallback
+    and not (custom or name or ai)
+    and claim_generation(session_id)
+):
     try:
         subprocess.Popen(
             ["sh", os.environ["HERDR_TITLE_SELF"], "generate"],
