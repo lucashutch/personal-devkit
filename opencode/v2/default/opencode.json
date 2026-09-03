@@ -92,6 +92,9 @@
         },
         "review": {
             "disabled": true
+        },
+        "title": {
+            "system": "You output ONLY a thread title. Nothing else. Generate a brief title that helps the user find this conversation later. 5 words or fewer, single line, no explanations. Use the same language as the user message. Keep technical terms, numbers and filenames exact. Never include tool names."
         }
     },
     "permissions": [
