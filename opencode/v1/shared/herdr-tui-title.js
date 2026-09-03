@@ -5,12 +5,14 @@
 // first root session it saw, so switching session (or resuming an older one)
 // left the tab holding the previous label forever.
 //
-// `route.current` is polled rather than latched: the poll is the only thing
-// that notices a session switch, a title arriving late, or a rename.
+// A session switch is only visible in the route, and nothing reports a route
+// change, so the route is polled once a second: the reads are in-process and a
+// switch only has to beat the eye. Titles do have an event, so session.updated
+// renames straight away rather than waiting for the next tick.
 import net from "node:net";
 
 const SOURCE = "herdr:opencode-session-title";
-const ROUTE_POLL_INTERVAL_MS = 100;
+const ROUTE_POLL_INTERVAL_MS = 1_000;
 
 let requestSeq = Date.now() * 1000;
 let requestChain = Promise.resolve();
@@ -133,7 +135,11 @@ export function createHerdrTuiTitlePlugin(send = request) {
       const poll = () => void syncTitle(selectedRootSession(api)).catch(fail);
       poll();
       const timer = setInterval(poll, ROUTE_POLL_INTERVAL_MS);
-      api.lifecycle.onDispose(() => clearInterval(timer));
+      const stopWatchingSessions = api.event.on("session.updated", poll);
+      api.lifecycle.onDispose(() => {
+        clearInterval(timer);
+        stopWatchingSessions();
+      });
     },
   };
 }

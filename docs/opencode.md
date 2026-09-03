@@ -54,9 +54,10 @@ The V1 Herdr plugin is managed at `opencode/v1/shared/plugins/herdr-agent-state.
 
 Tab labels follow the selected session, so they are set from the TUI too:
 `opencode/v1/shared/herdr-tui-title.js` (registered in `tui.json`) for V1, and
-the same pane sync inside `herdr-tui-pane` for V2. Both poll the current route,
-because a server plugin only sees the session that happens to be active and
-cannot tell one pane's session switch from another's.
+the same pane sync inside `herdr-tui-pane` for V2. Both rename on `session.updated`
+and poll the route once a second, because a route change has no event and a
+server plugin only sees the session that happens to be active, so it cannot
+tell one pane's session switch from another's.
 
 Claude's Herdr hook is managed at `claude/hooks/herdr-agent-state.sh` and in `claude/settings.json`; link it with `pdklink --claude`.
 

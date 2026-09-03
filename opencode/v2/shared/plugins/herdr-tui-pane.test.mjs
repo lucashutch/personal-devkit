@@ -9,14 +9,13 @@ import {
   stateFromSessionStatus,
 } from "./herdr-tui-pane/tui.js"
 
-function harness({ rootOf = (id) => id, clock = () => 0 } = {}) {
+function harness({ rootOf = (id) => id } = {}) {
   const calls = []
   const sync = createPaneSync({
     reportSession: async (sessionID) => calls.push(["session", sessionID]),
     reportState: async (state, sessionID) => calls.push(["state", state, sessionID]),
     renameTab: async (title) => calls.push(["rename", title]),
     rootOf,
-    now: clock,
   })
   return { calls, ...sync }
 }
@@ -43,27 +42,28 @@ test("only a root session route owns the pane", () => {
 })
 
 test("the selection is reported on a retry ladder and the tab renamed once", async () => {
-  let clock = 0
-  const { calls, syncSelection } = harness({ clock: () => clock })
+  const { calls, syncSelection } = harness()
 
-  for (let poll = 0; poll < 4; poll += 1) await syncSelection({ sessionID: "root", title: "Root" })
-  assert.deepEqual(calls, [["rename", "Root"], ["session", "root"]])
+  // The caller reoffers the selection after each returned delay, so the ladder
+  // is exactly the delays this returns, then silence.
+  const delays = []
+  let delay
+  do {
+    delay = await syncSelection({ sessionID: "root", title: "Root" })
+    delays.push(delay)
+  } while (delay !== undefined)
 
-  clock = 100
-  await syncSelection({ sessionID: "root", title: "Root" })
-  clock = 500
-  await syncSelection({ sessionID: "root", title: "Root" })
-  clock = 1_500
-  await syncSelection({ sessionID: "root", title: "Root" })
-  clock = 100_000
-  await syncSelection({ sessionID: "root", title: "Root" })
-
+  assert.deepEqual(delays, [100, 400, 1_000, undefined])
   assert.deepEqual(calls.filter(([kind]) => kind === "session").length, 4)
   assert.deepEqual(calls.filter(([kind]) => kind === "rename"), [["rename", "Root"]])
+
+  // A settled selection offered again (a session event, say) reports nothing.
+  assert.equal(await syncSelection({ sessionID: "root", title: "Root" }), undefined)
+  assert.equal(calls.filter(([kind]) => kind === "session").length, 4)
 })
 
 test("a late or changed title renames the tab without a new selection", async () => {
-  const { calls, syncSelection } = harness({ clock: () => 100_000 })
+  const { calls, syncSelection } = harness()
 
   await syncSelection({ sessionID: "root", title: undefined })
   await syncSelection({ sessionID: "root", title: "Generated title" })
@@ -79,7 +79,7 @@ test("a late or changed title renames the tab without a new selection", async ()
 test("a second root session renames its own tab", async () => {
   // The bug this port fixes: a single server-side instance latched the first
   // session and silently dropped every later one.
-  const { calls, syncSelection } = harness({ clock: () => 100_000 })
+  const { calls, syncSelection } = harness()
 
   await syncSelection({ sessionID: "first", title: "First" })
   await syncSelection({ sessionID: "second", title: "Second" })
@@ -96,7 +96,6 @@ test("state is reported for the selected session and its subagents", async () =>
   const roots = { root: "root", child: "root", stranger: "stranger" }
   const { calls, syncSelection, handleEvent } = harness({
     rootOf: (id) => roots[id],
-    clock: () => 100_000,
   })
   await syncSelection({ sessionID: "root", title: "Root" })
   calls.length = 0
@@ -121,7 +120,7 @@ test("state is reported for the selected session and its subagents", async () =>
 
 test("a finished V2 turn returns the pane to idle", async () => {
   // V2 has no session.idle or session.status; only session.execution.* ends a turn.
-  const { calls, syncSelection, handleEvent } = harness({ clock: () => 100_000 })
+  const { calls, syncSelection, handleEvent } = harness()
   await syncSelection({ sessionID: "root", title: "Root" })
   calls.length = 0
 
@@ -144,7 +143,6 @@ test("another pane's session never touches this pane", async () => {
   const roots = { root: "root", stranger: "stranger" }
   const { calls, syncSelection, handleEvent } = harness({
     rootOf: (id) => roots[id],
-    clock: () => 100_000,
   })
   await syncSelection({ sessionID: "root", title: "Root" })
   calls.length = 0
@@ -211,7 +209,7 @@ test("the plugin stays inert outside a Herdr pane", () => {
   }
 })
 
-test("the plugin polls the route, listens for events and disposes both", async () => {
+test("the plugin tracks the route, listens for events and disposes both", async () => {
   const sent = []
   const plugin = createHerdrTuiPanePlugin(async (method, params) => {
     sent.push([method, params.agent_session_id ?? params.label])
@@ -224,10 +222,14 @@ test("the plugin polls the route, listens for events and disposes both", async (
   process.env.HERDR_TAB_ID = "wJ:t9"
   let emit
   let listening = true
+  let watching = true
   const ctx = {
     ui: { router: { current: () => ({ type: "session", sessionID: "root" }) } },
     data: {
       session: { get: () => ({ id: "root", title: "Root" }), root: () => "root" },
+      on: () => () => {
+        watching = false
+      },
       listen: (handler) => {
         emit = handler
         return () => {
@@ -242,6 +244,7 @@ test("the plugin polls the route, listens for events and disposes both", async (
     await new Promise((resolve) => setTimeout(resolve, 250))
     dispose()
     assert.equal(listening, false)
+    assert.equal(watching, false)
     assert.ok(
       sent.some(([method]) => method === "tab.rename"),
       "expected a tab rename",
@@ -252,7 +255,7 @@ test("the plugin polls the route, listens for events and disposes both", async (
     )
     const settled = sent.length
     await new Promise((resolve) => setTimeout(resolve, 250))
-    assert.equal(sent.length, settled, "polling continued after dispose")
+    assert.equal(sent.length, settled, "the retry ladder continued after dispose")
   } finally {
     for (const key of ["HERDR_ENV", "HERDR_SOCKET_PATH", "HERDR_PANE_ID", "HERDR_TAB_ID"]) {
       delete process.env[key]

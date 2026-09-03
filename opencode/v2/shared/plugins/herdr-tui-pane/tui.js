@@ -13,7 +13,10 @@ import net from "node:net"
 
 const SOURCE = "herdr:opencode"
 const AGENT = "opencode"
-const ROUTE_POLL_INTERVAL_MS = 100
+// A session switch is only visible in the route, and nothing reports a route
+// change, so it is polled. One second is enough: the reads are in-process and a
+// switch only has to beat the eye, while titles come in on session.updated.
+const ROUTE_POLL_INTERVAL_MS = 1_000
 // Herdr may not know the session yet when the route changes, so repeat the
 // identity report a few times while the selection holds, then stay quiet.
 const SELECTION_RETRY_DELAYS_MS = [100, 400, 1_000]
@@ -126,15 +129,19 @@ export function createTabRenamer(send = request, initialTabID = process.env.HERD
  * Track the root session this pane shows, and keep Herdr's session id, pane
  * state and tab label in step with it.
  *
- * `selection` is polled rather than latched: the poll is the only thing that
- * notices a route change, a title arriving late, or a rename, so identity and
- * title both settle without needing their own event wiring.
+ * `selection` is pushed in by the caller: on every session event, and on a
+ * slow poll for the route, which nothing announces. Repeats are cheap, since
+ * an unchanged selection and title report nothing.
+ *
+ * `syncSelection` returns the delay after which it wants the same selection
+ * offered again, or undefined when it is settled. That is only the retry
+ * ladder: Herdr may not know the session yet, and nothing re-notifies us when
+ * it catches up.
  */
-export function createPaneSync({ reportSession, reportState, renameTab, rootOf, now = () => Date.now() }) {
+export function createPaneSync({ reportSession, reportState, renameTab, rootOf }) {
   let selectedSessionID
   let reportedTitle
   let retryIndex = 0
-  let nextReportAt = 0
   let reportPending = false
 
   const syncSelection = async (selection) => {
@@ -143,14 +150,12 @@ export function createPaneSync({ reportSession, reportState, renameTab, rootOf, 
       selectedSessionID = undefined
       reportedTitle = undefined
       retryIndex = 0
-      nextReportAt = 0
-      return
+      return undefined
     }
     if (sessionID !== selectedSessionID) {
       selectedSessionID = sessionID
       reportedTitle = undefined
       retryIndex = 0
-      nextReportAt = 0
     }
 
     const title = selection.title
@@ -159,23 +164,24 @@ export function createPaneSync({ reportSession, reportState, renameTab, rootOf, 
       await renameTab(title)
     }
 
-    if (reportPending || now() < nextReportAt) return
+    // The ladder is exhausted, or a report is already in flight and will
+    // schedule the next rung itself.
+    if (reportPending || retryIndex > SELECTION_RETRY_DELAYS_MS.length) return undefined
     reportPending = true
     try {
       await reportSession(sessionID)
     } catch {
-      // Best-effort: the retry ladder below covers a socket that is not ready.
+      // Best-effort: the retry ladder covers a socket that is not ready.
     } finally {
       reportPending = false
     }
     if (selectedSessionID !== sessionID) {
       retryIndex = 0
-      nextReportAt = 0
-      return
+      return undefined
     }
     const retryDelay = SELECTION_RETRY_DELAYS_MS[retryIndex]
     retryIndex += 1
-    nextReportAt = retryDelay === undefined ? Number.POSITIVE_INFINITY : now() + retryDelay
+    return retryDelay
   }
 
   const handleEvent = async (event) => {
@@ -230,17 +236,27 @@ export function createHerdrTuiPanePlugin(send = request) {
       })
 
       const fail = (error) => console.error("Herdr tui-pane report failed", error)
-      // router.current() is only reactive inside a Solid computation, and plugin
-      // setup does not run in one, so poll instead of tracking.
-      const poll = () => void syncSelection(selectedRootSession(context)).catch(fail)
-      poll()
-      const timer = setInterval(poll, ROUTE_POLL_INTERVAL_MS)
+
+      let retryTimer
+      const sync = async () => {
+        const retryDelay = await syncSelection(selectedRootSession(context))
+        clearTimeout(retryTimer)
+        if (retryDelay !== undefined) retryTimer = setTimeout(run, retryDelay)
+      }
+      const run = () => void sync().catch(fail)
+
+      run()
+      const timer = setInterval(run, ROUTE_POLL_INTERVAL_MS)
+      // A title arriving or changing is an event, so do not wait for the poll.
+      const stopWatchingSessions = context.data.on("session.updated", run)
       const stopListening = context.data.listen(({ details }) => {
         void handleEvent(details).catch(fail)
       })
 
       return () => {
         clearInterval(timer)
+        clearTimeout(retryTimer)
+        stopWatchingSessions()
         stopListening()
       }
     },
