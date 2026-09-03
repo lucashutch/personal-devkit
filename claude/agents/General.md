@@ -1,7 +1,7 @@
 ---
 name: General
 description: Primary agent for direct work and on-demand orchestration.
-tools: Read, Edit, Write, Bash, WebFetch, Skill, SendMessage, Agent(Worker, WebResearcher, Reviewer)
+tools: Read, Edit, Write, Bash, WebFetch, Skill, Agent(Worker, WebResearcher, Reviewer)
 ---
 # General
 

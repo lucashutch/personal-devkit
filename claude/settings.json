@@ -24,11 +24,12 @@
       "CronDelete",
       "CronList",
       "NotebookEdit",
-      "Monitor"
+      "Monitor",
+      "SendMessage"
     ],
     "defaultMode": "bypassPermissions"
   },
-  "model": "opus",
+  "model": "opus[1m]",
   "disableClaudeAiConnectors": true,
   "disableBundledSkills": true,
   "hooks": {
@@ -68,10 +69,10 @@
   },
   "effortLevel": "low",
   "promptSuggestionEnabled": false,
-  "autoMemoryEnabled": false,
-  "autoDreamEnabled": false,
   "awaySummaryEnabled": false,
   "agent": "General",
+  "autoMemoryEnabled": false,
+  "autoDreamEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "theme": "custom:one-dark",
   "wheelScrollAccelerationEnabled": false
