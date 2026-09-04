@@ -133,6 +133,29 @@ class ForeignNodeTests(unittest.TestCase):
             self.assertIsNone(node._foreign_node_on_path())
 
 
+class NpmGlobalInstallTests(unittest.TestCase):
+    def test_links_binary_installed_under_managed_node(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)
+            root = home / ".local" / "share" / "node"
+            installed = root / "current" / "bin" / "example"
+            installed.parent.mkdir(parents=True)
+            installed.write_text("")
+
+            with (
+                mock.patch.object(node, "_install_root", return_value=root),
+                mock.patch.object(node.Path, "home", staticmethod(lambda: home)),
+                mock.patch.object(node, "run_command", return_value=mock.Mock(returncode=0)),
+                mock.patch.object(node, "command_exists", side_effect=[True, False, True]),
+                mock.patch.object(node, "version_for", return_value="1.0.0"),
+            ):
+                self.assertEqual(node.npm_global_install("example", "example", "Example"), 0)
+
+            link = home / ".local" / "bin" / "example"
+            self.assertTrue(link.is_symlink())
+            self.assertEqual(link.resolve(), installed.resolve())
+
+
 class PruneTests(unittest.TestCase):
     def setUp(self) -> None:
         self._temporary = tempfile.TemporaryDirectory()

@@ -196,6 +196,16 @@ def npm_global_install(package: str, binary: str, display_name: str) -> int:
     if run_command(["npm", "install", "--global", package], check=False).returncode != 0:
         return 1
 
+    installed_binary = _install_root() / "current" / "bin" / binary
+    if not command_exists(binary) and installed_binary.exists():
+        try:
+            local_bin = Path.home() / ".local" / "bin"
+            local_bin.mkdir(parents=True, exist_ok=True)
+            force_symlink(installed_binary, local_bin / binary)
+        except OSError:
+            error(f"Failed to link {binary} into {Path.home() / '.local' / 'bin'}.")
+            return 1
+
     if not command_exists(binary):
         error(f"{display_name} installation completed, but {binary} was not found on PATH.")
         return 1
