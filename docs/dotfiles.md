@@ -34,7 +34,7 @@ chmod 600 "$HOME/.bashrc.local"
 sudo tailscale set --operator="$USER"
 ```
 
-`tailnet home` and `tailnet work` refuse to switch unless their corresponding account variable is set.
+`tailnet home` and `tailnet work` refuse to switch unless their corresponding account variable is set. `tailnet exit on` routes through the `TAILNET_EXIT_NODE` exit node (`lucasfilms` by default), and `tailnet exit off` clears it.
 
 ## OpenCode wrappers
 
