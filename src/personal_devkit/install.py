@@ -47,7 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog=script_name(),
         usage="%(prog)s [OPTIONS]",
         description=(
-            "Install personal dev tools on Linux. By default, all supported tools are selected.\n"
+            "Install personal dev tools on Linux. By default, all non-optional tools are selected.\n"
             "This installer installs tools only; it does not link or modify dotfiles/config."
         ),
         epilog=(
@@ -60,7 +60,7 @@ def build_parser() -> argparse.ArgumentParser:
         add_help=False,
     )
     options = parser.add_argument_group("Options")
-    options.add_argument("--all", action="store_true", help="Select all tools (default when no tool flag is provided)")
+    options.add_argument("--all", action="store_true", help="Select all tools, including optional tools")
     options.add_argument("--fzf", action="store_true", help="Select fzf")
     options.add_argument("--starship", action="store_true", help="Select starship")
     options.add_argument("--node", action="store_true", help="Select Node.js LTS, npm, and npx")
@@ -104,7 +104,7 @@ class Options:
     install_vscode: bool = False
     install_wslu: bool = False
 
-    def select_all_tools(self) -> None:
+    def select_default_tools(self) -> None:
         self.install_fzf = True
         self.install_starship = True
         self.install_node = True
@@ -117,8 +117,11 @@ class Options:
         self.install_glow = True
         self.install_glowm = True
         self.install_herdr = True
-        self.install_vscode = True
         self.install_wslu = True
+
+    def select_all_tools(self) -> None:
+        self.select_default_tools()
+        self.install_vscode = True
 
 
 @dataclass
@@ -198,7 +201,7 @@ def parse_args(argv: list[str]) -> Options | int:
         or parsed.wslu
     )
     if not selected_any:
-        options.select_all_tools()
+        options.select_default_tools()
     return options
 
 
