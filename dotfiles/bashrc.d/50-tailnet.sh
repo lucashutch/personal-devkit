@@ -40,3 +40,17 @@ tailnet() {
   echo "Switching to $target Tailnet ($account)..."
   tailscale switch "$account"
 }
+
+_tailnet() {
+  local cur prev
+  COMPREPLY=()
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  prev="${COMP_WORDS[COMP_CWORD-1]}"
+  if [ "$COMP_CWORD" -eq 1 ]; then
+    COMPREPLY=($(compgen -W "home work exit" -- "$cur"))
+  elif [ "$COMP_CWORD" -eq 2 ] && [ "$prev" = "exit" ]; then
+    COMPREPLY=($(compgen -W "on off" -- "$cur"))
+  fi
+}
+
+complete -F _tailnet tailnet
