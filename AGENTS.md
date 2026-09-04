@@ -5,6 +5,7 @@
 - Match the surrounding code's naming, structure, idioms, formatting, and comment density.
 - Use comments only for non-obvious constraints; do not narrate code or justify a change to reviewers.
 - Before destructive or outward-facing actions, confirm authorization and inspect existing targets before overwriting or deleting them.
+- `~/.bashrc` is not managed by the linker, so `dotfiles/bashrc.d/` snippets only load if it sources `~/.config/bashrc.d/*.sh`. When shell helpers such as `oc2` are missing, check for that loader first and add the snippet from `docs/dotfiles.md` after confirming with the user, keeping a backup of the original file.
 
 # Git workflow
 
