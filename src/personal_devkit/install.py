@@ -65,7 +65,8 @@ def build_parser() -> argparse.ArgumentParser:
     options.add_argument("--starship", action="store_true", help="Select starship")
     options.add_argument("--node", action="store_true", help="Select Node.js LTS, npm, and npx")
     options.add_argument("--bun", action="store_true", help="Select bun")
-    options.add_argument("--opencode", action="store_true", help="Select OpenCode CLI and Desktop")
+    options.add_argument("--opencode", action="store_true", help="Select OpenCode CLI")
+    options.add_argument("--opencode-desktop", action="store_true", help="Select OpenCode Desktop")
     options.add_argument("--claude", action="store_true", help="Select Claude Code")
     options.add_argument("--codex", action="store_true", help="Select Codex CLI")
     options.add_argument("--tokscale", action="store_true", help="Select tokscale")
@@ -94,6 +95,7 @@ class Options:
     install_node: bool = False
     install_bun: bool = False
     install_opencode: bool = False
+    install_opencode_desktop: bool = False
     install_claude: bool = False
     install_codex: bool = False
     install_tokscale: bool = False
@@ -121,6 +123,7 @@ class Options:
 
     def select_all_tools(self) -> None:
         self.select_default_tools()
+        self.install_opencode_desktop = True
         self.install_vscode = True
 
 
@@ -173,6 +176,7 @@ def parse_args(argv: list[str]) -> Options | int:
     options.install_node = options.install_node or parsed.node
     options.install_bun = options.install_bun or parsed.bun
     options.install_opencode = options.install_opencode or parsed.opencode
+    options.install_opencode_desktop = options.install_opencode_desktop or parsed.opencode_desktop
     options.install_claude = options.install_claude or parsed.claude
     options.install_codex = options.install_codex or parsed.codex
     options.install_tokscale = options.install_tokscale or parsed.tokscale
@@ -190,6 +194,7 @@ def parse_args(argv: list[str]) -> Options | int:
         or parsed.node
         or parsed.bun
         or parsed.opencode
+        or parsed.opencode_desktop
         or parsed.claude
         or parsed.codex
         or parsed.tokscale
@@ -250,6 +255,7 @@ def main(argv: list[str] | None = None) -> int:
         run_tool(summary, "bun", install_bun, parsed)
     if parsed.install_opencode:
         run_npm_tool(summary, "opencode CLI", install_opencode, parsed, node_ready)
+    if parsed.install_opencode_desktop:
         run_tool(summary, "OpenCode Desktop", install_opencode_desktop, parsed)
     if parsed.install_claude:
         run_tool(summary, "claude", install_claude, parsed)
