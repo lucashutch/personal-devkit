@@ -460,7 +460,7 @@ def install_opencode_v2_tui_dependencies(npm: str) -> list[str]:
         detail = result.stderr.strip() or result.stdout.strip() or "command failed"
         return f"opencode-v2-tui-dependencies ({label} failed: {detail})"
 
-    base = ["install", "--ignore-scripts", "--no-package-lock"]
+    base = ["install", "--ignore-scripts", "--no-package-lock", "--no-audit", "--no-fund"]
     try:
         declared = json.loads((directory / "package.json").read_text()).get("dependencies", {})
     except (OSError, json.JSONDecodeError) as detail:
