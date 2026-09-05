@@ -4,11 +4,12 @@
 
 Adds a `Quotas` section to the session sidebar. It runs `limitwatch show
 --json`, formats each account's quota, refreshes after session status changes,
-and polls every two minutes.
+and polls every two minutes. A fresh durable cache and an in-process shared
+request suppress duplicate refreshes during bursts of status events.
 
 ## Configuration
 
-- Plugin entry: `shared/cli.json` -> `./shared/plugins/limitwatch-quota`
+- Plugin entry: `cli.json` -> `./shared/plugins/limitwatch-quota`
 - Command override: `LIMITWATCH_COMMAND`
 - Account directory override: `LIMITWATCH_CONFIG_DIR`
 
@@ -16,9 +17,12 @@ V2 plugin dependencies intentionally track the current `next` channel. Do not
 add a lockfile or pin preview builds; run `npm install --no-package-lock` from
 `opencode` after upgrading `opencode2`.
 
-When `LIMITWATCH_CONFIG_DIR` is unset, the plugin resets `XDG_CONFIG_HOME` to
-`$HOME/.config` for the child process so profile-specific OpenCode config does
-not hide the normal Limitwatch accounts.
+When `LIMITWATCH_CONFIG_DIR` is unset, the plugin removes the final
+`opencode-<profile>` directory from a profile-specific `XDG_CONFIG_HOME`.
+Other custom XDG roots are preserved.
+
+Multiple accounts include their alias or email in each quota row. Cached raw
+quota data is reformatted while rendering so reset countdowns stay current.
 
 The plugin calls `context.renderer.requestRender()` after asynchronous updates.
 It previously remounted its slot instead, because with `next-17028` a mounted

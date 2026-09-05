@@ -2,6 +2,7 @@
 import { TextAttributes, type ScrollBoxRenderable } from "@opentui/core"
 import { Plugin } from "@opencode-ai/plugin/tui"
 import { createEffect, createSignal, For, onCleanup, Show } from "solid-js"
+import { listChildren, polledStatus, reconcileChildren } from "./reconcile.js"
 
 type ChildSession = {
   id: string
@@ -12,7 +13,7 @@ type ChildSession = {
   time?: { created?: number; updated?: number }
 }
 
-type TokenUsage = { count: number; context?: number }
+type TokenUsage = { count: number }
 type ChildWithModel = ChildSession & { modelLabel?: string; tokenUsage?: TokenUsage }
 type ListState = { children: ChildWithModel[]; loading: boolean; error?: string }
 
@@ -70,9 +71,11 @@ export default Plugin.define({
     const theme = context.theme
     const [revision, setRevision] = createSignal(0)
     const observedSessions = new Map<string, ChildSession>()
-    const observedStatuses = new Map<string, "idle" | "running">()
+    const observedStatuses = new Map<string, "idle" | "running" | "retry">()
     const statusEventTimes = new Map<string, number>()
     const observedTokenCounts = new Map<string, number>()
+    const observedAt = new Map<string, number>()
+    const absentRemoteIDs = new Set<string>()
     // The component's revision effect rebuilds the list; a mounted slot then
     // repaints in place once the host is asked. Do not reintroduce a
     // dispose/re-register cycle, which also discarded scroll and child state.
@@ -82,6 +85,8 @@ export default Plugin.define({
     }
     const rememberSession = (event: { data: Omit<ChildSession, "id"> & { sessionID: string } }) => {
       observedSessions.set(event.data.sessionID, { ...event.data, id: event.data.sessionID })
+      observedAt.set(event.data.sessionID, Date.now())
+      absentRemoteIDs.delete(event.data.sessionID)
       refreshSessions()
     }
     const disposeCreated = context.data.on("session.created", rememberSession)
@@ -92,10 +97,13 @@ export default Plugin.define({
       observedStatuses.delete(event.data.sessionID)
       statusEventTimes.delete(event.data.sessionID)
       observedTokenCounts.delete(event.data.sessionID)
+      observedAt.delete(event.data.sessionID)
+      absentRemoteIDs.add(event.data.sessionID)
       refreshSessions()
     })
     const disposeStatus = context.data.on("session.status", (event) => {
-      observedStatuses.set(event.data.sessionID, event.data.status.type === "busy" ? "running" : "idle")
+      const type = event.data.status.type
+      observedStatuses.set(event.data.sessionID, type === "busy" ? "running" : type === "retry" ? "retry" : "idle")
       statusEventTimes.set(event.data.sessionID, Date.now())
       refreshSessions()
     })
@@ -106,24 +114,30 @@ export default Plugin.define({
       let scrollbox: ScrollBoxRenderable | undefined
       let request = 0
       let disposed = false
+      let polling = false
       let knownChildIDs = new Set<string>()
 
       const refreshRemote = async () => {
+        if (polling || disposed) return
+        polling = true
         const parentID = props.sessionID
+        const startedAt = Date.now()
         try {
-          const response = await context.client.session.list({ parentID })
-          if (disposed || parentID !== props.sessionID) return
+          const sessions = await listChildren(
+            (input: { parentID: string; cursor?: string }) => context.client.session.list(input),
+            parentID, () => !disposed && parentID === props.sessionID,
+          ) as ChildSession[] | undefined
+          if (!sessions) return
           let changed = false
-          for (const session of response.data as ChildSession[]) {
+          for (const session of sessions) {
             const previous = observedSessions.get(session.id)
-            observedSessions.set(session.id, session)
             changed ||= !previous
               || previous.time?.updated !== session.time?.updated
               || previous.title !== session.title
               || previous.agent !== session.agent
 
-            const status = context.data.session.status(session.id)
             const observedStatus = observedStatuses.get(session.id)
+            const status = polledStatus(observedStatus, context.data.session.status(session.id))
             const eventIsFresh = Date.now() - (statusEventTimes.get(session.id) ?? 0) < 750
             if (!eventIsFresh && observedStatus !== status) {
               observedStatuses.set(session.id, status)
@@ -136,10 +150,12 @@ export default Plugin.define({
               changed = true
             }
           }
-          if (changed) refreshSessions()
+          reconcileChildren({ sessions, observed: observedSessions, observedAt,
+            absent: absentRemoteIDs, parentID, startedAt })
+          refreshSessions()
         } catch {
           // The local cache and event payloads remain usable if polling fails.
-        }
+        } finally { polling = false }
       }
 
       void refreshRemote()
@@ -153,7 +169,7 @@ export default Plugin.define({
         )
         for (const [id, session] of observedSessions) sessions.set(id, session)
         const children = [...sessions.values()]
-          .filter((session) => session.parentID === parentID)
+          .filter((session) => session.parentID === parentID && !absentRemoteIDs.has(session.id))
           .sort((left, right) => (left.time?.created ?? 0) - (right.time?.created ?? 0))
 
         return children.map((child) => {
@@ -162,23 +178,19 @@ export default Plugin.define({
             : [...(context.data.session.message.list(child.id) ?? [])].reverse()
               .map((message) => modelLabel(message))
               .find(Boolean)
-          const usage = tokenUsage(child.id, model)
+          const usage = tokenUsage(child.id)
           return { ...child, ...(model ? { modelLabel: model } : {}), tokenUsage: usage }
         })
       }
 
-      function tokenUsage(sessionID: string, model?: string): TokenUsage | undefined {
+      function tokenUsage(sessionID: string): TokenUsage | undefined {
         const assistant = [...(context.data.session.message.list(sessionID) ?? [])]
           .reverse()
           .find((message) => message.type === "assistant" && message.tokens)
         if (!assistant || assistant.type !== "assistant" || !assistant.tokens) return undefined
         const tokens = assistant.tokens
         const count = tokens.input + tokens.output + tokens.reasoning + tokens.cache.read + tokens.cache.write
-        const modelInfo = context.data.location.model.list()?.find((candidate) =>
-          `${candidate.providerID}/${candidate.modelID}` === model?.split("#")[0]
-          || candidate.id === model?.split("#")[0]
-        )
-        return { count, context: modelInfo?.limit.context }
+        return { count }
       }
 
       createEffect(() => {
@@ -205,12 +217,12 @@ export default Plugin.define({
         request += 1
       })
 
-      const listHeight = () => state().children.length === 0 ? 1 : MAX_VISIBLE_ROWS
+      const listHeight = () => Math.max(1, Math.min(MAX_VISIBLE_ROWS, state().children.length * 2))
 
-      // V2 reports only "idle" or "running"; V1's separate "retry" state has no
-      // equivalent in the session status API.
       const activity = (sessionID: string) =>
-        (observedStatuses.get(sessionID) ?? context.data.session.status(sessionID)) === "running"
+        (observedStatuses.get(sessionID) ?? context.data.session.status(sessionID)) === "retry"
+          ? { label: "retrying", color: theme.text.feedback.warning.default }
+          : (observedStatuses.get(sessionID) ?? context.data.session.status(sessionID)) === "running"
           ? { label: "working", color: theme.text.feedback.warning.default }
           : { label: "idle", color: theme.text.subdued }
 
@@ -242,16 +254,13 @@ export default Plugin.define({
                   const live = () => context.data.session.get(child.id) ?? child
                   const current = () => activity(child.id)
                   const label = () => delegateLabel(live())
-                  const role = () => label()?.agent ?? live().agent ?? "Subagent"
+                   const role = () => label()?.agent ?? live().agent ?? "Subagent"
                   const model = () => child.modelLabel ?? modelLabel(live().model)
                   const usage = () => child.tokenUsage
-                  const tokenLabel = () => {
+                   const tokenLabel = () => {
                     const current = usage()
                     if (!current) return undefined
-                    const percentage = current.context
-                      ? ` (${Math.round(current.count / current.context * 100)}%)`
-                      : ""
-                    return `${formatTokens(current.count)}${percentage}`
+                     return `last call ${formatTokens(current.count)} tok`
                   }
                   return (
                     <box
@@ -261,11 +270,10 @@ export default Plugin.define({
                       <text fg={current().color}>▎{"\n"}▎ </text>
                       <box flexDirection="column" flexGrow={1}>
                         <text>{truncate(
-                          [role(), effortLabel(label()?.profile), current().label].filter(Boolean).join(" · ")
-                            || live().title || "Untitled subagent",
+                          live().title || "Untitled subagent",
                         )}</text>
                         <text fg={theme.text.subdued}>
-                          {`  ${modelName(model()) ?? "Model unavailable"}${tokenLabel() ? ` · ${tokenLabel()}` : ""}`}
+                          {`  ${[role(), effortLabel(label()?.profile), modelName(model()), current().label, tokenLabel()].filter(Boolean).join(" · ")}`}
                         </text>
                       </box>
                     </box>

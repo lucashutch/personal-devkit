@@ -2,6 +2,8 @@
 import { Plugin } from "@opencode-ai/plugin/tui"
 import { TextAttributes } from "@opentui/core"
 import { createSignal } from "solid-js"
+import { isOpenAiQuota, openAiWindow, visibleQuotas } from "./openai-windows.js"
+import { createSharedFetch } from "./shared-fetch.js"
 
 const DEFAULT_COMMAND = "limitwatch show --json"
 
@@ -12,13 +14,17 @@ const SERVICE_PREFIXES: Record<string, string> = {
 }
 
 type QuotaLine = string | { name: string; value: string }
-type QuotaCache = { lines: QuotaLine[]; updatedAt: number }
+type QuotaCache = { lines: QuotaLine[]; updatedAt: number; raw?: unknown }
+const REFRESH_INTERVAL = 2 * 60 * 1000
+const MIN_REFRESH_INTERVAL = 15_000
+const MAX_OUTPUT_BYTES = 1024 * 1024
 
 function normalizeText(value: unknown) {
   return String(value ?? "").replace(/\r\n/g, "\n").trim()
 }
 
 function formatQuota(quota: any): QuotaLine {
+  if (!quota || typeof quota !== "object") return "Malformed quota"
   const label = formatQuotaLabel(quota)
   const service = formatService(quota)
   const reset = isOpenAiCodexQuota(quota) ? formatResetDuration(quota.reset) : ""
@@ -112,6 +118,8 @@ function formatQuotaLabel(quota: any) {
 // Codex window sizes move (the 5h primary window was withdrawn and restored),
 // so read the window from the payload rather than assuming per rate-limit slot.
 function formatCodexWindowLabel(quota: any, label: string) {
+  const window = openAiWindow(quota)
+  if (window) return window
   const seconds = typeof quota.window_seconds === "number" ? quota.window_seconds : null
   if (seconds && seconds > 0) {
     const hours = Math.round(seconds / 3600)
@@ -140,7 +148,7 @@ function formatService(quota: any) {
   return `${prefix}(${source.toLowerCase().replace(/\s+/g, "-")})`
 }
 
-function parseQuotaData(output: unknown): QuotaLine[] {
+export function parseQuotaData(output: unknown): QuotaLine[] {
   const text = normalizeText(output)
   if (!text) return ["No quota data"]
 
@@ -149,14 +157,27 @@ function parseQuotaData(output: unknown): QuotaLine[] {
     if (!Array.isArray(parsed)) return [text.split("\n").find(Boolean) ?? "No quota data"]
 
     const lines: QuotaLine[] = []
+    const multiple = parsed.length > 1
     for (const account of parsed as any[]) {
+      if (!account || typeof account !== "object") {
+        lines.push("Unknown account: malformed quota data")
+        continue
+      }
+      const who = account.email || account.alias || account.account || "Unknown account"
       if (account.error) {
-        const who = account.email || account.alias || "Unknown"
         lines.push(`${who}: ${account.error}`)
         continue
       }
-
-      lines.push(...(account.quotas ?? []).map(formatQuota))
+      if (!Array.isArray(account.quotas)) {
+        lines.push(`${who}: malformed quota data`)
+        continue
+      }
+      for (const quota of visibleQuotas(account.quotas)) {
+        const line = formatQuota(quota)
+        lines.push(multiple && !isOpenAiQuota(quota)
+          ? typeof line === "string" ? `${who}: ${line}` : { ...line, name: `${who} ${line.name}` }
+          : line)
+      }
     }
 
     return lines.length > 0 ? lines : ["No quota data"]
@@ -170,43 +191,82 @@ function parseQuotaData(output: unknown): QuotaLine[] {
 // LIMITWATCH_CONFIG_DIR, else $XDG_CONFIG_HOME/limitwatch, else
 // ~/.config/limitwatch, so inheriting the profile value makes it report
 // "Accounts file not found" even though the same command works in a shell.
-function quotaEnv() {
+export function quotaEnv() {
   const env = { ...process.env }
   if (env.LIMITWATCH_CONFIG_DIR?.trim()) return env
   const home = env.HOME
-  if (home) env.XDG_CONFIG_HOME = `${home}/.config`
-  else delete env.XDG_CONFIG_HOME
+  // Keep a deliberate custom XDG home. Only profile wrappers identify
+  // themselves with an opencode-v2 directory and need the normal user config.
+  const xdg = env.XDG_CONFIG_HOME?.replace(/\/+$/, "")
+  if (xdg && /^opencode(?:-v2)?-[^/]+$/.test(xdg.split("/").at(-1) ?? "")) {
+    env.XDG_CONFIG_HOME = xdg.slice(0, xdg.lastIndexOf("/")) || "/"
+  }
   return env
 }
 
-async function fetchQuotaLines() {
+async function readBounded(stream: ReadableStream<Uint8Array>, limit: number) {
+  const reader = stream.getReader()
+  const chunks: Uint8Array[] = []
+  let size = 0
+  try {
+    while (size < limit) {
+      const { done, value } = await reader.read()
+      if (done) break
+      const chunk = value.subarray(0, limit - size)
+      chunks.push(chunk)
+      size += chunk.byteLength
+      if (size >= limit) break
+    }
+  } finally {
+    await reader.cancel().catch(() => {})
+  }
+  const output = new Uint8Array(size)
+  let offset = 0
+  for (const chunk of chunks) { output.set(chunk, offset); offset += chunk.byteLength }
+  return new TextDecoder().decode(output)
+}
+
+async function fetchQuotaLines(signal: AbortSignal) {
+  signal.throwIfAborted()
   const command = process.env.LIMITWATCH_COMMAND?.trim() || DEFAULT_COMMAND
-  const proc = Bun.spawn(["sh", "-lc", command], {
+  const proc = Bun.spawn(["setsid", "sh", "-lc", command], {
     stdout: "pipe",
     stderr: "pipe",
     env: quotaEnv(),
   })
 
-  const timeout = setTimeout(() => proc.kill(), 30_000)
+  const kill = () => {
+    try { process.kill(-proc.pid, "SIGKILL") } catch { proc.kill("SIGKILL") }
+  }
+  let rejectStopped: (error: Error) => void = () => {}
+  const stopped = new Promise<never>((_, reject) => { rejectStopped = reject })
+  const cancel = () => { kill(); rejectStopped(new Error("Quota fetch cancelled")) }
+  signal.addEventListener("abort", cancel, { once: true })
+  const timeout = setTimeout(() => { kill(); rejectStopped(new Error("Quota fetch timed out")) }, 30_000)
   let result
   try {
-    result = await Promise.all([
-      new Response(proc.stdout).text(),
-      new Response(proc.stderr).text(),
+    result = await Promise.race([Promise.all([
+      readBounded(proc.stdout, MAX_OUTPUT_BYTES),
+      readBounded(proc.stderr, MAX_OUTPUT_BYTES),
       proc.exited,
-    ])
+    ]), stopped])
   } finally {
     clearTimeout(timeout)
+    signal.removeEventListener("abort", cancel)
   }
 
   const [stdout, stderr, exitCode] = result
 
   if (exitCode !== 0) {
-    return [normalizeText(stderr) || `limitwatch exited with code ${exitCode}`]
+    return { lines: [normalizeText(stderr) || `limitwatch exited with code ${exitCode}`] }
   }
 
-  return parseQuotaData(stdout)
+  let raw
+  try { raw = JSON.parse(normalizeText(stdout)) } catch {}
+  return { lines: parseQuotaData(stdout), raw }
 }
+
+const sharedFetch = createSharedFetch(fetchQuotaLines, Date.now, MIN_REFRESH_INTERVAL)
 
 const plugin = Plugin.define({
   id: "limitwatch-quota-plugin",
@@ -216,35 +276,44 @@ const plugin = Plugin.define({
       initial: { lines: [], updatedAt: 0 },
     })
     const [refreshing, setRefreshing] = createSignal(false)
+    const [clock, setClock] = createSignal(Date.now())
+    const detach = sharedFetch.attach()
 
     let timer: ReturnType<typeof setInterval> | undefined
     let refreshQueued = false
+    let disposed = false
 
     // A mounted slot repaints in place; the host just needs to be asked. Do not
     // reintroduce a dispose/re-register cycle, which resets sidebar scroll.
-    const repaint = () => context.renderer.requestRender()
+    const repaint = () => { if (!disposed) context.renderer.requestRender() }
     const refresh = async () => {
+      if (disposed) return
+      sharedFetch.seed({ lines: cache.lines, raw: cache.raw, updatedAt: cache.updatedAt })
       if (refreshing()) {
         refreshQueued = true
         return
       }
       setRefreshing(true)
       try {
-        const lines = await fetchQuotaLines()
+        const result = await sharedFetch.get()
+        if (disposed) return
         await updateCache((draft) => {
-          draft.lines = lines
-          draft.updatedAt = Date.now()
+          draft.lines = result.lines
+          draft.raw = result.raw
+          draft.updatedAt = result.updatedAt
         })
         repaint()
       } catch (error) {
+        if (disposed) return
         await updateCache((draft) => {
           draft.lines = [`Error: ${error instanceof Error ? error.message : String(error)}`]
+          draft.raw = undefined
           draft.updatedAt = Date.now()
         })
         repaint()
       } finally {
         setRefreshing(false)
-        if (refreshQueued) {
+        if (refreshQueued && !disposed) {
           refreshQueued = false
           void refresh()
         }
@@ -252,15 +321,22 @@ const plugin = Plugin.define({
     }
 
     void refresh()
-    timer = setInterval(() => void refresh(), 2 * 60 * 1000)
+    timer = setInterval(() => void refresh(), REFRESH_INTERVAL)
     timer.unref?.()
+    const clockTimer = setInterval(() => { setClock(Date.now()); repaint() }, 60_000)
+    clockTimer.unref?.()
     const disposeStatus = context.data.on("session.status", () => void refresh())
 
     function QuotaSidebar() {
       const stamp = () => cache.updatedAt
         ? `updated ${new Date(cache.updatedAt).toLocaleTimeString()}`
         : refreshing() ? "refreshing" : ""
-      const lines = () => cache.lines.length > 0 ? cache.lines : ["Loading quota..."]
+      const lines = () => {
+        clock()
+        return cache.raw
+        ? parseQuotaData(JSON.stringify(cache.raw))
+        : cache.lines.length > 0 ? cache.lines : ["Loading quota..."]
+      }
 
       return (
         <box flexDirection="column">
@@ -290,6 +366,10 @@ const plugin = Plugin.define({
     })
 
     return () => {
+      disposed = true
+      refreshQueued = false
+      detach()
+      clearInterval(clockTimer)
       if (timer) clearInterval(timer)
       disposeStatus()
       disposeSlot()

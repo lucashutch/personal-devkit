@@ -23,9 +23,64 @@ function harness({ rootOf = (id) => id } = {}) {
 function context(route, sessions = {}) {
   return {
     ui: { router: { current: () => route } },
-    data: { session: { get: (id) => sessions[id] } },
+    data: { session: { get: (id) => sessions[id], root: (id) => sessions[id]?.parentID ?? id } },
   }
 }
+
+test("failed execution recovers and two pending requests unblock separately", async () => {
+  const { calls, syncSelection, handleEvent } = harness()
+  await syncSelection({ sessionID: "root" })
+  const event = (type, requestID) => handleEvent({ type, data: { sessionID: "root", requestID } })
+  await event("session.execution.failed")
+  await event("session.execution.started")
+  await event("session.execution.succeeded")
+  assert.deepEqual(calls.filter(([kind]) => kind === "state").map((call) => call[1]), ["blocked", "working", "idle"])
+  await event("permission.asked", "a")
+  await event("permission.asked", "b")
+  await event("permission.replied", "a")
+  assert.equal(calls.at(-1)[1], "blocked")
+  await event("permission.replied", "b")
+  assert.equal(calls.at(-1)[1], "working")
+})
+
+test("failed identity reports back off and settle after recovery", async () => {
+  let attempts = 0
+  const { syncSelection } = createPaneSync({
+    reportSession: async () => { if (++attempts < 4) throw new Error("offline") },
+    reportState: async () => {}, renameTab: async () => {}, rootOf: (id) => id,
+  })
+  const delays = []
+  for (let index = 0; index < 6; index++) delays.push(await syncSelection({ sessionID: "root" }))
+  assert.deepEqual(delays, [100, 400, 1000, undefined, undefined, undefined])
+  assert.equal(attempts, 4)
+})
+
+test("late tab lookup cannot rename a deselected or disposed session", async () => {
+  let release
+  let current = true
+  const calls = []
+  const rename = createTabRenamer(async (method) => {
+    calls.push(method)
+    if (method === "pane.get") return new Promise((resolve) => { release = resolve })
+  }, null)
+  const pending = rename("Old title", () => current)
+  current = false
+  release({ result: { pane: { tab_id: "tab" } } })
+  await pending
+  assert.deepEqual(calls, ["pane.get"])
+})
+
+test("protocol errors invalidate cached tab identity", async () => {
+  const calls = []
+  const rename = createTabRenamer(async (method, params) => {
+    calls.push([method, params.tab_id])
+    if (method === "pane.get") return { result: { pane: { tab_id: "new" } } }
+    return params.tab_id === "old" ? { error: "not found" } : { result: {} }
+  }, "old")
+  await assert.rejects(rename("Title"), /not found/)
+  await rename("Title")
+  assert.deepEqual(calls, [["tab.rename", "old"], ["pane.get", undefined], ["tab.rename", "new"]])
+})
 
 test("only a root session route owns the pane", () => {
   const sessions = {
@@ -36,30 +91,29 @@ test("only a root session route owns the pane", () => {
     sessionID: "root",
     title: "Root",
   })
-  assert.equal(selectedRootSession(context({ type: "session", sessionID: "child" }, sessions)), undefined)
+  assert.deepEqual(selectedRootSession(context({ type: "session", sessionID: "child" }, sessions)), {
+    sessionID: "root",
+    title: "Root",
+  })
   assert.equal(selectedRootSession(context({ type: "session", sessionID: "gone" }, sessions)), undefined)
   assert.equal(selectedRootSession(context({ type: "home" }, sessions)), undefined)
 })
 
-test("the selection is reported on a retry ladder and the tab renamed once", async () => {
+test("successful selection reports settle and coalesce", async () => {
   const { calls, syncSelection } = harness()
 
-  // The caller reoffers the selection after each returned delay, so the ladder
-  // is exactly the delays this returns, then silence.
+  // Retries settle at a bounded one-second backoff so a late Herdr startup is
+  // eventually discovered.
   const delays = []
-  let delay
-  do {
-    delay = await syncSelection({ sessionID: "root", title: "Root" })
-    delays.push(delay)
-  } while (delay !== undefined)
+  for (let index = 0; index < 5; index++) {
+    delays.push(await syncSelection({ sessionID: "root", title: "Root" }))
+  }
 
-  assert.deepEqual(delays, [100, 400, 1_000, undefined])
-  assert.deepEqual(calls.filter(([kind]) => kind === "session").length, 4)
+  assert.deepEqual(delays, [undefined, undefined, undefined, undefined, undefined])
+  assert.deepEqual(calls.filter(([kind]) => kind === "session").length, 1)
   assert.deepEqual(calls.filter(([kind]) => kind === "rename"), [["rename", "Root"]])
 
-  // A settled selection offered again (a session event, say) reports nothing.
   assert.equal(await syncSelection({ sessionID: "root", title: "Root" }), undefined)
-  assert.equal(calls.filter(([kind]) => kind === "session").length, 4)
 })
 
 test("a late or changed title renames the tab without a new selection", async () => {
@@ -110,11 +164,8 @@ test("state is reported for the selected session and its subagents", async () =>
 
   assert.deepEqual(calls, [
     ["state", "working", "root"],
-    ["state", "working", "root"],
     ["state", "blocked", "root"],
     ["state", "working", "root"],
-    ["state", "working", "root"],
-    ["state", "idle", "root"],
   ])
 })
 
@@ -135,6 +186,30 @@ test("a finished V2 turn returns the pane to idle", async () => {
     ["state", "working", "root"],
     ["state", "idle", "root"],
   ])
+})
+
+test("an idle child does not hide a working sibling", async () => {
+  const roots = { root: "root", one: "root", two: "root" }
+  const { calls, syncSelection, handleEvent } = harness({ rootOf: (id) => roots[id] })
+  await syncSelection({ sessionID: "root", title: "Root" })
+  calls.length = 0
+  await handleEvent({ type: "session.execution.started", data: { sessionID: "one" } })
+  await handleEvent({ type: "session.execution.started", data: { sessionID: "two" } })
+  await handleEvent({ type: "session.execution.succeeded", data: { sessionID: "two" } })
+  assert.deepEqual(calls, [["state", "working", "root"]])
+  await handleEvent({ type: "session.execution.succeeded", data: { sessionID: "one" } })
+  assert.deepEqual(calls.at(-1), ["state", "idle", "root"])
+})
+
+test("blocked wins over working until the blocked child resumes", async () => {
+  const { calls, syncSelection, handleEvent } = harness({ rootOf: () => "root" })
+  await syncSelection({ sessionID: "root", title: "Root" })
+  calls.length = 0
+  await handleEvent({ type: "session.execution.started", data: { sessionID: "one" } })
+  await handleEvent({ type: "permission.asked", data: { sessionID: "two" } })
+  await handleEvent({ type: "session.execution.succeeded", data: { sessionID: "one" } })
+  await handleEvent({ type: "permission.replied", data: { sessionID: "two" } })
+  assert.deepEqual(calls.map((call) => call[1]), ["working", "blocked", "working"])
 })
 
 test("another pane's session never touches this pane", async () => {
