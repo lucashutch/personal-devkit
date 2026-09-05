@@ -147,10 +147,7 @@ class LinkConfigTests(unittest.TestCase):
             desktop.write_text("mine")
             result = self.run_linker(home, "--opencode")
             self.assertNotEqual(result.returncode, 0)
-            first_link = (
-                Path(home)
-                / ".config/opencode/opencode/opencode.json"
-            )
+            first_link = Path(home) / ".config/opencode/opencode.json"
             self.assertFalse(first_link.exists())
             self.assertEqual(desktop.read_text(), "mine")
 
@@ -407,8 +404,13 @@ class LinkConfigTests(unittest.TestCase):
             )
             self.assertEqual(repeat.returncode, 0, repeat.stderr)
             for profile in ("default", "test"):
-                suffix = "" if profile == "default" else f"-{profile}"
-                target = config_home / f"opencode{suffix}" / "opencode"
+                # The default profile owns the plain XDG namespace, so its
+                # config directory is the OpenCode directory itself.
+                target = (
+                    config_home / "opencode"
+                    if profile == "default"
+                    else config_home / f"opencode-{profile}" / "opencode"
+                )
                 self.assertEqual(
                     target.joinpath("opencode.json").resolve(),
                     ROOT / "opencode" / profile / "opencode.json",
@@ -465,7 +467,7 @@ class LinkConfigTests(unittest.TestCase):
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertTrue((base / "opencode" / "opencode" / "opencode.json").is_symlink())
+            self.assertTrue((base / "opencode" / "opencode.json").is_symlink())
             self.assertTrue((base / "opencode-test" / "opencode" / "opencode.json").is_symlink())
             self.assertFalse((base / "opencode-test" / "opencode-test").exists())
 
@@ -490,7 +492,7 @@ class LinkConfigTests(unittest.TestCase):
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertTrue((base / "opencode" / "opencode" / "opencode.json").is_symlink())
+            self.assertTrue((base / "opencode" / "opencode.json").is_symlink())
             self.assertFalse((base / "opencode-v1-home" / "opencode").exists())
 
 
