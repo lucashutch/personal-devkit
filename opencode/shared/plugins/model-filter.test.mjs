@@ -19,6 +19,17 @@ test("parseRules rejects malformed and ambiguous settings", () => {
   assert.throws(() => parseRules({ allow: "openai/sol" }), /must be an array/)
   assert.throws(() => parseRules({ allow: ["no-provider"] }), /provider\/model/)
   assert.throws(() => parseRules({ deny: ["openai/"] }), /provider\/model/)
+  assert.throws(() => parseRules({ deny: [" openai/model"] }), /whitespace/)
+  assert.throws(() => parseRules({ deny: ["openai/mo del"] }), /whitespace/)
+})
+
+test("exceptions do not revive an already disabled model", async () => {
+  const models = [{ providerID: "openai", id: "off", enabled: false }]
+  await createModelFilterPlugin().setup({
+    options: { deny: ["openai/*"], except: ["openai/*"] },
+    catalog: { transform: async (fn) => fn(fakeCatalog(models)) },
+  })
+  assert.equal(models[0].enabled, false)
 })
 
 test("matches honors exact IDs and glob wildcards", () => {

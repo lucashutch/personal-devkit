@@ -1,4 +1,6 @@
-import { Plugin } from "@opencode-ai/plugin"
+import { Plugin } from "@opencode-ai/plugin/effect"
+import { Tool } from "@opencode-ai/schema/tool"
+import { Effect } from "effect"
 
 // Delegate model profiles, configured through this plugin's options in the
 // profile's opencode.json:
@@ -8,6 +10,7 @@ const profileOrder = ["fast", "standard", "deep", "inherit"]
 
 export function parseModelRef(value, label = "model") {
   if (typeof value !== "string") throw new Error(`${label} must be a provider/model string`)
+  if (value !== value.trim() || /\s/.test(value)) throw new Error(`${label} must not contain whitespace`)
   const providerEnd = value.indexOf("/")
   const variantStart = value.indexOf("#", providerEnd + 1)
   const providerID = value.slice(0, providerEnd)
@@ -54,7 +57,7 @@ export function parseProfiles(configured) {
   )
 }
 
-export function addModelProfile(schema, agents = []) {
+export function addModelProfile(schema, agents = [], profiles) {
   const input = structuredClone(schema)
   const available = agents
     .filter((agent) => agent.mode !== "primary" && !agent.hidden)
@@ -76,61 +79,81 @@ export function addModelProfile(schema, agents = []) {
     model_profile: {
       type: "string",
       enum: profileOrder,
-      description:
-        "Execution tier. Start at fast. Escalate to standard when the task needs judgement or spans several "
-        + "files, and to deep when it is ambiguous, high-stakes, or needs multi-step reasoning. "
-        + "inherit deliberately matches the selected agent or parent model and reasoning level.",
+      description: (profiles
+        ? `Configured model: fast=${formatModelRef(profiles.fast)}, standard=${formatModelRef(profiles.standard)}, deep=${formatModelRef(profiles.deep)}; inherit=selected agent/parent.`
+        : "Configured model profile; inherit uses the selected agent or parent.")
+        + " When resuming with sessionID, use inherit to preserve the child's model and reasoning level; start a new child to change them.",
     },
   }
   input.required = [...new Set([...(input.required ?? []), "model_profile"])]
   return input
 }
 
-export function aliasID(agent, profile) {
-  return `${profile[0].toUpperCase()}${profile.slice(1)}-${agent}`
+function formatModelRef(model) {
+  return `${model.providerID}/${model.id}${model.variant ? `#${model.variant}` : ""}`
 }
 
 export function createDelegateProfilesPlugin() {
   return Plugin.define({
     id: "personal.delegate-profiles",
-    setup: async (ctx) => {
+    effect: (ctx) => Effect.gen(function* () {
       const profiles = parseProfiles(ctx.options)
-      const aliases = new Map()
+      const pending = new Map()
+      const children = new Map()
+      const wrapped = new WeakSet()
+      const key = (event) => JSON.stringify([event.sessionID, event.messageID, event.id])
+      const fail = (message) => Effect.fail(new Tool.Error({ message: `delegate-profiles ${message}` }))
+      yield* Effect.addFinalizer(() => Effect.sync(() => { pending.clear(); children.clear() }))
 
-      const ensureAlias = async (agent, profile) => {
-        const id = aliasID(agent, profile)
-        const existing = aliases.get(id)
-        if (existing) return existing
-
-        const pending = (async () => {
-          // `agent.get` takes `{ agentID }` and returns `{ location, data }`.
-          // It rejects with "Agent not found" rather than resolving undefined.
-          const source = await ctx.agent.get({ agentID: agent })
-            .then((result) => result?.data)
-            .catch(() => undefined)
-          if (!source) throw new Error(`delegate-profiles cannot find agent: ${agent}`)
-          await ctx.agent.transform((draft) => {
-            draft.update(id, (alias) => {
-              Object.assign(alias, structuredClone(source))
-              alias.hidden = true
-              alias.model = profiles[profile]
-            })
+      yield* ctx.tool.transform((editor) => editor.update("subagent", (tool) => {
+        if (wrapped.has(tool.execute)) return
+        const native = tool.execute
+        tool.execute = (input, context) => Effect.suspend(() => {
+          const invocation = key(context)
+          const state = pending.get(invocation)
+          pending.delete(invocation)
+          if (!state) return fail("missing validated model_profile")
+          const owned = new Set()
+          const claim = (child) => Effect.suspend(() => {
+            if (children.has(child) && children.get(child) !== state) return fail(`child already in use: ${child}`)
+            children.set(child, state)
+            owned.add(child)
+            return Effect.void
           })
-          return id
-        })().catch((error) => {
-          aliases.delete(id)
-          throw error
+          let selected = false
+          return Effect.gen(function* () {
+            if (input.sessionID) {
+              yield* claim(input.sessionID)
+              if (state.model) {
+                const child = yield* ctx.session.get({ sessionID: input.sessionID })
+                const current = child.data.model
+                if (!current || current.providerID !== state.model.providerID || current.id !== state.model.id || current.variant !== state.model.variant) {
+                  return yield* fail("cannot change a resumed child's model profile; use inherit or start a new child")
+                }
+              }
+            }
+            return yield* native(input, {
+              ...context,
+              progress: (update) => Effect.gen(function* () {
+                if (!selected && update.status === "running" && typeof update.sessionID === "string") {
+                  yield* claim(update.sessionID)
+                  if (state.model && !input.sessionID) yield* ctx.session.switchModel({ sessionID: update.sessionID, model: state.model })
+                  selected = true
+                }
+                yield* context.progress(update)
+              }),
+            })
+          }).pipe(Effect.ensuring(Effect.sync(() => {
+            for (const child of owned) if (children.get(child) === state) children.delete(child)
+          })))
         })
-        aliases.set(id, pending)
-        return pending
-      }
+        wrapped.add(tool.execute)
+      }))
 
-      // Hooks and transforms are released with the plugin generation, so this
-      // setup owns no resource that needs an explicit cleanup function.
-      await ctx.session.hook("context", async (event) => {
+      yield* ctx.session.hook("context", (event) => Effect.gen(function* () {
         const subagent = event.tools.subagent
         if (!subagent) return
-        const agents = (await ctx.agent.list()).data
+        const agents = (yield* ctx.agent.list()).data
         const available = agents
           .filter((agent) => agent.mode !== "primary" && !agent.hidden)
           .map((agent) => agent.id)
@@ -141,21 +164,35 @@ export function createDelegateProfilesPlugin() {
           "Choose `agent` by role and `model_profile` by execution tier; profile names are not agent names.",
           ...(available.length === 0 ? [] : [`Available agent roles: ${available.join(", ")}.`]),
         ].join("\n")
-        subagent.input = addModelProfile(subagent.input, agents)
-      })
+        subagent.input = addModelProfile(subagent.input, agents, profiles)
+      }))
 
-      await ctx.tool.hook("execute.before", async (event) => {
+      yield* ctx.tool.hook("execute.before", (event) => Effect.gen(function* () {
         if (event.tool !== "subagent" || !event.input || typeof event.input !== "object") return
+        pending.delete(key(event))
         const input = { ...event.input }
         const profile = input.model_profile
         if (!profileOrder.includes(profile)) {
-          throw new Error(`delegate-profiles received an unknown model_profile: ${String(profile)}`)
+          return yield* fail(`received an unknown model_profile: ${String(profile)}`)
         }
         delete input.model_profile
-        if (profile !== "inherit") input.agent = await ensureAlias(input.agent, profile)
+        if (profile !== "inherit") {
+          const agents = (yield* ctx.agent.list()).data
+          const source = agents.find((agent) => agent.id === input.agent && !agent.hidden && agent.mode !== "primary")
+          if (!source) return yield* fail(`cannot find subagent role: ${input.agent}`)
+          const selected = profiles[profile]
+          const models = (yield* ctx.catalog.model.list()).data
+          const model = models.find((model) => model.providerID === selected.providerID && model.id === selected.id)
+          if (!model?.enabled) return yield* fail(`model unavailable: ${formatModelRef(selected)}`)
+          if (selected.variant && !model.variants?.some((variant) => variant.id === selected.variant)) {
+            return yield* fail(`variant unavailable: ${formatModelRef(selected)}`)
+          }
+        }
         event.input = input
-      })
-    },
+        pending.set(key(event), { model: profile === "inherit" ? undefined : profiles[profile] })
+      }))
+      yield* ctx.tool.hook("execute.after", (event) => Effect.sync(() => pending.delete(key(event))))
+    }),
   })
 }
 

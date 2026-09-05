@@ -33,7 +33,7 @@ o2t run --model prompt-capture-openai/gpt-5.6-luna 'Reply with OK without callin
 
 The proxy intentionally may return a non-zero result when it is capture-only.
 Inspect its newest `request.raw.json` and confirm that known tool descriptions
-and their parameter descriptions equal `shared/lib/slim-tools-data.js`.
+and their parameter descriptions equal `lib/slim-tools-data.js`.
 
 ## Compatibility notes
 

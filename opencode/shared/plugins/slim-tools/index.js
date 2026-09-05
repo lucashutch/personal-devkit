@@ -6,23 +6,24 @@ import { slimDescriptions, slimParamDescriptions } from "../../lib/slim-tools-da
 // AI-SDK language-hook workaround, it covers both native and AI-SDK provider
 // routes.
 
-function patchSchemaNode(node, params) {
-  if (!node || typeof node !== "object") return
+function resolveRef(node, root) {
+  if (typeof node?.$ref !== "string" || !node.$ref.startsWith("#/")) return undefined
+  return node.$ref.slice(2).split("/").reduce((value, part) => value?.[part.replace(/~1/g, "/").replace(/~0/g, "~")], root)
+}
 
-  const props = node.properties
-  if (props) {
-    for (const [name, desc] of Object.entries(params)) {
-      if (props[name]) props[name] = { ...props[name], description: desc }
-    }
-    node.properties = { ...props }
-    Object.values(node.properties).forEach((sub) => patchSchemaNode(sub, params))
-  }
-
+function patchPath(node, path, description, root, seen = new Set()) {
+  if (!node || typeof node !== "object" || seen.has(node)) return
+  seen.add(node)
+  const ref = resolveRef(node, root)
+  if (ref) patchPath(ref, path, description, root, seen)
   for (const key of ["anyOf", "oneOf", "allOf"]) {
-    if (Array.isArray(node[key])) node[key].forEach((sub) => patchSchemaNode(sub, params))
+    if (Array.isArray(node[key])) node[key].forEach((part) => patchPath(part, path, description, root, seen))
   }
-  if (Array.isArray(node.prefixItems)) node.prefixItems.forEach((sub) => patchSchemaNode(sub, params))
-  if (node.items) patchSchemaNode(node.items, params)
+  const [name, ...rest] = path
+  const child = name === "*" ? node.items : node.properties?.[name]
+  if (!child) return
+  if (rest.length === 0) node.properties[name] = { ...child, description }
+  else patchPath(child, rest, description, root, seen)
 }
 
 function slimTool(name, tool) {
@@ -35,7 +36,12 @@ function slimTool(name, tool) {
   if (description) next.description = description
   if (params && next.input) {
     next.input = structuredClone(next.input)
-    patchSchemaNode(next.input, params)
+    for (const [param, description] of Object.entries(params)) {
+      const path = name === "question"
+        ? ({ question: ["questions", "*", "question"], header: ["questions", "*", "header"], options: ["questions", "*", "options"], label: ["questions", "*", "options", "*", "label"], description: ["questions", "*", "options", "*", "description"], multiple: ["questions", "*", "multiple"] }[param] ?? [param])
+        : [param]
+      patchPath(next.input, path, description, next.input)
+    }
   }
   return next
 }

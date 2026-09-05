@@ -17,6 +17,9 @@ function parseRuleList(source, label) {
   return source.map((value, index) => {
     const ref = `model-filter options.${label}[${index}]`
     if (typeof value !== "string") throw new Error(`${ref} must be a provider/model string or model glob`)
+    if (!value || value !== value.trim() || /\s/.test(value)) {
+      throw new Error(`${ref} must not be empty or contain whitespace`)
+    }
     const providerEnd = value.indexOf("/")
     if (providerEnd === -1) {
       if (!value.includes("*")) throw new Error(`${ref} must be a provider/model string or model glob`)
@@ -61,7 +64,9 @@ export function createModelFilterPlugin() {
           for (const model of record.models.values()) {
             const exception = matches(except, model.providerID, model.id)
             const allowed = allow.length === 0 || matches(allow, model.providerID, model.id)
-            model.enabled = exception || (allowed && !matches(deny, model.providerID, model.id))
+            // Exceptions bypass filtering, but never revive a model disabled by
+            // the provider or another plugin before this transform.
+            model.enabled = model.enabled !== false && (exception || (allowed && !matches(deny, model.providerID, model.id)))
           }
         }
       })

@@ -1,151 +1,128 @@
 import assert from "node:assert/strict"
 import test from "node:test"
+import { Effect, Fiber, Exit } from "effect"
+import { Tool } from "@opencode-ai/schema/tool"
+import { addModelProfile, createDelegateProfilesPlugin, parseModelRef, parseProfiles } from "./delegate-profiles/index.js"
 
-import {
-  addModelProfile,
-  aliasID,
-  createDelegateProfilesPlugin,
-  parseModelRef,
-  parseProfiles,
-} from "./delegate-profiles/index.js"
-
-const settings = {
-  presets: {
-    fast: { model: "openai/luna", variant: "low" },
-    balanced: { model: "openai/terra", variant: "medium" },
-    deep: { model: "openai/sol", variant: "high" },
-  },
-}
-
-test("parseModelRef returns a V2 model reference", () => {
-  assert.deepEqual(parseModelRef("openai/gpt-5.6-sol#high"), {
-    providerID: "openai",
-    id: "gpt-5.6-sol",
-    variant: "high",
-  })
-  assert.throws(() => parseModelRef("gpt-5.6-sol"), /provider\/model/)
-  assert.throws(() => parseModelRef("openai/model#"), /provider\/model/)
-})
-
-test("parseProfiles requires every preset", () => {
-  assert.deepEqual(parseProfiles(settings).standard, {
-    providerID: "openai",
-    id: "terra",
-    variant: "medium",
-  })
-  assert.deepEqual(parseProfiles(settings).deep, {
-    providerID: "openai",
-    id: "sol",
-    variant: "high",
-  })
-  const withoutVariants = structuredClone(settings)
-  delete withoutVariants.presets.fast.variant
-  assert.deepEqual(parseProfiles(withoutVariants).fast, {
-    providerID: "openai",
-    id: "luna",
-  })
-  assert.throws(() => parseProfiles({ presets: { fast: settings.presets.fast } }), /presets.balanced/)
-})
-
-test("addModelProfile augments a clone of the native schema", () => {
-  const schema = {
-    type: "object",
-    properties: { agent: { type: "string" } },
-    required: ["agent"],
-  }
-  const patched = addModelProfile(schema, [
-    { id: "Director", mode: "primary", hidden: false },
-    { id: "WebResearcher", mode: "subagent", hidden: false },
-    { id: "internal", mode: "subagent", hidden: true },
-  ])
-  assert.equal(schema.properties.model_profile, undefined)
-  assert.deepEqual(patched.properties.agent.enum, ["WebResearcher"])
-  assert.match(patched.properties.agent.description, /model_profile/)
-  assert.deepEqual(patched.properties.model_profile.enum, ["fast", "standard", "deep", "inherit"])
-  assert.deepEqual(patched.required, ["agent", "model_profile"])
-})
-
-test("aliasID produces a concise native TUI label", () => {
-  assert.equal(aliasID("Worker", "fast"), "Fast-Worker")
-  assert.equal(aliasID("WebResearcher", "deep"), "Deep-WebResearcher")
-})
-
-test("plugin advertises model_profile and routes execution through a hidden alias", async () => {
-  const hooks = {}
-  const aliases = new Map()
-  const source = {
-    id: "WebResearcher",
-    name: "WebResearcher",
-    mode: "subagent",
-    hidden: false,
-    permissions: [{ action: "edit", resource: "*", effect: "deny" }],
-    request: { headers: {}, body: {} },
-  }
-  const ctx = {
+const settings = { presets: {
+  fast: { model: "openai/luna", variant: "low" },
+  balanced: { model: "openai/terra", variant: "medium" },
+  deep: { model: "openai/sol", variant: "high" },
+} }
+const run = (fn, native) => Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+  const hooks = {}, log = [], active = {}
+  const models = Object.values(parseProfiles(settings)).map((m) => ({ ...m, enabled: true, variants: [{ id: m.variant }] }))
+  const tool = { execute: native ?? ((input, context) => Effect.gen(function* () {
+    log.push(["role", input.agent])
+    yield* context.progress({ sessionID: input.sessionID ?? input.child ?? "child", status: "running" })
+    log.push(["prompt", input.background ?? false])
+    return result
+  })) }
+  const result = { content: "native", metadata: { native: true } }
+  let transform
+  const register = (name, callback) => Effect.sync(() => { hooks[name] = callback })
+  yield* createDelegateProfilesPlugin().effect({
     options: settings,
-    agent: {
-      // Mirrors the host: `{ agentID }` in, `{ location, data }` out, and a
-      // rejection rather than `undefined` when the agent does not exist.
-      get: async (input) => {
-        if (typeof input?.agentID !== "string") throw new Error("Expected string, got undefined")
-        const found = input.agentID === source.id ? source : aliases.get(input.agentID)
-        if (!found) throw new Error(`Agent not found: ${input.agentID}`)
-        return { location: {}, data: found }
-      },
-      list: async () => ({ data: [source] }),
-      transform: async (callback) => {
-        callback({
-          update: (id, update) => {
-            const value = aliases.get(id) ?? { id }
-            update(value)
-            value.id = id
-            aliases.set(id, value)
-          },
-        })
-        return { dispose: async () => {} }
-      },
-    },
+    agent: { list: () => Effect.succeed({ data: [{ id: "Worker", mode: "subagent" }] }) },
+    catalog: { model: { list: () => Effect.succeed({ data: models }) } },
     session: {
-      hook: async (name, callback) => {
-        hooks[name] = callback
-        return { dispose: async () => {} }
-      },
+      hook: register,
+      get: ({ sessionID }) => Effect.succeed({ data: { model: active[sessionID] } }),
+      switchModel: (input) => Effect.sync(() => { log.push(["switch", input]); return {} }),
     },
-    tool: {
-      hook: async (name, callback) => {
-        hooks[name] = callback
-        return { dispose: async () => {} }
-      },
-    },
-  }
-
-  await createDelegateProfilesPlugin().setup(ctx)
-  const context = {
-    tools: {
-      subagent: {
-        description: "native",
-        input: { type: "object", properties: { agent: { type: "string" } }, required: ["agent"] },
-      },
-    },
-  }
-  await hooks.context(context)
-  assert.deepEqual(context.tools.subagent.input.properties.model_profile.enum, ["fast", "standard", "deep", "inherit"])
-  assert.deepEqual(context.tools.subagent.input.properties.agent.enum, ["WebResearcher"])
-  assert.match(context.tools.subagent.description, /profile names are not agent names/)
-
-  const event = {
-    tool: "subagent",
-    input: { agent: "WebResearcher", description: "Probe", prompt: "Check", model_profile: "deep" },
-  }
-  await hooks["execute.before"](event)
-  const expected = aliasID("WebResearcher", "deep")
-  assert.equal(event.input.agent, expected)
-  assert.equal(event.input.model_profile, undefined)
-  assert.deepEqual(aliases.get(expected).model, {
-    providerID: "openai",
-    id: "sol",
-    variant: "high",
+    tool: { hook: register, transform: (callback) => Effect.sync(() => { transform = callback; callback({ update: (_, fn) => fn(tool) }) }) },
   })
-  assert.equal(aliases.get(expected).hidden, true)
-  assert.deepEqual(aliases.get(expected).permissions, source.permissions)
+  let sequence = 0
+  const prepare = (input = {}, identity = {}) => Effect.gen(function* () {
+    const event = { tool: "subagent", sessionID: "parent", messageID: "message", id: String(++sequence), ...identity,
+      input: { agent: "Worker", model_profile: "fast", ...input } }
+    yield* hooks["execute.before"](event)
+    return { event, execute: () => tool.execute(event.input, { ...event, progress: (update) => Effect.sync(() => log.push(["progress", update])) }) }
+  })
+  yield* fn({ hooks, log, active, models, tool, result, prepare, replay: () => transform({ update: (_, fn) => fn(tool) }) })
+})))
+
+test("profile parsing and compact cloned schema", () => {
+  assert.deepEqual(parseModelRef("openai/a#low"), { providerID: "openai", id: "a", variant: "low" })
+  for (const value of ["a", "openai/a#", " openai/a"]) assert.throws(() => parseModelRef(value))
+  assert.equal(parseProfiles(settings).standard.id, "terra")
+  assert.throws(() => parseProfiles({ presets: {} }))
+  const schema = { type: "object", properties: { agent: { type: "string" } }, required: ["agent"] }
+  const augmented = addModelProfile(schema, [{ id: "Worker", mode: "subagent" }], parseProfiles(settings))
+  assert.equal(schema.properties.model_profile, undefined)
+  assert.deepEqual(augmented.properties.agent.enum, ["Worker"])
+  assert.match(augmented.properties.model_profile.description, /fast=openai\/luna#low/)
+  assert.match(augmented.properties.model_profile.description, /When resuming with sessionID, use inherit/)
+  assert.match(addModelProfile(schema).properties.model_profile.description, /When resuming with sessionID, use inherit/)
+})
+
+for (const background of [false, true]) test(`native forwarding and pre-admission ordering background=${background}`, () => run(function* ({ prepare, log, result }) {
+  const call = yield* prepare({ background })
+  assert.equal(call.event.input.agent, "Worker")
+  assert.equal(call.event.input.model_profile, undefined)
+  assert.equal(yield* call.execute(), result)
+  assert.deepEqual(log.map(([name]) => name), ["role", "switch", "progress", "prompt"])
+}))
+
+test("resume preserves model, rejects profile changes, and replay is idempotent", () => run(function* ({ prepare, log, active, replay, tool }) {
+  const execute = tool.execute
+  replay(); replay()
+  assert.equal(tool.execute, execute)
+  active.old = parseProfiles(settings).deep
+  yield* (yield* prepare({ sessionID: "old", model_profile: "deep" })).execute()
+  assert.equal(log.some(([name]) => name === "switch"), false)
+  log.length = 0
+  yield* (yield* prepare({ sessionID: "old", model_profile: "inherit" })).execute()
+  assert.equal(log.some(([name]) => name === "switch"), false)
+  const failed = yield* Effect.exit((yield* prepare({ sessionID: "old" })).execute())
+  assert.ok(Exit.isFailure(failed))
+  yield* (yield* prepare({ sessionID: "old", model_profile: "inherit" })).execute()
+}))
+
+test("invalid profile, model, variant and after-hook cleanup", () => run(function* ({ prepare, models, hooks }) {
+  assert.ok(Exit.isFailure(yield* Effect.exit(prepare({ model_profile: "invalid" }))))
+  models[0].enabled = false
+  assert.ok(Exit.isFailure(yield* Effect.exit(prepare())))
+  models[0].enabled = true
+  models[0].variants = []
+  assert.ok(Exit.isFailure(yield* Effect.exit(prepare())))
+  models[0].variants = [{ id: "low" }]
+  const call = yield* prepare()
+  yield* hooks["execute.after"](call.event)
+  assert.ok(Exit.isFailure(yield* Effect.exit(call.execute())))
+}))
+
+test("native error identity and retry cleanup", () => {
+  const error = new Tool.Error({ message: "native error" })
+  return run(function* ({ prepare }) {
+    for (let i = 0; i < 2; i++) {
+      const call = yield* prepare({ sessionID: "same", model_profile: "inherit" })
+      const actual = yield* call.execute().pipe(Effect.catch((e) => Effect.succeed(e)))
+      assert.equal(actual, error)
+    }
+  }, () => Effect.fail(error))
+})
+
+test("concurrent invocation isolation, same-child conflict, cancellation cleanup", () => {
+  const admitted = []
+  return run(function* ({ prepare, log }) {
+    const a = yield* prepare({ child: "a", model_profile: "fast" })
+    const b = yield* prepare({ child: "b", model_profile: "deep" })
+    const fa = yield* Effect.forkChild(a.execute())
+    const fb = yield* Effect.forkChild(b.execute())
+    while (admitted.length < 2) yield* Effect.yieldNow
+    assert.deepEqual(log.filter(([n]) => n === "switch").map(([, v]) => [v.sessionID, v.model.id]).sort(), [["a", "luna"], ["b", "sol"]])
+    const conflict = yield* prepare({ sessionID: "a", model_profile: "inherit" })
+    assert.ok(Exit.isFailure(yield* Effect.exit(conflict.execute())))
+    yield* Fiber.interrupt(fa)
+    yield* Fiber.interrupt(fb)
+    const retry = yield* prepare({ sessionID: "a", model_profile: "inherit" })
+    const fr = yield* Effect.forkChild(retry.execute())
+    while (admitted.length < 3) yield* Effect.yieldNow
+    yield* Fiber.interrupt(fr)
+  }, (input, context) => Effect.gen(function* () {
+    yield* context.progress({ sessionID: input.sessionID ?? input.child, status: "running" })
+    admitted.push(input.sessionID ?? input.child)
+    yield* Effect.never
+  }))
 })

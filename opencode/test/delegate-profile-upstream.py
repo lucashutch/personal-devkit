@@ -26,7 +26,7 @@ class Handler(BaseHTTPRequestHandler):
         elif has_subagent:
             arguments = json.dumps(
                 {
-                    "agent": "WebResearcher",
+                    "agent": "Worker",
                     "description": "Profile routing probe",
                     "prompt": "Reply with exactly PROBE_CHILD_OK",
                     "background": False,

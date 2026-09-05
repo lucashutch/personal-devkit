@@ -37,13 +37,14 @@ def main() -> None:
     assert model_profile["enum"] == ["fast", "standard", "deep", "inherit"]
     assert "model_profile" in parameters["required"]
     agent = parameters["properties"]["agent"]
-    assert "WebResearcher" in agent["enum"]
+    assert "Worker" in agent["enum"]
+    assert "WebResearcher" not in agent["enum"]
     assert not {"fast", "standard", "deep"}.intersection(agent["enum"])
     assert "profile names are not agent names" in subagent(parent)["description"]
 
     child = next(request for request in captured if request.get("model") == "gpt-5.6-sol")
     messages = child["messages"]
-    assert messages[0]["role"] == "system" and messages[0]["content"].startswith("# WebResearcher")
+    assert messages[0]["role"] == "system" and messages[0]["content"].startswith("# Worker")
     assert any("PROBE_CHILD_OK" in str(message.get("content")) for message in messages)
 
     resumed_parent = next(
@@ -58,7 +59,7 @@ def main() -> None:
     )
     call = next(message for message in resumed_parent["messages"] if message.get("tool_calls"))
     arguments = json.loads(call["tool_calls"][0]["function"]["arguments"])
-    assert arguments["agent"] == "WebResearcher"
+    assert arguments["agent"] == "Worker"
     assert arguments["model_profile"] == "deep"
     print("delegate profile capture validation passed")
 

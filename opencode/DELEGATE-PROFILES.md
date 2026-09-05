@@ -1,180 +1,45 @@
-# V2 delegate model profiles
+# Delegate model profiles
 
-## Status
+The default and test profiles enable `personal.delegate-profiles`. Configure
+`fast`, `standard` (also accepted as `balanced`), and `deep` presets in each
+profile's `opencode.json`. Each preset selects a model and optional reasoning
+variant. The parent model's reasoning level does not determine that variant.
 
-`personal.delegate-profiles` is enabled for the V2 home, work, and test
-profiles on `@opencode-ai/cli@0.0.0-next-15788`. It adds a required
-`model_profile` argument to the native `subagent` tool while retaining the
-native child-session executor.
+The plugin adds `model_profile` to the native subagent schema and wraps the
+native Effect executor. It keeps the real Worker/Reviewer agent ID. At the
+executor's awaited child-progress callback, it persists the selected model
+before native prompt admission. No hidden alias agents are required.
 
-The supported profiles are `fast`, `standard`, `deep`, and `inherit`.
-`standard` uses the model stored as `balanced` in the options; the
-naming adapter keeps the V2 tool vocabulary stable without changing the tool
-interface.
+Use `inherit` with `sessionID` when resuming. This preserves the child's model
+and reasoning level. A matching explicit profile is accepted without changing
+the model; a different profile requires a new child. Native execution retains
+permission checks, foreground/background jobs, cancellation, and notifications.
+Invocation-local state and child locks prevent overlapping wrapper calls from
+switching each other's models.
 
-## Model settings
+## Validation and compatibility
 
-Each V2 profile declares its presets as plugin `options` on the
-`delegate-profiles` entry in its own `opencode.json`, so the settings travel
-with the profile that loads the plugin. Update the required preset there, then
-restart that profile's V2 service. Each preset has a required `model` and an
-optional `variant`; test omits variants because its synthetic models do not
-declare them.
-
-- [default](default/opencode.json) uses `openai`; and
-- [test](test/opencode.json) uses `prompt-capture-openai`.
-
-## How it works
-
-The implementation is
-[`shared/plugins/delegate-profiles`](shared/plugins/delegate-profiles).
-It deliberately adapts the native tool instead of registering a replacement:
-
-1. The `session.context` hook modifies the provider-facing native `subagent`
-   schema. It adds required `model_profile`, constrains `agent` to visible
-   configured subagent roles, and explains that profiles are not agent names.
-2. The `tool.execute.before` hook removes `model_profile` before native input
-   decoding.
-3. For `fast`, `standard`, or `deep`, the hook lazily clones the selected agent
-   into a hidden alias and pins that alias to the selected V2 model reference
-   `{ providerID, id, variant? }`.
-4. The native executor receives the hidden alias. It still owns permission
-   checks, child creation, foreground/background jobs, cancellation, result
-   injection, and TUI session metadata.
-5. `inherit` removes the extra argument and passes the original agent through,
-   allowing the native `agent.model ?? parent.model` behavior to decide.
-
-The alias is created during execution rather than plugin setup because external
-plugins load before OpenCode's config-agent post phase. At execution time the
-configured source agent is available, so its prompt, permissions, mode, request
-options, and other fields can be cloned safely. Aliases are cached for the
-plugin generation and disposed when it unloads.
-
-`delegate-profiles` must be listed after `slim-tools` in profile configuration.
-Both mutate the provider-facing tool definition; running delegate last ensures
-its profile guidance and dynamic agent-role enum are not replaced by the slim
-description.
-
-## Beta dependencies
-
-This implementation relies on behavior present in V2 release `next-15788`:
-
-- the native tool is named `subagent`;
-- the session hook runtime name is `context` even though older public docs used
-  `request`;
-- the context hook may mutate tool descriptions and JSON schemas;
-- `tool.execute.before` may replace `event.input` before native schema decoding;
-- agent transforms may create hidden agents at runtime; and
-- native subagent model selection reads the selected agent's pinned model.
-
-Release-matched source references:
-
-- [release run 15788](https://github.com/anomalyco/opencode/actions/runs/29630441419)
-- [native subagent](https://github.com/anomalyco/opencode/blob/deb5b144c3b0f575e478f02f8b9d979cf8d01b8c/packages/core/src/tool/subagent.ts)
-- [V2 plugin tool API](https://github.com/anomalyco/opencode/blob/deb5b144c3b0f575e478f02f8b9d979cf8d01b8c/packages/plugin/src/v2/effect/tool.ts)
-- [session model-request hook](https://github.com/anomalyco/opencode/blob/deb5b144c3b0f575e478f02f8b9d979cf8d01b8c/packages/core/src/session/model-request.ts)
-- [tool hook settlement](https://github.com/anomalyco/opencode/blob/deb5b144c3b0f575e478f02f8b9d979cf8d01b8c/packages/core/src/tool/registry.ts)
-
-## Validation
-
-Run the local tests:
+Verified new-child foreground and background routing against CLI beta-19135
+with SDK beta-19129 using a loopback fake provider. Captures confirmed the
+selected child model, Worker prompt, and read permission. Unit tests cover
+variant selection, resume policy, concurrent calls, cancellation cleanup, and
+native result/error forwarding:
 
 ```sh
 node --test opencode/shared/plugins/delegate-profiles.test.mjs
-python3 -m unittest scripts.tests.test_link_config
 ```
 
-The deterministic integration test sends every provider request through
-`context-proxy-forward` while avoiding dependence on a model choosing the
-expected tool call:
+The local capture harness also verified an Astra parent sending `low` reasoning
+while Luna children sent `xhigh` and `medium`. After each standalone process
+exited, a fresh process resumed the same child with `inherit`. SQLite records
+and provider requests retained the Worker role, model, and reasoning variant,
+without creating another session. Evidence is saved under
+`/tmp/opencode/agentic-reasoning-evidence.json` on the validation machine.
 
-```sh
-# Terminal 1, from this repository
-python3 opencode/test/delegate-profile-upstream.py
+The awaited progress-before-prompt ordering is release-specific. Revalidate it
+after CLI upgrades. Unit tests are not substitutes for these integration checks.
 
-# Terminal 2
-CAPTURE=/tmp/opencode-v2-delegate-profile-captures
-rm -rf "$CAPTURE"
-cd /home/lucas/9999-personal/context-proxy-forward
-uv run python context_proxy_forward.py \
-  --host 127.0.0.1 --port 1234 \
-  --out "$CAPTURE" \
-  --upstream http://127.0.0.1:1235
-
-# Terminal 3, from this repository
-CAPTURE=/tmp/opencode-v2-delegate-profile-captures
-o2t service restart
-o2t run --auto --agent General \
-  --model prompt-capture-openai/gpt-5.6-luna \
-  'Run the requested profile routing probe.'
-python3 opencode/test/check-delegate-profile-captures.py "$CAPTURE"
-```
-
-The checker verifies the provider-facing schema, the exact `WebResearcher` plus
-`deep` call, the `gpt-5.6-sol` child request, the retained WebResearcher system
-prompt, and the native child result returned to the parent.
-
-The released configuration was also validated live through the retired `o2h`
-profile with OpenAI
-Luna as the General orchestrator. The final parent session contained three
-completed calls with `agent: WebResearcher` and profiles `fast`, `standard`, and
-`deep`. Inspection of the three child sessions confirmed:
-
-| Profile | Child model |
-|---|---|
-| `fast` | `openai/gpt-5.6-luna#low` |
-| `standard` | `openai/gpt-5.6-terra#medium` |
-| `deep` | `openai/gpt-5.6-sol#high` |
-
-Each child was parent-owned, stored the corresponding hidden WebResearcher alias,
-and returned the requested result to the parent.
-
-## Upgrade checklist
-
-After every V2 CLI upgrade:
-
-1. Update the version in [`README.md`](README.md).
-2. Recheck the release-matched native `subagent`, plugin tool declarations,
-   session-context hook, tool registry, and plugin activation order.
-3. Run unit and linker tests.
-4. Run the capture integration test and inspect the final parent and child
-   requests.
-5. Run one live home-profile delegation and inspect the final session to verify
-   the requested agent role and each selected model profile.
-6. Recheck the host API signatures the plugin calls. They are unversioned and
-   have changed silently before — see the note below.
-
-## Host API signature changes
-
-These break at runtime only, with an opaque error, so the unit test fakes must
-be kept faithful to the host.
-
-- `next-16621` changed `ctx.agent.get(id)` to
-  `ctx.agent.get({ agentID })` returning `{ location, data }`, and it now
-  rejects with `Agent not found: <id>` instead of resolving `undefined`.
-  Calling it the old way surfaced as `Expected string, got undefined` on every
-  `subagent` call, because the host ran `Agent.ID.make(input.agentID)` against
-  an undefined property.
-
-Signatures are readable from the shipped source maps:
-`@opencode-ai/cli/node_modules/@opencode-ai/cli-linux-x64-baseline/bin/*.js.map`,
-whose `sourcesContent` holds `core/src/plugin/host.ts` and
-`core/src/plugin/promise.ts`.
-
-Note also that the V2 service is persistent: after editing a plugin, run
-`opencode2 service restart` (or the profile equivalent) or the old module stays
-loaded and the fix appears not to work.
-
-## Known limitations
-
-- Native V2 `subagent` always creates a fresh child. It cannot resume an
-  existing delegated session as the V1 replacement can.
-- Native permission checks see the generated hidden alias ID. General's
-  wildcard rule allows aliases, but per-agent allowlists must include
-  `<Profile>-<Agent>` IDs such as `Fast-Worker`.
-- The hidden alias remains the stored child session's agent ID, although its
-  display name and behavior are cloned from the requested role. The native
-  subagent tool row renders that raw ID rather than the alias display name. The
-  concise `<Profile>-<Agent>` ID keeps that built-in label readable.
-- All hook and agent-transform APIs used here are beta and must be revalidated
-  against the exact installed release.
+Keep this plugin after `slim-tools` so its schema guidance survives compaction.
+Restart the relevant service to load server-plugin changes. The linker installs
+a floating SDK beta and its declared peers; it does not guarantee a matching
+CLI build. No live provider call is required for the deterministic checks.

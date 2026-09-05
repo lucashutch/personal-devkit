@@ -5,11 +5,18 @@ const skillsBlockPattern = /Skills provide specialized[\s\S]*?<available_skills>
 export function compactSkillsBlock(text) {
   return text.replace(skillsBlockPattern, (match, inner) => {
     const skills = []
-    const entry = /<skill>\s*<id>([\s\S]*?)<\/id>[\s\S]*?<description>([\s\S]*?)<\/description>\s*<\/skill>/g
+    const entries = [...inner.matchAll(/<skill>([\s\S]*?)<\/skill>/g)]
+    if (entries.length === 0 || inner.replace(/<skill>[\s\S]*?<\/skill>/g, "").trim()) return match
     let found
-    while ((found = entry.exec(inner))) {
-      const id = found[1].trim()
-      const description = found[2].trim().replace(/\s+/g, " ")
+    for (found of entries) {
+      const ids = [...found[1].matchAll(/<id>([\s\S]*?)<\/id>/g)]
+      const descriptions = [...found[1].matchAll(/<description>([\s\S]*?)<\/description>/g)]
+      if (ids.length !== 1 || descriptions.length !== 1 || /<\/?skill(?:\s|>)/.test(found[1])) return match
+      const idMatch = ids[0]
+      const descriptionMatch = descriptions[0]
+      const id = idMatch[1].trim()
+      const description = descriptionMatch[1].trim().replace(/\s+/g, " ")
+      if (!id || !description) return match
       skills.push(`- ${id}: ${description}`)
     }
     if (skills.length === 0) return match
