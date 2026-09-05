@@ -32,6 +32,36 @@ pdklink --dotfiles --unlink
 
 `--force` may replace files, symlinks, and empty directories. It never replaces a non-empty real directory. Without it, conflicts are reported and the command exits non-zero.
 
+## Migrating an existing machine after the OpenCode layout change
+
+Pulling this revision does not repair links into the former `opencode/shared/` directory. Its agents, plugins, library, and CLI settings now live directly under `opencode/`.
+
+1. Confirm the checkout path, custom XDG roots, and `CLAUDE_CONFIG_DIR`. Inspect existing destinations and preserve local configuration, credentials, sessions, and databases. Record the installed OpenCode CLI and plugin SDK versions.
+2. From the updated checkout, preview the groups used on this machine:
+   ```sh
+   uv run pdklink --opencode --claude --dotfiles --dry-run
+   ```
+   Old links may conflict. Inspect their immediate targets with `readlink`, then preview replacements:
+   ```sh
+   uv run pdklink --opencode --claude --dotfiles --force --dry-run
+   ```
+   Do not use `--force` until every replacement is confirmed as repository-managed. Back up local overrides and resolve real-directory conflicts separately.
+3. Inspect both OpenCode config roots, normally `~/.config/opencode` and `~/.config/opencode-test/opencode`. Remove obsolete `shared` and `commands` symlinks only when their immediate targets are this checkout's former `opencode/shared` and `agentic_common/commands`, respectively. Check dangling links too. Do not delete real directories or unrelated links. The new manifest's `--unlink` and `--check` do not cover these removed destinations.
+4. Check for separately copied WebResearcher agents, `fix-reviews`/`pr-triage` skills, or old command adapters. Directory-linked copies disappear with their source files; local copies need inspection before removal.
+5. Review linker side effects before applying: the OpenCode group installs the current floating SDK beta and its peers, and configures the test service on port `4099`. It does not guarantee SDK/CLI version compatibility. Once replacements and side effects are approved, apply the reviewed plan:
+   ```sh
+   uv run pdklink --opencode --claude --dotfiles --force
+   ```
+6. Restart affected OpenCode services after approval and reopen their TUIs. Start a fresh Claude session and reload the shell for helper changes. Validate:
+   ```sh
+   uv run pdklink --opencode --claude --dotfiles --check
+   node --test opencode/plugins/*.test.mjs
+   uv run pytest scripts/tests
+   ```
+   Smoke-test sidebar loading and delegation; use `inherit` when resuming a child. Provider-backed smoke tests require approval for any quota or cost.
+
+The alias-free delegation implementation was tested with CLI beta-19135 and SDK beta-19129. Check compatibility on other versions rather than upgrading automatically. See [delegate validation notes](../opencode/DELEGATE-PROFILES.md).
+
 ## Manifest
 
 [`links.yaml`](../links.yaml) declares groups of repository-relative sources and their absolute destinations. Destinations may use `$HOME`, `$CONFIG_HOME`, `$DATA_HOME`, `$STATE_HOME`, `$CACHE_HOME`, and `$CLAUDE_CONFIG_DIR`. The last follows the environment variable when set and otherwise defaults to `~/.claude`.
