@@ -23,7 +23,7 @@ print(json.dumps({
     "state": os.environ.get("XDG_STATE_HOME", ""),
     "cache": os.environ.get("XDG_CACHE_HOME", ""),
     "gh": os.environ.get("GH_CONFIG_DIR", ""),
-    "websockets": os.environ.get("OPENCODE_EXPERIMENTAL_WEBSOCKETS", ""),
+    "websockets": os.environ.get("OPENCODE_EXPERIMENTAL_OPENAI_RESPONSES_WEBSOCKET", ""),
 }))
 PY
 """
@@ -86,6 +86,19 @@ class OpenCodeHelperTests(unittest.TestCase):
         seen = self.run_helper("oc --model anthropic/claude /tmp")
         self.assertEqual(seen["argv"], ["--model", "anthropic/claude", "/tmp"])
         self.assertEqual(seen["config"], "")
+        self.assertEqual(seen["websockets"], "1")
+
+    def test_short_alias_enables_websockets_when_stripping_profile(self) -> None:
+        seen = self.run_helper(
+            f'XDG_CONFIG_HOME="{self.home}/.config/opencode-test" oc service start'
+        )
+        self.assertEqual(seen["config"], f"{self.home}/.config")
+        self.assertEqual(seen["argv"], ["service", "start"])
+        self.assertEqual(seen["websockets"], "1")
+
+    def test_short_alias_does_not_leak_websocket_setting(self) -> None:
+        seen = self.run_helper("oc >/dev/null; opencode")
+        self.assertEqual(seen["websockets"], "")
 
     def test_test_profile_applies_its_namespace(self) -> None:
         seen = self.run_helper("oct")
