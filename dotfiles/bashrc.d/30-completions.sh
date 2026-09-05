@@ -9,11 +9,11 @@ if [ -r "$NRFUTIL_COMPLETION" ]; then
   . "$NRFUTIL_COMPLETION"
 fi
 
-# OpenCode V2 generates its completion script from the installed CLI.  Keep
+# OpenCode generates its completion script from the installed CLI.  Keep
 # this conditional so shells remain usable before the CLI is installed.
 if [ -n "$(type -P opencode2 2>/dev/null)" ]; then
   eval "$(opencode2 --completions bash 2>/dev/null)"
-  # `opencode2` and `oc2` are shell wrappers, while the generated script only
-  # registers the executable name.
-  complete -F _opencode2 opencode2 oc2
+  # `opencode`, `oc`, and `oct` are shell wrappers, while the generated
+  # script only registers the executable name.
+  complete -F _opencode2 opencode oc oct opencode2 oc2 o2t
 fi

@@ -1,80 +1,49 @@
 version: 1
 groups:
   opencode:
-  - source: opencode/v2/default
+  - source: opencode/default
     destinations:
-    - $CONFIG_HOME/opencode-v2/opencode
+    - $CONFIG_HOME/opencode/opencode
     include:
     - "*.json"
     - "plugins/**"
-  - source: opencode/v2/test
+  - source: opencode/test
     destinations:
-    - $CONFIG_HOME/opencode-v2-test/opencode
+    - $CONFIG_HOME/opencode-test/opencode
     include:
     - "*.json"
     - "plugins/**"
     exclude:
     - __pycache__
     - "*.pyc"
-  - source: opencode/v2/shared
+  - source: opencode/shared
     destinations:
-    - $CONFIG_HOME/opencode-v2/opencode
-    - $CONFIG_HOME/opencode-v2-test/opencode
+    - $CONFIG_HOME/opencode/opencode
+    - $CONFIG_HOME/opencode-test/opencode
     include:
     - cli.json
     - "agents/**"
-  - source: opencode/v2/shared
+  - source: opencode/shared
     destinations:
-    - $CONFIG_HOME/opencode-v2/opencode/shared
-    - $CONFIG_HOME/opencode-v2-test/opencode/shared
-
-  - source: opencode/v1/default
-    destinations:
-    - $CONFIG_HOME/opencode
-    include:
-    - "*.json"
-  - source: opencode/v1/test
-    destinations:
-    - $CONFIG_HOME/opencode-v1-test/opencode
-    include:
-    - "*.json"
-  - source: opencode/v1/shared
-    destinations:
-    - $CONFIG_HOME/opencode
-    - $CONFIG_HOME/opencode-v1-test/opencode
-    include:
-    - tui.json
-    # herdr's opencode-tui integration installs herdr-tui-session.js at the
-    # config root and rewrites it on update; keep the repo copy as the linked
-    # source. herdr-tui-title.js is ours and sits beside it because both need
-    # the TUI process, not the server plugin directory.
-    - herdr-tui-session.js
-    - herdr-tui-title.js
-    - "agents/**"
-    - "plugins/**"
+    - $CONFIG_HOME/opencode/opencode/shared
+    - $CONFIG_HOME/opencode-test/opencode/shared
 
   # Skills are platform-neutral: one copy in agentic_common, linked everywhere.
   - source: agentic_common/skills
     destinations:
-    - $CONFIG_HOME/opencode-v2/opencode/skills
-    - $CONFIG_HOME/opencode-v2-test/opencode/skills
-    - $CONFIG_HOME/opencode/skills
-    - $CONFIG_HOME/opencode-v1-test/opencode/skills
+    - $CONFIG_HOME/opencode/opencode/skills
+    - $CONFIG_HOME/opencode-test/opencode/skills
   # Commands are OpenCode-only on purpose: they exist to expose a skill as a
   # slash command, and Claude Code already surfaces every skill as one. Linking
   # them into ~/.claude would create a duplicate /ship, /start, and so on.
   - source: agentic_common/commands
     destinations:
-    - $CONFIG_HOME/opencode-v2/opencode/commands
-    - $CONFIG_HOME/opencode-v2-test/opencode/commands
-    - $CONFIG_HOME/opencode/commands
-    - $CONFIG_HOME/opencode-v1-test/opencode/commands
+    - $CONFIG_HOME/opencode/opencode/commands
+    - $CONFIG_HOME/opencode-test/opencode/commands
   - source: agentic_common/user-instructions.md
     destinations:
-    - $CONFIG_HOME/opencode-v2/opencode/AGENTS.md
-    - $CONFIG_HOME/opencode-v2-test/opencode/AGENTS.md
-    - $CONFIG_HOME/opencode/AGENTS.md
-    - $CONFIG_HOME/opencode-v1-test/opencode/AGENTS.md
+    - $CONFIG_HOME/opencode/opencode/AGENTS.md
+    - $CONFIG_HOME/opencode-test/opencode/AGENTS.md
 
   claude:
   - source: claude

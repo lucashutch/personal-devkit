@@ -21,10 +21,12 @@ import yaml
 from .program_installers.common import configure_logging, fail, info
 
 PROFILE_NAMES = {
+    "opencode",
+    "opencode-test",
+    # Retired profiles, kept only so a stale shell's roots still de-nest.
     "opencode-v1-test",
     "opencode-v2",
     "opencode-v2-test",
-    # Retired profiles, kept only so a stale shell's roots still de-nest.
     "opencode-v1-home",
     "opencode-v1-work",
     "opencode-v2-home",
@@ -433,8 +435,8 @@ def execute_generated(files: list[GeneratedFile], *, dry_run: bool) -> None:
             destination.write_text(artifact.content)
 
 
-def install_opencode_v2_tui_dependencies(npm: str) -> list[str]:
-    """Install the V2 TUI plugin tree from the `beta` channel.
+def install_opencode_tui_dependencies(npm: str) -> list[str]:
+    """Install the TUI plugin tree from the `beta` channel.
 
     The renderer is shared between host and plugin, so `@opentui` and `solid-js`
     must be the exact builds the host was compiled against, not their latest
@@ -449,7 +451,7 @@ def install_opencode_v2_tui_dependencies(npm: str) -> list[str]:
     `package.json` into a caret range that resolves to unrelated prerelease
     builds.
     """
-    directory = root() / "opencode/v2"
+    directory = root() / "opencode"
 
     def run(arguments: list[str], label: str) -> str | None:
         result = subprocess.run(
@@ -458,13 +460,13 @@ def install_opencode_v2_tui_dependencies(npm: str) -> list[str]:
         if not result.returncode:
             return None
         detail = result.stderr.strip() or result.stdout.strip() or "command failed"
-        return f"opencode-v2-tui-dependencies ({label} failed: {detail})"
+        return f"opencode-tui-dependencies ({label} failed: {detail})"
 
     base = ["install", "--ignore-scripts", "--no-package-lock", "--no-audit", "--no-fund"]
     try:
         declared = json.loads((directory / "package.json").read_text()).get("dependencies", {})
     except (OSError, json.JSONDecodeError) as detail:
-        return [f"opencode-v2-tui-dependencies (could not read dependencies: {detail})"]
+        return [f"opencode-tui-dependencies (could not read dependencies: {detail})"]
     wanted = [f"{name}@{version}" for name, version in sorted(declared.items())]
     if error := run([*base, "--no-save", *wanted], "npm install"):
         return [error]
@@ -472,25 +474,25 @@ def install_opencode_v2_tui_dependencies(npm: str) -> list[str]:
     try:
         peers = json.loads(manifest.read_text()).get("peerDependencies", {})
     except (OSError, json.JSONDecodeError) as detail:
-        return [f"opencode-v2-tui-dependencies (could not read peers: {detail})"]
+        return [f"opencode-tui-dependencies (could not read peers: {detail})"]
     if not peers:
-        info("installed: opencode-v2-tui-dependencies")
+        info("installed: opencode-tui-dependencies")
         return []
     specifiers = [f"{name}@{version}" for name, version in sorted(peers.items())]
     if error := run([*base, "--no-save", *specifiers], "npm install (peers)"):
         return [error]
-    info(f"installed: opencode-v2-tui-dependencies ({len(specifiers)} host peers)")
+    info(f"installed: opencode-tui-dependencies ({len(specifiers)} host peers)")
     return []
 
 
 def actions(dry_run: bool) -> list[str]:
     if dry_run:
-        info("would configure: opencode-v2-test service")
-        info("would install: opencode-v2-tui-dependencies")
+        info("would configure: opencode-test service")
+        info("would install: opencode-tui-dependencies")
         return []
     errors, executable = [], shutil.which("opencode2")
     if not executable:
-        info("skipped V2 service configuration: opencode2 is not on PATH")
+        info("skipped service configuration: opencode2 is not on PATH")
     else:
         defaults = {
             "XDG_CONFIG_HOME": "CONFIG_HOME",
@@ -503,7 +505,7 @@ def actions(dry_run: bool) -> list[str]:
         environment = os.environ.copy()
         environment.update(
             {
-                key: str(Path(variables()[name]) / "opencode-v2-test")
+                key: str(Path(variables()[name]) / "opencode-test")
                 for key, name in defaults.items()
             }
         )
@@ -518,16 +520,16 @@ def actions(dry_run: bool) -> list[str]:
             if result.returncode:
                 detail = result.stderr.strip() or result.stdout.strip() or "command failed"
                 errors.append(
-                    f"opencode-v2-test/service (could not set {key}: {detail})"
+                    f"opencode-test/service (could not set {key}: {detail})"
                 )
                 break
         else:
-            info("configured: opencode-v2-test/service -> 127.0.0.1:4099")
+            info("configured: opencode-test/service -> 127.0.0.1:4099")
     npm = shutil.which("npm")
     if not npm:
-        info("skipped V2 TUI plugin dependencies: npm is not on PATH")
+        info("skipped TUI plugin dependencies: npm is not on PATH")
     else:
-        errors.extend(install_opencode_v2_tui_dependencies(npm))
+        errors.extend(install_opencode_tui_dependencies(npm))
     return errors
 
 

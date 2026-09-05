@@ -30,7 +30,7 @@ limit when that metadata is available.
   events
 
 V2 plugin dependencies intentionally track the current `next` channel. Do not
-add a lockfile or pin preview builds; run `scripts/link-config.py --opencode`
+add a lockfile or pin preview builds; run `pdklink --opencode`
 after upgrading `opencode2`, which reinstalls the tree at the host's peer
 versions.
 

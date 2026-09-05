@@ -80,7 +80,7 @@ Release-matched source references:
 Run the local tests:
 
 ```sh
-node --test opencode/v2/shared/plugins/delegate-profiles.test.mjs
+node --test opencode/shared/plugins/delegate-profiles.test.mjs
 python3 -m unittest scripts.tests.test_link_config
 ```
 
@@ -90,7 +90,7 @@ expected tool call:
 
 ```sh
 # Terminal 1, from this repository
-python3 opencode/v2/test/delegate-profile-upstream.py
+python3 opencode/test/delegate-profile-upstream.py
 
 # Terminal 2
 CAPTURE=/tmp/opencode-v2-delegate-profile-captures
@@ -107,7 +107,7 @@ o2t service restart
 o2t run --auto --agent General \
   --model prompt-capture-openai/gpt-5.6-luna \
   'Run the requested profile routing probe.'
-python3 opencode/v2/test/check-delegate-profile-captures.py "$CAPTURE"
+python3 opencode/test/check-delegate-profile-captures.py "$CAPTURE"
 ```
 
 The checker verifies the provider-facing schema, the exact `WebResearcher` plus

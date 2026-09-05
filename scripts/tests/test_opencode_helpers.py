@@ -42,7 +42,7 @@ class OpenCodeHelperTests(unittest.TestCase):
         self.bin_dir.mkdir()
         self.log = self.home / "systemctl.log"
 
-        for name in ("opencode", "opencode2"):
+        for name in ("opencode2",):
             stub = self.bin_dir / name
             stub.write_text(STUB)
             stub.chmod(0o755)
@@ -72,61 +72,52 @@ class OpenCodeHelperTests(unittest.TestCase):
             return []
         return self.log.read_text().split("\n")[:-1]
 
-    def test_v1_default_sets_no_xdg_override(self) -> None:
+    def test_default_applies_its_namespace(self) -> None:
         seen = self.run_helper("opencode")
         self.assertEqual(seen["argv"], [])
         self.assertEqual(seen["config"], "")
         self.assertEqual(seen["data"], "")
         self.assertEqual(seen["state"], "")
         self.assertEqual(seen["cache"], "")
-        self.assertEqual(seen["websockets"], "")
+        self.assertEqual(seen["gh"], f"{self.home}/.config/gh")
         self.assertEqual(self.systemctl_calls(), [])
 
-    def test_v1_short_alias_matches_the_default(self) -> None:
+    def test_short_alias_matches_the_default(self) -> None:
         seen = self.run_helper("oc --model anthropic/claude /tmp")
         self.assertEqual(seen["argv"], ["--model", "anthropic/claude", "/tmp"])
         self.assertEqual(seen["config"], "")
-        self.assertEqual(seen["websockets"], "")
 
-    def test_v1_test_profile_applies_its_namespace(self) -> None:
+    def test_test_profile_applies_its_namespace(self) -> None:
         seen = self.run_helper("oct")
-        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-v1-test")
-        self.assertEqual(seen["data"], f"{self.home}/.local/share/opencode-v1-test")
-        self.assertEqual(seen["state"], f"{self.home}/.local/state/opencode-v1-test")
-        self.assertEqual(seen["cache"], f"{self.home}/.cache/opencode-v1-test")
+        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-test")
+        self.assertEqual(seen["data"], f"{self.home}/.local/share/opencode-test")
+        self.assertEqual(seen["state"], f"{self.home}/.local/state/opencode-test")
+        self.assertEqual(seen["cache"], f"{self.home}/.cache/opencode-test")
         # gh stays shared so one login covers every profile.
         self.assertEqual(seen["gh"], f"{self.home}/.config/gh")
-        self.assertEqual(seen["websockets"], "")
 
-    def test_v2_default_applies_its_namespace(self) -> None:
+    def test_legacy_aliases_match_the_new_names(self) -> None:
         seen = self.run_helper("opencode2")
-        self.assertEqual(seen["argv"], [])
-        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-v2")
-        self.assertEqual(seen["data"], f"{self.home}/.local/share/opencode-v2")
-        self.assertEqual(seen["state"], f"{self.home}/.local/state/opencode-v2")
-        self.assertEqual(seen["cache"], f"{self.home}/.cache/opencode-v2")
-        self.assertEqual(seen["gh"], f"{self.home}/.config/gh")
-        self.assertEqual(self.systemctl_calls(), [])
-
-    def test_v2_short_alias_matches_the_default(self) -> None:
+        self.assertEqual(seen["config"], "")
         seen = self.run_helper("oc2 run hello")
         self.assertEqual(seen["argv"], ["run", "hello"])
-        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-v2")
-
-    def test_v2_test_profile_applies_its_namespace(self) -> None:
+        self.assertEqual(seen["config"], "")
         seen = self.run_helper("o2t")
-        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-v2-test")
-        self.assertEqual(seen["data"], f"{self.home}/.local/share/opencode-v2-test")
+        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-test")
 
-    def test_v2_profile_roots_do_not_nest(self) -> None:
+    def test_profile_roots_do_not_nest(self) -> None:
         seen = self.run_helper(
-            f'XDG_CONFIG_HOME="{self.home}/.config/opencode-v2-test" opencode2'
+            f'XDG_CONFIG_HOME="{self.home}/.config/opencode-test" opencode'
         )
-        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-v2")
+        self.assertEqual(seen["config"], f"{self.home}/.config")
 
-    def test_v2_test_root_does_not_nest_under_the_default_root(self) -> None:
-        seen = self.run_helper(f'XDG_CONFIG_HOME="{self.home}/.config/opencode-v2" o2t')
-        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-v2-test")
+    def test_test_root_does_not_nest_under_the_default_root(self) -> None:
+        seen = self.run_helper(f'XDG_CONFIG_HOME="{self.home}/.config/opencode" oct')
+        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-test")
+
+    def test_retired_roots_still_de_nest(self) -> None:
+        seen = self.run_helper(f'XDG_CONFIG_HOME="{self.home}/.config/opencode-v2" oct')
+        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-test")
 
     def test_helpers_do_not_leak_the_namespace_into_the_shell(self) -> None:
         script = (
@@ -147,7 +138,7 @@ class OpenCodeHelperTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), "unset")
 
-    def test_v2_completions_are_loaded_when_binary_is_installed(self) -> None:
+    def test_completions_are_loaded_when_binary_is_installed(self) -> None:
         stub = self.bin_dir / "opencode2"
         stub.write_text(
             "#!/usr/bin/env bash\n"
@@ -158,7 +149,7 @@ class OpenCodeHelperTests(unittest.TestCase):
         stub.chmod(0o755)
         script = (
             f'set -u; source "{HELPERS}"; source "{COMPLETIONS}"; '
-            'complete -p opencode2; complete -p oc2'
+            'complete -p opencode; complete -p oct'
         )
         result = subprocess.run(
             ["bash", "-c", script],
@@ -168,8 +159,8 @@ class OpenCodeHelperTests(unittest.TestCase):
             env={"HOME": str(self.home), "PATH": f"{self.bin_dir}:/usr/bin:/bin"},
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("complete -F _opencode2 opencode2", result.stdout)
-        self.assertIn("complete -F _opencode2 oc2", result.stdout)
+        self.assertIn("complete -F _opencode2 opencode", result.stdout)
+        self.assertIn("complete -F _opencode2 oct", result.stdout)
 
 
 if __name__ == "__main__":

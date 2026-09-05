@@ -149,7 +149,7 @@ class LinkConfigTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             first_link = (
                 Path(home)
-                / ".config/opencode-v2/opencode/opencode.json"
+                / ".config/opencode/opencode/opencode.json"
             )
             self.assertFalse(first_link.exists())
             self.assertEqual(desktop.read_text(), "mine")
@@ -172,7 +172,7 @@ class LinkConfigTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as home:
             with mock.patch.dict(os.environ, self.environment(home), clear=True):
                 plan = load_linker().build_plan({"opencode"})
-            cli_links = [link for link in plan if link.source == ROOT / "opencode/v2/shared/cli.json"]
+            cli_links = [link for link in plan if link.source == ROOT / "opencode/shared/cli.json"]
             self.assertEqual(len(cli_links), 2)
             self.assertEqual(len({link.destination for link in cli_links}), 2)
 
@@ -397,7 +397,7 @@ class LinkConfigTests(unittest.TestCase):
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("opencode-v2-tui-dependencies", result.stdout)
+            self.assertIn("opencode-tui-dependencies", result.stdout)
             repeat = subprocess.run(
                 ["python3", str(LINKER), "--opencode"],
                 cwd=ROOT,
@@ -408,42 +408,28 @@ class LinkConfigTests(unittest.TestCase):
             self.assertEqual(repeat.returncode, 0, repeat.stderr)
             for profile in ("default", "test"):
                 suffix = "" if profile == "default" else f"-{profile}"
-                target = config_home / f"opencode-v2{suffix}" / "opencode"
+                target = config_home / f"opencode{suffix}" / "opencode"
                 self.assertEqual(
                     target.joinpath("opencode.json").resolve(),
-                    ROOT / "opencode" / "v2" / profile / "opencode.json",
+                    ROOT / "opencode" / profile / "opencode.json",
                 )
                 self.assertEqual(
                     target.joinpath("cli.json").resolve(),
-                    ROOT / "opencode" / "v2" / "shared" / "cli.json",
+                    ROOT / "opencode" / "shared" / "cli.json",
                 )
                 self.assertEqual(
                     target.joinpath("agents").resolve(),
-                    ROOT / "opencode" / "v2" / "shared" / "agents",
+                    ROOT / "opencode" / "shared" / "agents",
                 )
                 self.assertEqual(
                     target.joinpath("shared").resolve(),
-                    ROOT / "opencode" / "v2" / "shared",
+                    ROOT / "opencode" / "shared",
                 )
                 self.assertEqual(
-                    target.joinpath("shared", "plugins", "herdr-agent-state.js").resolve(),
-                    ROOT / "opencode" / "v2" / "shared" / "plugins" / "herdr-agent-state.js",
+                    target.joinpath("shared", "plugins", "model-filter", "index.js").resolve(),
+                    ROOT / "opencode" / "shared" / "plugins" / "model-filter" / "index.js",
                 )
                 self.assertFalse(target.joinpath("service.json").exists())
-            # The V1 default profile owns the true XDG root, so its config sits
-            # directly in $CONFIG_HOME/opencode.
-            for v1_target in (
-                config_home / "opencode",
-                config_home / "opencode-v1-test" / "opencode",
-            ):
-                self.assertEqual(
-                    v1_target.joinpath("plugins", "herdr-agent-state.js").resolve(),
-                    ROOT / "opencode" / "v1" / "shared" / "plugins" / "herdr-agent-state.js",
-                )
-                self.assertEqual(
-                    v1_target.joinpath("herdr-tui-title.js").resolve(),
-                    ROOT / "opencode" / "v1" / "shared" / "herdr-tui-title.js",
-                )
             applications = Path(environment["XDG_DATA_HOME"]) / "applications"
             launcher = applications / "opencode.desktop"
             self.assertTrue(launcher.is_file())
@@ -464,7 +450,7 @@ class LinkConfigTests(unittest.TestCase):
             base = Path(temporary_home) / ".config"
             environment = os.environ | {
                 "HOME": temporary_home,
-                "XDG_CONFIG_HOME": str(base / "opencode-v1-test"),
+                "XDG_CONFIG_HOME": str(base / "opencode-test"),
                 "XDG_DATA_HOME": str(Path(temporary_home) / ".local" / "share"),
                 "XDG_STATE_HOME": str(Path(temporary_home) / ".local" / "state"),
                 "XDG_CACHE_HOME": str(Path(temporary_home) / ".cache"),
@@ -479,8 +465,9 @@ class LinkConfigTests(unittest.TestCase):
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertTrue((base / "opencode-v2" / "opencode" / "opencode.json").is_symlink())
-            self.assertFalse((base / "opencode-v1-test" / "opencode-v2").exists())
+            self.assertTrue((base / "opencode" / "opencode" / "opencode.json").is_symlink())
+            self.assertTrue((base / "opencode-test" / "opencode" / "opencode.json").is_symlink())
+            self.assertFalse((base / "opencode-test" / "opencode-test").exists())
 
     def test_retired_profile_roots_do_not_nest(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_home:
@@ -503,8 +490,8 @@ class LinkConfigTests(unittest.TestCase):
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertTrue((base / "opencode" / "opencode.json").is_symlink())
-            self.assertFalse((base / "opencode-v1-home").exists())
+            self.assertTrue((base / "opencode" / "opencode" / "opencode.json").is_symlink())
+            self.assertFalse((base / "opencode-v1-home" / "opencode").exists())
 
 
 if __name__ == "__main__":

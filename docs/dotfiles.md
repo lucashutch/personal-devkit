@@ -40,21 +40,19 @@ sudo tailscale set --operator="$USER"
 
 | Helper | Purpose |
 | --- | --- |
-| `opencode`, `oc` | Default OpenCode V1 profile |
-| `oct` | Isolated V1 test profile |
-| `opencode2`, `oc2` | Default OpenCode V2 profile |
-| `o2t` | Isolated V2 test profile |
+| `opencode`, `oc` | Default OpenCode profile |
+| `oct` | Isolated test profile |
 
 See [OpenCode profiles](opencode.md) for profile locations and setup details.
 
 ## tokscale
 
-`tok` runs tokscale after refreshing a snapshot of the OpenCode V2 database at `~/.cache/tokscale/opencode-v2.db`.
+`tok` runs tokscale after refreshing a snapshot of the OpenCode database at `~/.cache/tokscale/opencode-v2.db`.
 
-tokscale reads OpenCode usage from a `message` table. V1's database still has one, so V1 usage is picked up from its standard location with no help. V2 renamed the table to `session_message`, which leaves its usage invisible. The snapshot adds `message` and `session` views over the renamed tables, and `tok` points `scanner.opencodeDbPaths` at it.
+tokscale reads OpenCode usage from a `message` table. The retired V1 backup at `~/.local/share/opencode-v1/opencode/opencode.db` still has one. The live database renamed the table to `session_message`, which leaves its usage invisible. The snapshot adds `message` and `session` views over the renamed tables, and `tok` points `scanner.opencodeDbPaths` at the snapshot plus the V1 backup.
 
-The snapshot is a copy rather than a view on the live database, because OpenCode V2 owns that file. Refreshing takes about 90ms, so `tok` does it on every launch. Sessions started while `tok` is open appear on the next run.
+The snapshot is a copy rather than a view on the live database, because OpenCode owns that file. Refreshing takes about 90ms, so `tok` does it on every launch. Sessions started while `tok` is open appear on the next run.
 
 `tok` also sets `defaultClients` to OpenCode and Claude Code. Both settings are written into `~/.config/tokscale/settings.json` on each run, so plain `tokscale` behaves the same way. Everything else in that file is left alone.
 
-A refresh failure prints an error and stops before launching tokscale, because a stale or missing path is otherwise ignored and would silently under-report. If OpenCode V2 has never run, there is no database to snapshot and `tok` starts normally.
+A refresh failure prints an error and stops before launching tokscale, because a stale or missing path is otherwise ignored and would silently under-report. If OpenCode has never run, there is no database to snapshot and `tok` starts normally.

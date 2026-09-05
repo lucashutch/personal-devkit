@@ -14,7 +14,7 @@ and polls every two minutes.
 
 V2 plugin dependencies intentionally track the current `next` channel. Do not
 add a lockfile or pin preview builds; run `npm install --no-package-lock` from
-`opencode/v2` after upgrading `opencode2`.
+`opencode` after upgrading `opencode2`.
 
 When `LIMITWATCH_CONFIG_DIR` is unset, the plugin resets `XDG_CONFIG_HOME` to
 `$HOME/.config` for the child process so profile-specific OpenCode config does

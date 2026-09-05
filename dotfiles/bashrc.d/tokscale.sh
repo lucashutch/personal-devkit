@@ -1,31 +1,47 @@
 # tokscale helpers.
 #
-# tokscale reads OpenCode usage from a `message` table. V1's database still
-# carries that table, but V2 renamed it to `session_message`, so V2 usage is
+# tokscale reads OpenCode usage from a `message` table. The retired V1 backup
+# keeps that table, but V2 renamed it to `session_message`, so V2 usage is
 # invisible to tokscale. `tok` refreshes a compatibility snapshot of the V2
 # database with `message` and `session` views over the renamed tables, then
-# points tokscale's own settings at that snapshot.
+# points tokscale's own settings at that snapshot plus the V1 backup.
 #
 # The snapshot is a copy because the views are additive schema changes, and
 # OpenCode V2 owns its live database. sqlite3's backup API is used rather than
 # a file copy so the write-ahead log is included.
 
-_TOKSCALE_V2_SOURCE="$HOME/.local/share/opencode-v2/opencode/opencode.db"
+_TOKSCALE_V2_SOURCE="$HOME/.local/share/opencode/opencode.db"
+_TOKSCALE_V1_BACKUP="$HOME/.local/share/opencode-v1/opencode/opencode.db"
 _TOKSCALE_V2_SNAPSHOT="$HOME/.cache/tokscale/opencode-v2.db"
 _TOKSCALE_CLIENTS="opencode claude"
 
 _tokscale_sync() {
-  [ -f "$_TOKSCALE_V2_SOURCE" ] || return 0
-
-  python3 - "$_TOKSCALE_V2_SOURCE" "$_TOKSCALE_V2_SNAPSHOT" $_TOKSCALE_CLIENTS <<'PY'
+  python3 - "$_TOKSCALE_V2_SOURCE" "$_TOKSCALE_V2_SNAPSHOT" "$_TOKSCALE_V1_BACKUP" $_TOKSCALE_CLIENTS <<'PY'
 import json
 import os
 import sqlite3
 import sys
 from pathlib import Path
 
-source, snapshot, *clients = sys.argv[1:]
+source, snapshot, backup, *clients = sys.argv[1:]
 snapshot = Path(snapshot)
+
+for candidate in (source,):
+    if not Path(candidate).is_file():
+        continue
+    try:
+        probe = sqlite3.connect(f"file:{candidate}?mode=ro", uri=True)
+        try:
+            names = {row[0] for row in probe.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        finally:
+            probe.close()
+    except sqlite3.Error:
+        continue
+    if "session_v2" in names:
+        source = candidate
+        break
+else:
+    raise SystemExit(0)
 snapshot.parent.mkdir(parents=True, exist_ok=True)
 
 staged = snapshot.with_suffix(".db.new")
@@ -56,7 +72,10 @@ for stale in (snapshot.with_name(snapshot.name + suffix) for suffix in ("-wal", 
 
 settings = Path(os.environ.get("TOKSCALE_CONFIG_DIR") or Path.home() / ".config/tokscale") / "settings.json"
 current = json.loads(settings.read_text()) if settings.is_file() else {}
-current.setdefault("scanner", {})["opencodeDbPaths"] = [str(snapshot)]
+paths = [str(snapshot)]
+if Path(backup).is_file():
+    paths.append(backup)
+current.setdefault("scanner", {})["opencodeDbPaths"] = paths
 current["defaultClients"] = clients
 
 settings.parent.mkdir(parents=True, exist_ok=True)

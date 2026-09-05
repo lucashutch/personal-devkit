@@ -1,7 +1,0 @@
-{
-  "presets": {
-    "fast": { "model": "prompt-capture-openai/gpt-5.6-luna", "variant": "low" },
-    "balanced": { "model": "prompt-capture-anthropic/claude-sonnet-5", "variant": "low" },
-    "deep": { "model": "prompt-capture-anthropic/claude-opus-5", "variant": "low" }
-  }
-}

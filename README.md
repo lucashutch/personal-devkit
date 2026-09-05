@@ -7,7 +7,7 @@ Fork it or open a PR to adapt the prompts and tool descriptions to your own work
 ## What's here
 
 - `agentic_common/` — platform-neutral skills shared by Claude Code and OpenCode, plus OpenCode commands
-- `opencode/` — OpenCode V1 and V2 profiles, agents, and plugins
+- `opencode/` — OpenCode profiles, agents, and plugins
 - `claude/` — Claude Code settings, keybindings, statusline, and agents
 - `herdr/` — Herdr configuration
 - `dotfiles/` — Bash, Ghostty, Starship, and ALSA configuration
@@ -41,8 +41,7 @@ uv run pdklink --all --check
 - [Linking configuration](docs/linking.md)
 - [Dotfiles and Bash helpers](docs/dotfiles.md)
 - [OpenCode profiles and integrations](docs/opencode.md)
-- [OpenCode V1 profile migration](opencode/v1/MIGRATION.md)
-- [OpenCode V2 extension compatibility](opencode/v2/README.md)
+- [OpenCode extension compatibility](opencode/README.md)
 
 ## Notes
 

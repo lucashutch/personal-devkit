@@ -7,10 +7,10 @@ Verified against the `@opencode-ai/cli@beta` plugin API on Linux/WSL2.
 - TUI plugins are listed in `shared/cli.json` as directory packages. Each
   package exposes its TUI entrypoint through `package.json`.
 - Both plugins use `@opencode-ai/plugin/tui` and `@opentui/solid` JSX.
-- `opencode/v2/package.json` declares only `@opencode-ai/plugin@beta`. The
+- `opencode/package.json` declares only `@opencode-ai/plugin@beta`. The
   renderer-sharing packages (`@opentui/*`, `solid-js`, `@opencode-ai/theme`) come
   from that package's optional peer dependencies, resolved at install time by
-  `scripts/link-config.py --opencode`. Do not pin them separately from the
+  `pdklink --opencode`. Do not pin them separately from the
   plugin package; the linker follows its current exact versions or ranges.
 - The profile config links `shared` into the active OpenCode config directory.
 - External plugin errors appear as red TUI `Plugin` toasts.
@@ -27,7 +27,7 @@ Both use the `sidebar.content` slot, which is an additive slot; order follows
 ## Upgrade checklist
 
 1. Update the CLI.
-2. Run `scripts/link-config.py --opencode`, which reinstalls the plugin tree at
+2. Run `pdklink --opencode`, which reinstalls the plugin tree at
    the host's peer versions.
 3. Check `@opencode-ai/plugin/dist/tui/context.d.ts` for changed slot and data
    APIs. This surface has already broken twice: `ui.slot(path, render)` became
