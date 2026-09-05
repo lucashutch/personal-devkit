@@ -3,6 +3,7 @@ import { TextAttributes, type ScrollBoxRenderable } from "@opentui/core"
 import { Plugin } from "@opencode-ai/plugin/tui"
 import { createEffect, createSignal, For, onCleanup, Show } from "solid-js"
 import { listChildren, polledStatus, reconcileChildren } from "./reconcile.js"
+import { detailLines, requestedProfiles } from "./labels.js"
 
 type ChildSession = {
   id: string
@@ -14,7 +15,7 @@ type ChildSession = {
 }
 
 type TokenUsage = { count: number }
-type ChildWithModel = ChildSession & { modelLabel?: string; tokenUsage?: TokenUsage }
+type ChildWithModel = ChildSession & { modelLabel?: string; tokenUsage?: TokenUsage; profile?: string }
 type ListState = { children: ChildWithModel[]; loading: boolean; error?: string }
 
 const MAX_VISIBLE_ROWS = 18
@@ -51,17 +52,13 @@ function delegateLabel(session: ChildSession) {
   return concise ? { profile: concise[1].toLowerCase(), agent: concise[2] } : undefined
 }
 
-function effortLabel(value?: string) {
-  return value ? value[0].toUpperCase() + value.slice(1) : undefined
-}
-
 function modelName(value?: string) {
   return value?.split("/").at(-1)
 }
 
 function formatTokens(value: number) {
   if (value < 1_000) return String(value)
-  if (value < 1_000_000) return `${(value / 1_000).toFixed(value < 10_000 ? 1 : 0)}K`
+  if (value < 1_000_000) return `${(value / 1_000).toFixed(value < 10_000 ? 1 : 0)}k`
   return `${(value / 1_000_000).toFixed(1)}M`
 }
 
@@ -172,6 +169,7 @@ export default Plugin.define({
           .filter((session) => session.parentID === parentID && !absentRemoteIDs.has(session.id))
           .sort((left, right) => (left.time?.created ?? 0) - (right.time?.created ?? 0))
 
+        const profiles = requestedProfiles(context.data.session.message.list(parentID) ?? [])
         return children.map((child) => {
           const model = child.model
             ? modelLabel(child.model)
@@ -179,7 +177,7 @@ export default Plugin.define({
               .map((message) => modelLabel(message))
               .find(Boolean)
           const usage = tokenUsage(child.id)
-          return { ...child, ...(model ? { modelLabel: model } : {}), tokenUsage: usage }
+          return { ...child, ...(model ? { modelLabel: model } : {}), tokenUsage: usage, profile: profiles.get(child.id) }
         })
       }
 
@@ -217,7 +215,7 @@ export default Plugin.define({
         request += 1
       })
 
-      const listHeight = () => Math.max(1, Math.min(MAX_VISIBLE_ROWS, state().children.length * 2))
+      const listHeight = () => Math.max(1, Math.min(MAX_VISIBLE_ROWS, state().children.length * 3))
 
       const activity = (sessionID: string) =>
         (observedStatuses.get(sessionID) ?? context.data.session.status(sessionID)) === "retry"
@@ -254,27 +252,30 @@ export default Plugin.define({
                   const live = () => context.data.session.get(child.id) ?? child
                   const current = () => activity(child.id)
                   const label = () => delegateLabel(live())
-                   const role = () => label()?.agent ?? live().agent ?? "Subagent"
+                  const role = () => label()?.agent ?? live().agent ?? "Subagent"
                   const model = () => child.modelLabel ?? modelLabel(live().model)
                   const usage = () => child.tokenUsage
-                   const tokenLabel = () => {
+                  const tokenLabel = () => {
                     const current = usage()
                     if (!current) return undefined
-                     return `last call ${formatTokens(current.count)} tok`
+                    return formatTokens(current.count)
                   }
+                  const lines = () => detailLines({ role: role(), profile: child.profile ?? label()?.profile,
+                    status: current().label, model: modelName(model()), tokens: tokenLabel() })
                   return (
                     <box
                       flexDirection="row"
+                      flexShrink={0}
+                      height={3}
                       onMouseDown={() => context.ui.router.navigate({ type: "session", sessionID: child.id })}
                     >
-                      <text fg={current().color}>▎{"\n"}▎ </text>
-                      <box flexDirection="column" flexGrow={1}>
-                        <text>{truncate(
+                      <text fg={current().color}>▎{"\n"}▎{"\n"}▎</text>
+                      <box flexDirection="column" flexGrow={1} minWidth={0}>
+                        <text height={1} wrapMode="none">{truncate(
                           live().title || "Untitled subagent",
                         )}</text>
-                        <text fg={theme.text.subdued}>
-                          {`  ${[role(), effortLabel(label()?.profile), modelName(model()), current().label, tokenLabel()].filter(Boolean).join(" · ")}`}
-                        </text>
+                        <text height={1} wrapMode="none" fg={theme.text.subdued}>{` ${lines()[0]}`}</text>
+                        <text height={1} wrapMode="none" fg={theme.text.subdued}>{` ${lines()[1]}`}</text>
                       </box>
                     </box>
                   )

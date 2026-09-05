@@ -1,6 +1,27 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import { listChildren, polledStatus, reconcileChildren } from "./subagent-sessions/reconcile.js"
+import { detailLines, requestedProfiles } from "./subagent-sessions/labels.js"
+
+test("sidebar separates role, requested tier and status from model and tokens", () => {
+  assert.deepEqual(detailLines({ role: "Reviewer", profile: "standard", status: "idle",
+    model: "gpt-5.6-luna#xhigh", tokens: "188k" }), [
+    "Reviewer · Standard · idle", "gpt-5.6-luna#xhigh · 188k",
+  ])
+  assert.deepEqual(detailLines({ role: "Worker", status: "working" }), ["Worker · working", ""])
+})
+
+test("requested tiers come from child creation calls, not later resumes", () => {
+  const call = (input, metadata) => ({ type: "tool", name: "subagent", state: { input, metadata } })
+  const profiles = requestedProfiles([{ type: "assistant", content: [
+    call({ model_profile: "standard" }, { sessionID: "child" }),
+    call({ model_profile: "inherit", sessionID: "child" }, { sessionID: "child" }),
+    call({ model_profile: "deep" }, { sessionID: "other" }),
+    call({ model_profile: "fast" }),
+    call({}, { sessionID: "unknown" }),
+  ] }])
+  assert.deepEqual([...profiles], [["child", "standard"], ["other", "deep"]])
+})
 
 test("child snapshots consume all pages before reconciliation", async () => {
   const calls = []

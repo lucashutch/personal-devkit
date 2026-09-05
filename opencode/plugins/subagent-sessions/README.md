@@ -9,13 +9,17 @@ and latest-call token sum, and navigates to a child when clicked.
 Rows use this format:
 
 ```text
-Investigate failing build
-Worker · Fast · gpt-5.6-luna · idle · last call 87.9K tok
+▎Investigate failing build
+▎ Worker · Fast · idle
+▎ gpt-5.6-luna#low · 88k
 ```
 
-The effort and role are recovered from concise generated agent IDs such as
-`Fast-Worker`. Legacy `delegate-profile--fast--Worker` sessions remain
-supported. The model comes from the child session's
+The requested tier comes from the parent's original subagent tool call, not
+the model's reasoning level. Resumes do not replace that tier. If the call is
+not cached, generated agent IDs such as `Fast-Worker` and legacy
+`delegate-profile--fast--Worker` remain supported as fallbacks. Otherwise the
+tier is omitted. Each entry occupies three non-wrapping rows.
+The model comes from the child session's
 `model` field; cached message metadata is a fallback. Token usage is the sum
 reported on the latest assistant message. It is not a context-window percentage.
 
