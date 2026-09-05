@@ -33,13 +33,6 @@ groups:
     destinations:
     - $CONFIG_HOME/opencode/skills
     - $CONFIG_HOME/opencode-test/opencode/skills
-  # Commands are OpenCode-only on purpose: they exist to expose a skill as a
-  # slash command, and Claude Code already surfaces every skill as one. Linking
-  # them into ~/.claude would create a duplicate /ship, /start, and so on.
-  - source: agentic_common/commands
-    destinations:
-    - $CONFIG_HOME/opencode/commands
-    - $CONFIG_HOME/opencode-test/opencode/commands
   - source: agentic_common/user-instructions.md
     destinations:
     - $CONFIG_HOME/opencode/AGENTS.md

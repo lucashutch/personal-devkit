@@ -1,13 +1,11 @@
 ---
 name: start
-description: Take a feature or fix from issue to validated draft PR on a new branch.
+description: Take a feature or fix from issue to a validated change and appropriate integration.
 ---
 # Start
 
-Run this pipeline:
-
-1. **Understand** — inspect a referenced issue with `gh`; otherwise use the supplied requirements and ask the user to clarify only material ambiguity.
-2. **Prepare** — check status and do not disturb unrelated changes. Create a kebab-case branch from the current remote default branch — never from whatever HEAD happens to be. Prefix `feat/` or `fix/` and include the issue number when there is one (e.g. `fix/123-widget-crash`). If a matching branch already exists, switch to it and bring it current with the default branch first.
-3. **Orchestrate** — load the `orchestrate` skill and use its lightest suitable workflow; explicit `/start` does not by itself require subagents.
-4. **Implement** — follow that workflow, then run the repo's tests/lint for the touched area so ship's gate step is a confirmation, not the first run.
-5. **Ship** — load and follow the `ship` skill to gate, commit, push, and create the draft PR.
+1. Read the referenced issue or supplied requirements; clarify material ambiguity.
+2. Inspect status, branch, upstream, base, and existing PR. Fetch refs and discover the remote default from metadata. Before switching or reusing a branch, verify ownership and check conflicts or at-risk commits; preserve unrelated work and ask if intent is unclear.
+3. Honor direct-default-branch policies without forcing a branch or PR. Otherwise use a kebab-case `feat/` or `fix/` branch from the fetched default, including the issue number when available. Reuse only verified task-owned branches and update without losing work.
+4. Load `orchestrate` and use its lightest workflow; invoking `start` alone does not require delegation. Implement and run relevant tests and lint before shipping.
+5. Load `ship` for policy-appropriate commit, push, CI, and PR handling.

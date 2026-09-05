@@ -1,15 +1,11 @@
 ---
 name: ship
-description: Validate, commit, push, and create or refresh a PR for completed work.
+description: Validate and integrate completed work according to the repository policy.
 ---
 # Ship
 
-Perform this pipeline in order:
-
-1. Inspect the working-tree status and diff. Do not disturb or include unrelated changes; ask the user when they prevent safe shipping.
-2. Ensure the repository's quality gates pass.
-3. Ensure you are on a feature branch; create one if needed.
-4. Commit the intended uncommitted changes (prefer amends for small changes). Read the diff to write a clear, succinct commit message. Make one or more atomic commits if needed.
-5. Push to the remote repository, using force-with-lease only when history was rewritten.
-6. Load the `pr-description` skill and use it to produce the title and body for the full branch diff.
-7. Check for an existing PR for the branch. Refresh its title and body if present; otherwise create a draft PR.
+1. Inspect status, diff, and repository policy. Exclude unrelated changes; ask if they block safe shipping. Run relevant quality gates without expanding scope.
+2. Fetch refs; identify remote, default branch, actual base, and existing PR. Stop if discovery fails. Honor direct-default-branch policies without creating a branch or PR; otherwise verify task ownership and intended base. Resolve ambiguity before proceeding.
+3. Commit only intended changes with a diff-based message. Prefer amending small fixes when the latest commit and branch belong to this work and rewriting is safe; otherwise make an atomic commit.
+4. Push to the verified remote and branch. Use force-with-lease only for a safe history rewrite; stop on unexpected remote state.
+5. For PR workflows, load `pr-description` to update or create a draft against the actual base. Report the commit and exact local results separately from remote CI, including pending or unavailable checks. Report unverified requirements explicitly; passing checks do not imply full completion.

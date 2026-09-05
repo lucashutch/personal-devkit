@@ -1,40 +1,19 @@
 ---
 name: repo-map
-description: Create or refresh repo-map.md for agent orientation when missing or structurally stale.
+description: Inspect and report a compact repository map without modifying files.
 ---
 # Repo map
 
-Produce `repo-map.md` in the project root: a compact orientation map, not documentation.
+Report repository orientation in the response only. Read an existing `repo-map.md` for drift; never create, update, or delete files.
 
-## Gather
-1. Structure: `git ls-files` (or glob) grouped by top-level directory; note the language(s), package/build files, and entry points.
-2. Conventions: how tests are laid out, where config lives, any monorepo/workspace boundaries.
-3. Commands: the repo's real build/test/lint commands from its manifests, Makefile, or CI config — verify against files, do not guess.
+Inspect tracked paths or search the tree, excluding generated code, dependencies, and vendored files. Verify important paths, entry points, languages, manifests, test/config layout, and workspace boundaries. Verify build/test/lint commands from manifests, make files, or CI; never guess.
 
-## Write `repo-map.md`
-Keep it under ~60 lines. Shape:
+Keep the report under ~60 lines:
+- `Verified: YYYY-MM-DD` using today's date.
+- Purpose and stack.
+- Layout: key directories and their roles.
+- Entry points: paths and what they start.
+- Commands: verified build, test, and lint commands; mark unavailable checks.
+- Conventions and gotchas: non-obvious facts that save future searches.
 
-```
-# Repo Map
-Purpose: [one line]
-Stack: [languages, key frameworks]
-
-## Layout
-- `src/foo/` — [what lives here, one line each; only load-bearing dirs]
-
-## Entry points
-- `path` — [what it starts]
-
-## Commands
-- Build: `...`
-- Test: `...`
-- Lint: `...`
-
-## Conventions & gotchas
-- [only non-obvious ones worth a line]
-```
-
-## Rules
-1. Skip generated, vendored, and node_modules-style directories.
-2. Every line must save a future agent a search; delete anything derivable in one glob.
-3. If a `repo-map.md` exists, update only the stale parts and keep it within the size budget.
+Omit generic advice and obvious details.
