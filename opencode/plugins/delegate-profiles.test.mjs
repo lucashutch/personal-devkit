@@ -27,7 +27,7 @@ const run = (fn, native) => Effect.runPromise(Effect.scoped(Effect.gen(function*
     catalog: { model: { list: () => Effect.succeed({ data: models }) } },
     session: {
       hook: register,
-      get: ({ sessionID }) => Effect.succeed({ data: { model: active[sessionID] } }),
+      get: ({ sessionID }) => Effect.succeed({ id: sessionID, model: active[sessionID] }),
       switchModel: (input) => Effect.sync(() => { log.push(["switch", input]); return {} }),
     },
     tool: { hook: register, transform: (callback) => Effect.sync(() => { transform = callback; callback({ update: (_, fn) => fn(tool) }) }) },
@@ -52,8 +52,8 @@ test("profile parsing and compact cloned schema", () => {
   assert.equal(schema.properties.model_profile, undefined)
   assert.deepEqual(augmented.properties.agent.enum, ["Worker"])
   assert.match(augmented.properties.model_profile.description, /fast=openai\/luna#low/)
-  assert.match(augmented.properties.model_profile.description, /When resuming with sessionID, use inherit/)
-  assert.match(addModelProfile(schema).properties.model_profile.description, /When resuming with sessionID, use inherit/)
+  assert.doesNotMatch(augmented.properties.model_profile.description, /When resuming with sessionID, use inherit/)
+  assert.doesNotMatch(addModelProfile(schema).properties.model_profile.description, /When resuming with sessionID, use inherit/)
 })
 
 for (const background of [false, true]) test(`native forwarding and pre-admission ordering background=${background}`, () => run(function* ({ prepare, log, result }) {
@@ -68,8 +68,16 @@ test("resume preserves model, rejects profile changes, and replay is idempotent"
   const execute = tool.execute
   replay(); replay()
   assert.equal(tool.execute, execute)
-  active.old = parseProfiles(settings).deep
-  yield* (yield* prepare({ sessionID: "old", model_profile: "deep" })).execute()
+  for (const profile of ["fast", "standard", "deep"]) {
+    active.old = parseProfiles(settings)[profile]
+    for (const background of [false, true]) {
+      log.length = 0
+      yield* (yield* prepare({ sessionID: "old", model_profile: profile, background })).execute()
+      assert.deepEqual(log.map(([name]) => name), ["role", "progress", "prompt"])
+      assert.deepEqual(log.find(([name]) => name === "progress")[1], { sessionID: "old", status: "running" })
+      assert.deepEqual(log.find(([name]) => name === "prompt"), ["prompt", background])
+    }
+  }
   assert.equal(log.some(([name]) => name === "switch"), false)
   log.length = 0
   yield* (yield* prepare({ sessionID: "old", model_profile: "inherit" })).execute()

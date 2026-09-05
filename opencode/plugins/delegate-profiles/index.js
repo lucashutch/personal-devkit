@@ -79,10 +79,9 @@ export function addModelProfile(schema, agents = [], profiles) {
     model_profile: {
       type: "string",
       enum: profileOrder,
-      description: (profiles
+      description: profiles
         ? `Configured model: fast=${formatModelRef(profiles.fast)}, standard=${formatModelRef(profiles.standard)}, deep=${formatModelRef(profiles.deep)}; inherit=selected agent/parent.`
-        : "Configured model profile; inherit uses the selected agent or parent.")
-        + " When resuming with sessionID, use inherit to preserve the child's model and reasoning level; start a new child to change them.",
+        : "Configured model profile; inherit uses the selected agent or parent.",
     },
   }
   input.required = [...new Set([...(input.required ?? []), "model_profile"])]
@@ -126,7 +125,7 @@ export function createDelegateProfilesPlugin() {
               yield* claim(input.sessionID)
               if (state.model) {
                 const child = yield* ctx.session.get({ sessionID: input.sessionID })
-                const current = child.data.model
+                const current = child.model
                 if (!current || current.providerID !== state.model.providerID || current.id !== state.model.id || current.variant !== state.model.variant) {
                   return yield* fail("cannot change a resumed child's model profile; use inherit or start a new child")
                 }

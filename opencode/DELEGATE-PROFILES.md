@@ -10,9 +10,9 @@ native Effect executor. It keeps the real Worker/Reviewer agent ID. At the
 executor's awaited child-progress callback, it persists the selected model
 before native prompt admission. No hidden alias agents are required.
 
-Use `inherit` with `sessionID` when resuming. This preserves the child's model
-and reasoning level. A matching explicit profile is accepted without changing
-the model; a different profile requires a new child. Native execution retains
+Resuming with `sessionID` accepts an explicit profile matching the child's model
+and reasoning level, or `inherit` to keep them without selecting a profile.
+A different profile requires a new child. Native execution retains
 permission checks, foreground/background jobs, cancellation, and notifications.
 Invocation-local state and child locks prevent overlapping wrapper calls from
 switching each other's models.
