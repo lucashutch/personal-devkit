@@ -84,6 +84,8 @@ def variables() -> dict[str, str]:
     for name, default in defaults.items():
         value = Path(os.environ.get("XDG_" + name, str(default))).expanduser().absolute()
         result[name] = str(unprofile(value))
+    claude = os.environ.get("CLAUDE_CONFIG_DIR") or str(home / ".claude")
+    result["CLAUDE_CONFIG_DIR"] = str(Path(claude).expanduser().absolute())
     return result
 
 

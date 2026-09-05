@@ -85,6 +85,8 @@ to reason about this.
 2. If none of the first three exist, spawn a detached `claude -p --model haiku`
    to summarise the first prompt, append the result as an `ai-title` entry, and
    rename the tab. Once per session, started only from `UserPromptSubmit` and
+   in an empty private working directory, with setting sources, tools, MCP,
+   slash commands, hooks, the default agent, and session persistence disabled. It is
    claimed with an exclusive `$TMPDIR/herdr-claude-title-<session-id>` marker so
    prompts sent while generation is still running do not each spawn their own
    child; no hook ever blocks on it.
@@ -116,10 +118,18 @@ which is why generated titles show up there too.
 
 Notes:
 
-- A user `/rename` always wins — the generating child re-checks for a
-  `customTitle` before renaming the tab.
-- Appends lead with a newline only when the transcript was left mid-line, so a
-  partially written last entry cannot be corrupted.
+- A user `/rename` or explicit session name always wins. The generating child
+  re-checks both before renaming the tab.
+- Failed generation removes its marker, allowing a later prompt to retry.
+  Claims older than the generation timeout plus 30 seconds can be reclaimed.
+- The child requires the pane to report that it still owns the same session before applying its
+  late result.
+- Hook `sessionTitle` output is supported, but records a user-style custom title
+  and is synchronous. It cannot replace the asynchronous `ai-title` behavior.
+  This hook therefore appends the private but CLI-native `ai-title` JSONL shape
+  with one append, but only when the transcript ends in a complete newline. If
+  Claude changes that shape, titles may stop appearing
+  in `/resume`; the Herdr label still falls back to the prompt.
 - Titles this hook writes are Title Case and at most 5 words; Claude's native
   ones are sentence case. That is how to tell them apart in a transcript.
 

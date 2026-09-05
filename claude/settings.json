@@ -77,7 +77,8 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "bash \"$HOME/.claude/statusline-command.sh\""
+    "command": "bash \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/statusline-command.sh\"",
+    "refreshInterval": 5
   },
   "effortLevel": "low",
   "promptSuggestionEnabled": false,

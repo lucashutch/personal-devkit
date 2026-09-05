@@ -109,9 +109,19 @@ def request(method, params):
 
 
 def rename_tab(label):
-    tab_id = request("pane.get", {}).get("result", {}).get("pane", {}).get("tab_id")
+    pane = request("pane.get", {}).get("result", {}).get("pane", {})
+    tab_id = pane.get("tab_id")
     if tab_id:
         request("tab.rename", {"tab_id": tab_id, "label": label})
+
+
+def rename_current_session(label, session_id):
+    """Avoid applying a slow result after this pane switched sessions."""
+    pane = request("pane.get", {}).get("result", {}).get("pane", {})
+    if pane.get("agent_session_id") != session_id:
+        return
+    if pane.get("tab_id"):
+        request("tab.rename", {"tab_id": pane["tab_id"], "label": label})
 
 
 def clean(text):
@@ -165,18 +175,22 @@ def store_ai_title(path, session_id, title):
         separators=(",", ":"),
     )
     try:
-        # A single append of one line: O_APPEND keeps it from interleaving with
-        # the session's own writes. Only lead with a newline if the transcript
-        # was left mid-line, which would otherwise corrupt the last entry.
-        with open(path, "r+", encoding="utf-8") as handle:
+        # Never join our JSON to a record Claude is still writing. A later hook
+        # can retry once that record is complete.
+        with open(path, "rb") as handle:
             handle.seek(0, os.SEEK_END)
             if handle.tell():
-                handle.seek(handle.tell() - 1)
-                entry = ("" if handle.read(1) == "\n" else "\n") + entry
-        with open(path, "a", encoding="utf-8") as handle:
-            handle.write(entry + "\n")
+                handle.seek(-1, os.SEEK_END)
+                if handle.read(1) != b"\n":
+                    return False
+        fd = os.open(path, os.O_WRONLY | os.O_APPEND)
+        try:
+            os.write(fd, (entry + "\n").encode())
+        finally:
+            os.close(fd)
+        return True
     except Exception:
-        pass
+        return False
 
 
 def explicit_name(session_id):
@@ -250,9 +264,23 @@ def claim_generation(session_id):
         os.close(os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600))
         return True
     except FileExistsError:
+        try:
+            if time.time() - marker.stat().st_mtime > GENERATE_TIMEOUT + 30:
+                marker.unlink()
+                os.close(os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600))
+                return True
+        except Exception:
+            pass
         return False
     except Exception:
         return True
+
+
+def release_generation(session_id):
+    try:
+        (Path(os.environ.get("TMPDIR", "/tmp")) / f"herdr-claude-title-{session_id}").unlink()
+    except Exception:
+        pass
 
 
 if action == "generate":
@@ -263,26 +291,46 @@ if action == "generate":
     transcript = os.environ.get("HERDR_TITLE_TRANSCRIPT", "")
     text = os.environ.get("HERDR_TITLE_TEXT", "")
     if not session_id or not text.strip():
+        release_generation(session_id)
         raise SystemExit(0)
-    environment = {k: v for k, v in os.environ.items() if k != "HERDR_ENV"}
+    # Print mode still inherits settings unless explicitly isolated. Give this
+    # child no tools, MCP servers, slash commands, or persisted session.
+    environment = {
+        k: v for k, v in os.environ.items()
+        if k not in ("HERDR_ENV", "CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT")
+    }
     try:
+        run_dir = config_dir / "title-generator"
+        run_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        isolated_settings = json.dumps({"hooks": {}, "agent": None, "disableBundledSkills": True})
         result = subprocess.run(
-            ["claude", "-p", "--model", "haiku"],
+            [
+                "claude", "-p", "--model", "haiku", "--tools", "",
+                "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}',
+                "--disable-slash-commands", "--no-session-persistence",
+                "--setting-sources", "", "--settings", isolated_settings,
+                "--system-prompt", "Return only a concise title for the supplied request.",
+            ],
             input=PROMPT + text[:2000],
             capture_output=True,
             text=True,
             timeout=GENERATE_TIMEOUT,
             env=environment,
+            cwd=run_dir,
         )
     except Exception:
+        release_generation(session_id)
         raise SystemExit(0)
     title = clean(result.stdout) if result.returncode == 0 else None
     if not title or "\n" in result.stdout.strip():
+        release_generation(session_id)
         raise SystemExit(0)
-    store_ai_title(transcript, session_id, title)
+    if not store_ai_title(transcript, session_id, title):
+        release_generation(session_id)
+        raise SystemExit(0)
     # A /rename during generation must not be overwritten by this late arrival.
-    if stored_titles(transcript, session_id)[0] is None:
-        rename_tab(title)
+    if stored_titles(transcript, session_id)[0] is None and explicit_name(session_id) is None:
+        rename_current_session(title, session_id)
     raise SystemExit(0)
 
 try:
@@ -353,5 +401,5 @@ if (
             start_new_session=True,
         )
     except Exception:
-        pass
+        release_generation(session_id)
 PY

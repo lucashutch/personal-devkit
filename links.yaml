@@ -41,15 +41,15 @@ groups:
   claude:
   - source: claude
     destinations:
-    - $HOME/.claude
+    - $CLAUDE_CONFIG_DIR
     include:
     - "**"
   - source: agentic_common/skills
     destinations:
-    - $HOME/.claude/skills
+    - $CLAUDE_CONFIG_DIR/skills
   - source: agentic_common/user-instructions.md
     destinations:
-    - $HOME/.claude/CLAUDE.md
+    - $CLAUDE_CONFIG_DIR/CLAUDE.md
 
   herdr:
   - source: herdr

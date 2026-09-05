@@ -28,6 +28,7 @@ class LinkConfigTests(unittest.TestCase):
             "XDG_DATA_HOME": str(Path(home) / ".local" / "share"),
             "XDG_STATE_HOME": str(Path(home) / ".local" / "state"),
             "XDG_CACHE_HOME": str(Path(home) / ".cache"),
+            "CLAUDE_CONFIG_DIR": str(Path(home) / ".claude"),
             "PATH": "/nonexistent",
         }
 
@@ -49,6 +50,27 @@ class LinkConfigTests(unittest.TestCase):
             self.assertEqual(self.run_linker(home, "--dotfiles").returncode, 0)
             after = self.run_linker(home, "--dotfiles", "--check")
             self.assertEqual(after.returncode, 0, after.stderr)
+
+    def test_claude_custom_config_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as home:
+            destination = Path(home) / "custom-claude"
+            environment = self.environment(home) | {"CLAUDE_CONFIG_DIR": str(destination)}
+            for arguments in (("--claude",), ("--claude", "--check")):
+                result = subprocess.run(
+                    [sys.executable, str(LINKER), *arguments], cwd=ROOT,
+                    env=environment, capture_output=True, text=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual((destination / "settings.json").resolve(), ROOT / "claude/settings.json")
+            self.assertEqual((destination / "skills").resolve(), ROOT / "agentic_common/skills")
+            self.assertFalse((Path(home) / ".claude").exists())
+
+    def test_claude_config_directory_defaults_to_home(self) -> None:
+        with tempfile.TemporaryDirectory() as home:
+            environment = self.environment(home)
+            environment.pop("CLAUDE_CONFIG_DIR")
+            with mock.patch.dict(os.environ, environment, clear=True):
+                self.assertEqual(load_linker().variables()["CLAUDE_CONFIG_DIR"], str(Path(home) / ".claude"))
 
     def test_dry_run_makes_no_changes_and_does_not_execute_actions(self) -> None:
         with tempfile.TemporaryDirectory() as home:

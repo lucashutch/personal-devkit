@@ -34,7 +34,7 @@ pdklink --dotfiles --unlink
 
 ## Manifest
 
-[`links.yaml`](../links.yaml) declares groups of repository-relative sources and their absolute destinations. Destinations may use `$HOME`, `$CONFIG_HOME`, `$DATA_HOME`, `$STATE_HOME`, and `$CACHE_HOME`.
+[`links.yaml`](../links.yaml) declares groups of repository-relative sources and their absolute destinations. Destinations may use `$HOME`, `$CONFIG_HOME`, `$DATA_HOME`, `$STATE_HOME`, `$CACHE_HOME`, and `$CLAUDE_CONFIG_DIR`. The last follows the environment variable when set and otherwise defaults to `~/.claude`.
 
 Directory entries can use `include` and `exclude` globs. Patterns support `*`, `**`, and `?`; exclusions win. A directory without filters is linked as one directory. Set `optional: true` for a source that may not exist. `--manifest PATH` checks a custom manifest whose sources remain relative to this repository.
 
