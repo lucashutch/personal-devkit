@@ -10,17 +10,17 @@
   },
   "plugins": [
     {
-      "package": "./shared/plugins/model-filter",
+      "package": "./plugins/model-filter",
       "options": {
         "deny": [
           "opencode/*"
         ]
       }
     },
-    "./shared/plugins/slim-tools",
-    "./shared/plugins/slim-skills",
+    "./plugins/slim-tools",
+    "./plugins/slim-skills",
     {
-      "package": "./shared/plugins/delegate-profiles",
+      "package": "./plugins/delegate-profiles",
       "options": {
         "presets": {
           "fast": {

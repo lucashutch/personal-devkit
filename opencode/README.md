@@ -31,7 +31,7 @@ IDs and descriptions are preserved, so on-demand loading is unchanged.
 OpenCode currently has no native provider/model whitelist, and per-model `disabled`
 blocklists in `opencode.json` rot as providers add models (new entries appear
 enabled until hand-blocked). Until whitelist support returns, the shared
-`personal.model-filter` plugin (`shared/plugins/model-filter`) applies the
+`personal.model-filter` plugin (`plugins/model-filter`) applies the
 rules from its plugin `options` at the catalog level, following the same
 per-profile pattern as delegate profiles. Rules are `provider/model`
 strings with `*` glob wildcards (`provider/*` matches all models of a
@@ -79,7 +79,7 @@ the ported commands explicitly tell General to load the corresponding skill.
 The beta API exposes the host renderer to external plugins
 (`context.renderer`), so plugin-local `@opentui/solid` JSX renders with the
 host's renderer. The Limitwatch quota and subagent-session plugins are enabled
-in `shared/cli.json` and load from their `shared/plugins/*` package directories.
+in `cli.json` and load from their `plugins/*` package directories.
 
 `opencode/package.json` declares only `@opencode-ai/plugin` on the `beta`
 channel, matching the channel the installed CLI ships on, and without a
@@ -95,8 +95,8 @@ moves the peers and the next linker run follows.
 Install from that directory only, because the plugin loader resolves imports
 from the plugin source tree. Rerun the linker after upgrading the CLI, both to
 follow the peers and to expose extension API breakage.
-Both plugins claim the `sidebar.content` slot with `append`. See
-[limitwatch-tui-findings.md](limitwatch-tui-findings.md).
+Both plugins claim the `sidebar.content` slot with `append`. Their behavior and
+troubleshooting notes live in each plugin's README.
 
 A mounted external slot now updates in place: the host repaints on
 `context.renderer.requestRender()` rather than needing the slot torn down. Both

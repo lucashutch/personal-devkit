@@ -9,7 +9,7 @@ request suppress duplicate refreshes during bursts of status events.
 
 ## Configuration
 
-- Plugin entry: `cli.json` -> `./shared/plugins/limitwatch-quota`
+- Plugin entry: `cli.json` -> `./plugins/limitwatch-quota`
 - Command override: `LIMITWATCH_COMMAND`
 - Account directory override: `LIMITWATCH_CONFIG_DIR`
 

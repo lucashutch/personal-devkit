@@ -2,7 +2,7 @@
   "name": "opencode-v2-extensions",
   "private": true,
   "type": "module",
-  "description": "Dependencies for the V2 TUI plugins in shared/plugins.",
+  "description": "Dependencies for the TUI plugins in plugins/.",
   "dependencies": {
     "@opencode-ai/plugin": "beta"
   }

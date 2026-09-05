@@ -191,7 +191,7 @@ class LinkConfigTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as home:
             with mock.patch.dict(os.environ, self.environment(home), clear=True):
                 plan = load_linker().build_plan({"opencode"})
-            cli_links = [link for link in plan if link.source == ROOT / "opencode/shared/cli.json"]
+            cli_links = [link for link in plan if link.source == ROOT / "opencode/cli.json"]
             self.assertEqual(len(cli_links), 2)
             self.assertEqual(len({link.destination for link in cli_links}), 2)
 
@@ -439,19 +439,19 @@ class LinkConfigTests(unittest.TestCase):
                 )
                 self.assertEqual(
                     target.joinpath("cli.json").resolve(),
-                    ROOT / "opencode" / "shared" / "cli.json",
+                    ROOT / "opencode" / "cli.json",
                 )
                 self.assertEqual(
                     target.joinpath("agents").resolve(),
-                    ROOT / "opencode" / "shared" / "agents",
+                    ROOT / "opencode" / "agents",
                 )
                 self.assertEqual(
-                    target.joinpath("shared").resolve(),
-                    ROOT / "opencode" / "shared",
+                    target.joinpath("plugins", "model-filter", "index.js").resolve(),
+                    ROOT / "opencode" / "plugins" / "model-filter" / "index.js",
                 )
                 self.assertEqual(
-                    target.joinpath("shared", "plugins", "model-filter", "index.js").resolve(),
-                    ROOT / "opencode" / "shared" / "plugins" / "model-filter" / "index.js",
+                    target.joinpath("lib", "slim-tools-data.js").resolve(),
+                    ROOT / "opencode" / "lib" / "slim-tools-data.js",
                 )
                 self.assertFalse(target.joinpath("service.json").exists())
             applications = Path(environment["XDG_DATA_HOME"]) / "applications"

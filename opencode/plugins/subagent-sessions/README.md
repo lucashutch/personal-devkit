@@ -21,7 +21,7 @@ reported on the latest assistant message. It is not a context-window percentage.
 
 ## Configuration
 
-- Plugin entry: `cli.json` -> `./shared/plugins/subagent-sessions`
+- Plugin entry: `cli.json` -> `./plugins/subagent-sessions`
 - Slot: `sidebar.content`
 - Child lookup: the TUI session cache plus session info retained from events,
   with a one-second server reconciliation filtered by `parentID`

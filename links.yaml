@@ -16,17 +16,15 @@ groups:
     exclude:
     - __pycache__
     - "*.pyc"
-  - source: opencode/shared
+  - source: opencode
     destinations:
     - $CONFIG_HOME/opencode
     - $CONFIG_HOME/opencode-test/opencode
     include:
     - cli.json
     - "agents/**"
-  - source: opencode/shared
-    destinations:
-    - $CONFIG_HOME/opencode/shared
-    - $CONFIG_HOME/opencode-test/opencode/shared
+    - "plugins/**"
+    - "lib/**"
 
   # Skills are platform-neutral: one copy in agentic_common, linked everywhere.
   - source: agentic_common/skills

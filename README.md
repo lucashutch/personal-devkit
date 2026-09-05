@@ -6,13 +6,14 @@ Fork it or open a PR to adapt the prompts and tool descriptions to your own work
 
 ## What's here
 
-- `agentic_common/` — platform-neutral skills shared by Claude Code and OpenCode, plus OpenCode commands
+- `agentic_common/` — platform-neutral skills and writing instructions shared by Claude Code and OpenCode
 - `opencode/` — OpenCode profiles, agents, and plugins
 - `claude/` — Claude Code settings, keybindings, statusline, and agents
 - `herdr/` — Herdr configuration
 - `dotfiles/` — Bash, Ghostty, Starship, and ALSA configuration
 - `links.yaml` — source-to-destination mappings managed by the linker
-- `scripts/` — installers, linker, migrations, and their tests
+- `src/personal_devkit/` — installer, linker, and migration implementations
+- `scripts/` — compatibility entry points and Python tests
 
 ## Quick start
 

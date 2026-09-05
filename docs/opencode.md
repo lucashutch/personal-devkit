@@ -19,9 +19,9 @@ Legacy aliases `opencode2`, `oc2`, and `o2t` still point at the default and test
 
 ## What the linker does
 
-The linker installs profile configuration, shared agents, skills, commands, plugins, and the OpenCode desktop launcher. It does not link runtime-generated credentials or state files.
+The linker installs profile configuration, shared agents, skills, plugins, and the OpenCode desktop launcher. OpenCode slash-command adapters are intentionally omitted. OpenCode provides its own `opencode` and `report` skills. The linker does not manage runtime-generated credentials or state files.
 
-For OpenCode it also runs `npm install --no-package-lock` in `opencode/` to install the current TUI plugin dependencies. Rerun the linker after upgrading the CLI, then restart OpenCode.
+For OpenCode it also installs plugin dependencies and their optional peers in `opencode/`, without a lockfile or package scripts. The floating `beta` dependency can move independently of the CLI, and peer ranges do not guarantee exact host builds. Check both versions and validate plugins after relinking or upgrading; restart OpenCode to load changed server plugins.
 
 The default profile uses OpenCode's built-in service endpoint. The test profile uses `127.0.0.1:4099` when `opencode2` is available. To configure it manually:
 
@@ -48,9 +48,9 @@ Both settings live in `service.json` under the profile config directory. The lin
 
 ## Herdr
 
-Herdr uses the TUI plugin at `opencode/shared/plugins/herdr-tui-pane.js`, registered in `opencode/shared/cli.json`, because the shared background service cannot reliably identify the originating pane from a server-side plugin.
+Herdr uses the TUI package at `opencode/plugins/herdr-tui-pane/`, registered in `opencode/cli.json`, because the shared background service cannot reliably identify the originating pane from a server-side plugin.
 
-Tab labels follow the selected session from the same pane sync inside `herdr-tui-pane`. It renames on `session.updated` and polls the route once a second, because a route change has no event and a server plugin only sees the session that happens to be active, so it cannot tell one pane's session switch from another's.
+Tab labels and activity follow the selected session family in that TUI pane. The plugin listens for session renames and polls the route to detect session switches; the shared server cannot attribute a route change to a particular pane.
 
 Claude's Herdr hook is managed at `claude/hooks/herdr-agent-state.sh` and in `claude/settings.json`; link it with `pdklink --claude`.
 

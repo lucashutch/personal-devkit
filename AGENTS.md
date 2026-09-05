@@ -14,5 +14,5 @@
 
 - Repository-managed skills live once under `agentic_common/skills/` and are linked to both hosts. Edit that copy; never reintroduce a per-host copy. OpenCode supplies its own `opencode` and `report` skills; do not vendor them here.
 - Keep everything under `agentic_common/` platform-neutral. Do not name a host-specific tool (`bash` vs `shell`, `question` vs `AskUserQuestion`, `skill` vs `Skill`); describe the action instead, because the same file is loaded by Claude Code and OpenCode V2.
-- Agent definitions have two source copies with incompatible frontmatter. When editing an agent under `claude/agents/` or `opencode/shared/agents/`, apply the same body change to both copies in the same commit.
+- Agent definitions have two source copies with incompatible frontmatter. When editing an agent under `claude/agents/` or `opencode/agents/`, apply the same body change to both copies in the same commit.
 - Agent bodies are byte-identical by design, except Claude's `subagent_type` rule in `General`. Do not add wording variants; if a change is genuinely host-specific, say so in the commit message.

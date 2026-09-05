@@ -4,7 +4,7 @@
 
 `@opencode-ai/cli@0.0.0-next-15779` supplies a session hook that runs after
 the built-in tools have been permission-filtered and immediately before the
-model request is built. `shared/plugins/slim-tools` uses that hook to
+model request is built. `plugins/slim-tools` uses that hook to
 replace only known tool and parameter descriptions. It preserves the actual
 schemas, tool names, permissions, and executors.
 

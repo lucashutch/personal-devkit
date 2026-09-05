@@ -26,7 +26,7 @@ variant selection, resume policy, concurrent calls, cancellation cleanup, and
 native result/error forwarding:
 
 ```sh
-node --test opencode/shared/plugins/delegate-profiles.test.mjs
+node --test opencode/plugins/delegate-profiles.test.mjs
 ```
 
 The local capture harness also verified an Astra parent sending `low` reasoning

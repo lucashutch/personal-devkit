@@ -22,7 +22,7 @@
     "plugins": [
         "opencode-chatgpt-websearch@0.1.1",
         {
-            "package": "./shared/plugins/model-filter",
+            "package": "./plugins/model-filter",
             "options": {
                 "allow": [
                     "openai/gpt-5.6-terra",
@@ -48,10 +48,10 @@
                 ]
             }
         },
-        "./shared/plugins/slim-tools",
-        "./shared/plugins/slim-skills",
+        "./plugins/slim-tools",
+        "./plugins/slim-skills",
         {
-            "package": "./shared/plugins/delegate-profiles",
+            "package": "./plugins/delegate-profiles",
             "options": {
                 "presets": {
                     "fast": {
