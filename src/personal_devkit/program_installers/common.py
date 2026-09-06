@@ -23,6 +23,7 @@ SUPPORTED_TOOLS = (
     "pi",
     "tokscale",
     "ghui",
+    "tuig",
     "herdr",
     "code",
 )
