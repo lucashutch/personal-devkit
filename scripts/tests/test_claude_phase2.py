@@ -2,7 +2,9 @@ import json
 import os
 import re
 import shutil
+import socket
 import subprocess
+import threading
 from pathlib import Path
 
 import pytest
@@ -69,6 +71,57 @@ def test_settings_keep_explicit_risk_and_effort_choices():
 def test_theme_has_no_background_override():
     theme = json.loads((ROOT / "claude/themes/one-dark.json").read_text())
     assert "background" not in theme["overrides"]
+
+
+def test_native_claude_title_syncs_to_owning_herdr_tab(tmp_path):
+    transcript = tmp_path / "session.jsonl"
+    transcript.write_text(
+        '{"type":"ai-title","aiTitle":"Native Claude Title","sessionId":"session"}\n'
+    )
+    socket_path = tmp_path / "herdr.sock"
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    server.bind(str(socket_path))
+    server.listen()
+    messages = []
+
+    def serve():
+        for response in (
+            {
+                "result": {
+                    "pane": {
+                        "tab_id": "tab",
+                        "agent_session": {"kind": "id", "value": "session"},
+                    }
+                }
+            },
+            {"result": {}},
+        ):
+            client, _ = server.accept()
+            with client:
+                messages.append(json.loads(client.recv(4096)))
+                client.sendall((json.dumps(response) + "\n").encode())
+
+    thread = threading.Thread(target=serve)
+    thread.start()
+    result = subprocess.run(
+        ["bash", str(ROOT / "claude/hooks/herdr-session-title-sync.sh")],
+        input=json.dumps({"session_id": "session", "transcript_path": str(transcript)}),
+        text=True,
+        env={
+            **os.environ,
+            "HERDR_ENV": "1",
+            "HERDR_SOCKET_PATH": str(socket_path),
+            "HERDR_PANE_ID": "pane",
+        },
+        check=False,
+        timeout=10,
+    )
+    thread.join(timeout=2)
+    server.close()
+
+    assert result.returncode == 0
+    assert [message["method"] for message in messages] == ["pane.get", "tab.rename"]
+    assert messages[1]["params"]["label"] == "Native Claude Title"
 
 
 @pytest.mark.parametrize("cache_seconds", ["0", "60"])
