@@ -19,6 +19,7 @@ from .program_installers.common import (
     info,
     prepend_existing_fzf_path,
 )
+from .program_installers.druk import install_druk
 from .program_installers.fzf import install_fzf
 from .program_installers.ghui import install_ghui
 from .program_installers.tuig import install_tuig
@@ -75,6 +76,7 @@ def build_parser() -> argparse.ArgumentParser:
     options.add_argument("--tuig", action="store_true", help="Select tuig")
     options.add_argument("--glow", action="store_true", help="Select glow")
     options.add_argument("--glowm", action="store_true", help="Select glowm")
+    options.add_argument("--druk", action="store_true", help="Select druk")
     options.add_argument("--herdr", action="store_true", help="Select Herdr")
     options.add_argument("--vscode", action="store_true", help="Select Visual Studio Code")
     options.add_argument("--wslu", action="store_true", help="Select wslu (WSL only)")
@@ -105,6 +107,7 @@ class Options:
     install_tuig: bool = False
     install_glow: bool = False
     install_glowm: bool = False
+    install_druk: bool = False
     install_herdr: bool = False
     install_vscode: bool = False
     install_wslu: bool = False
@@ -122,6 +125,7 @@ class Options:
         self.install_tuig = True
         self.install_glow = True
         self.install_glowm = True
+        self.install_druk = True
         self.install_herdr = True
         self.install_wslu = True
 
@@ -188,6 +192,7 @@ def parse_args(argv: list[str]) -> Options | int:
     options.install_tuig = options.install_tuig or parsed.tuig
     options.install_glow = options.install_glow or parsed.glow
     options.install_glowm = options.install_glowm or parsed.glowm
+    options.install_druk = options.install_druk or parsed.druk
     options.install_herdr = options.install_herdr or parsed.herdr
     options.install_vscode = options.install_vscode or parsed.vscode
     options.install_wslu = options.install_wslu or parsed.wslu
@@ -207,6 +212,7 @@ def parse_args(argv: list[str]) -> Options | int:
         or parsed.tuig
         or parsed.glow
         or parsed.glowm
+        or parsed.druk
         or parsed.herdr
         or parsed.vscode
         or parsed.wslu
@@ -253,7 +259,13 @@ def main(argv: list[str] | None = None) -> int:
     if parsed.install_starship:
         run_tool(summary, "starship", install_starship, parsed)
     node_rc = STATUS_SKIPPED
-    npm_tools = (parsed.install_opencode, parsed.install_codex, parsed.install_tokscale, parsed.install_ghui)
+    npm_tools = (
+        parsed.install_opencode,
+        parsed.install_codex,
+        parsed.install_tokscale,
+        parsed.install_ghui,
+        parsed.install_druk,
+    )
     if parsed.install_node or any(npm_tools):
         node_rc = run_tool(summary, "node", install_node, parsed)
     node_ready = node_rc in (0, STATUS_SKIPPED)
@@ -277,6 +289,8 @@ def main(argv: list[str] | None = None) -> int:
         run_tool(summary, "glow", install_glow, parsed)
     if parsed.install_glowm:
         run_tool(summary, "glowm", install_glowm, parsed)
+    if parsed.install_druk:
+        run_npm_tool(summary, "druk", install_druk, parsed, node_ready)
     if parsed.install_herdr:
         run_tool(summary, "herdr", install_herdr, parsed)
     if parsed.install_vscode:
