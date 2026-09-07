@@ -36,5 +36,5 @@ Verified: 2026-09-05 against tracked paths and `pyproject.toml`.
 - Wrappers are `opencode`/`oc` (default) and `oct` (isolated test); legacy `opencode2`/`oc2`/`o2t` remain as aliases. Only the test service endpoint is configured, and never committed.
 - Skills live once in `agentic_common/skills/` and must stay platform-neutral: describe actions rather than naming host-specific tools.
 - OpenCode slash-command adapters are intentionally not managed. Claude exposes skills as commands directly.
-- Agents have two source copies with incompatible frontmatter (Claude `tools:`, OpenCode `permissions:` list). Keep their bodies identical except Claude's `subagent_type` rule in `General`.
+- Claude Code uses its built-in agents. Repository-managed custom agents under `opencode/agents/` apply only to OpenCode.
 - The retired V1 database backup lives at `~/.local/share/opencode-v1/opencode/opencode.db` and is included in tokscale settings for history.
