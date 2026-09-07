@@ -17,8 +17,8 @@
   },
   "animations": true,
   "keybinds": {
-    "input.submit": "ctrl+return",
-    "input.newline": "return,shift+return,alt+return,ctrl+j"
+    "input.submit": "ctrl+return,ctrl+s,alt+return",
+    "input.newline": "return,shift+return,ctrl+j"
   },
   "plugins": [
     "./plugins/limitwatch-quota",

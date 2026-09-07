@@ -61,7 +61,7 @@ opencode() {
       command opencode2 "$@"
   fi
 }
-oc() { OPENCODE_EXPERIMENTAL_OPENAI_RESPONSES_WEBSOCKET=1 opencode "$@"; }
+oc() { opencode "$@"; }
 oct() { _opencode_test "$@"; }
 
 # Legacy aliases from the V2 namespace migration.
