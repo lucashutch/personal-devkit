@@ -56,14 +56,14 @@ limitations.
 ## Agents, commands, and skills
 
 Profiles carry the on-demand orchestration setup: General remains the primary
-agent, with Worker, WebResearcher, Reviewer, and Advisor as bounded subagents. The lifecycle
-and orchestration skills and their slash commands are linked into every
+agent, with Worker, Reviewer, and Advisor as bounded subagents. The lifecycle
+and orchestration skills are linked into every
 profile.
 
 The port uses the ordered `permissions` rules instead of the old V1 `permission`
 map. Tool names also differ (`subagent` replaces `task`, and `shell` replaces
 `bash`). Subagents run with their own configured permissions rather than an
-inherited subset of the parent's permissions, so Worker, WebResearcher, and
+inherited subset of the parent's permissions, so Worker and
 Reviewer explicitly deny further delegation. Skill IDs are path-derived and
 case-sensitive; the lowercase skill directory names are intentional.
 
@@ -71,8 +71,8 @@ The native `subagent` tool creates a fresh child session and can run in the
 foreground or background. The orchestration skill therefore treats delegation
 as an explicit context/latency cost and keeps cohesive work in the primary
 session. Skill bodies are loaded on demand rather than injected into the
-initial prompt. Command `subtask` metadata has no execution effect, so
-the ported commands explicitly tell General to load the corresponding skill.
+initial prompt. Slash-command adapters are intentionally not managed;
+Claude exposes skills as commands directly.
 
 ## TUI plugins: working
 
