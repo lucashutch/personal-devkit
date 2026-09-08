@@ -84,7 +84,7 @@ class LinkBinariesTests(unittest.TestCase):
             (version_dir / "bin" / binary).write_text("")
         return version_dir
 
-    def test_points_current_at_the_version_directory(self) -> None:
+    def test_links_binaries_through_current_version(self) -> None:
         version_dir = self._version_dir()
 
         self.assertTrue(node._link_binaries(version_dir))
@@ -93,11 +93,6 @@ class LinkBinariesTests(unittest.TestCase):
         self.assertTrue(current.is_symlink())
         self.assertEqual(current.resolve(), version_dir.resolve())
         self.assertTrue(version_dir.is_dir())
-
-    def test_links_binaries_through_current(self) -> None:
-        version_dir = self._version_dir()
-
-        self.assertTrue(node._link_binaries(version_dir))
 
         for binary in node.NODE_BINARIES:
             link = self.home / ".local" / "bin" / binary

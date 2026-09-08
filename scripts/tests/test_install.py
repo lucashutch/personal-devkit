@@ -1,10 +1,11 @@
-from personal_devkit.install import Options, parse_args
+import pytest
+
+from personal_devkit.install import parse_args
 
 
 def test_default_selection_excludes_desktop_apps() -> None:
     options = parse_args([])
 
-    assert isinstance(options, Options)
     assert options.install_opencode
     assert not options.install_opencode_desktop
     assert not options.install_vscode
@@ -13,37 +14,17 @@ def test_default_selection_excludes_desktop_apps() -> None:
 def test_all_selection_includes_desktop_apps() -> None:
     options = parse_args(["--all"])
 
-    assert isinstance(options, Options)
     assert options.install_opencode_desktop
     assert options.install_vscode
 
 
-def test_vscode_can_be_selected_explicitly() -> None:
-    options = parse_args(["--vscode"])
+@pytest.mark.parametrize("flag, attribute", [
+    ("--vscode", "install_vscode"),
+    ("--opencode-desktop", "install_opencode_desktop"),
+    ("--druk", "install_druk"),
+])
+def test_explicit_selection_excludes_default_tools(flag: str, attribute: str) -> None:
+    options = parse_args([flag])
 
-    assert isinstance(options, Options)
-    assert options.install_vscode
-    assert not options.install_opencode
-
-
-def test_opencode_desktop_can_be_selected_without_cli() -> None:
-    options = parse_args(["--opencode-desktop"])
-
-    assert isinstance(options, Options)
-    assert options.install_opencode_desktop
-    assert not options.install_opencode
-
-
-def test_druk_is_a_default_tool() -> None:
-    options = parse_args([])
-
-    assert isinstance(options, Options)
-    assert options.install_druk
-
-
-def test_druk_can_be_selected_explicitly() -> None:
-    options = parse_args(["--druk"])
-
-    assert isinstance(options, Options)
-    assert options.install_druk
+    assert getattr(options, attribute)
     assert not options.install_opencode

@@ -1,3 +1,7 @@
+# Testing
+
+Tests must protect meaningful behavior or integration boundaries, not implementation details. Avoid redundant, brittle, or tautological tests that would not catch a meaningful regression.
+
 # Writing
 
 - Write plainly and specifically. Preserve the intended meaning and tone when editing text.

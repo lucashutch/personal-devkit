@@ -607,10 +607,6 @@ class MigrateOpenCodeSessionsTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(count(self.target, "instruction_entry"), 1)
 
-    def test_module_is_importable(self) -> None:
-        module = load_migrator()
-        self.assertEqual(module.storage_pair("/a:/b"), (Path("/a"), Path("/b")))
-
 
 if __name__ == "__main__":
     unittest.main()

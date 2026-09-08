@@ -50,6 +50,9 @@ class LinkConfigTests(unittest.TestCase):
             self.assertEqual(self.run_linker(home, "--dotfiles").returncode, 0)
             after = self.run_linker(home, "--dotfiles", "--check")
             self.assertEqual(after.returncode, 0, after.stderr)
+            target = Path(home) / ".asoundrc"
+            self.assertTrue(target.is_symlink())
+            self.assertEqual(target.resolve(), ROOT / "dotfiles" / ".asoundrc")
 
     def test_claude_custom_config_directory(self) -> None:
         with tempfile.TemporaryDirectory() as home:
@@ -186,14 +189,6 @@ class LinkConfigTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertFalse(icons.exists())
             self.assertTrue(desktop.is_file())
-
-    def test_real_manifest_contains_one_source_to_many_destinations(self) -> None:
-        with tempfile.TemporaryDirectory() as home:
-            with mock.patch.dict(os.environ, self.environment(home), clear=True):
-                plan = load_linker().build_plan({"opencode"})
-            cli_links = [link for link in plan if link.source == ROOT / "opencode/cli.json"]
-            self.assertEqual(len(cli_links), 2)
-            self.assertEqual(len({link.destination for link in cli_links}), 2)
 
     def test_build_plan_rejects_duplicate_destinations(self) -> None:
         self.assert_plan_conflict(["$HOME/target", "$HOME/target"], "duplicate destination")
@@ -339,26 +334,6 @@ class LinkConfigTests(unittest.TestCase):
             with mock.patch.dict(os.environ, self.environment(home), clear=True):
                 with self.assertRaisesRegex(ValueError, message):
                     load_linker().build_plan({"dotfiles"}, manifest)
-
-    def test_dotfiles_links_pulse_alsa_config_to_home(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary_home:
-            environment = os.environ | {
-                "HOME": temporary_home,
-                "XDG_CONFIG_HOME": str(Path(temporary_home) / ".config"),
-                "PATH": "/nonexistent",
-            }
-            result = subprocess.run(
-                [sys.executable, str(LINKER), "--dotfiles"],
-                cwd=ROOT,
-                env=environment,
-                capture_output=True,
-                text=True,
-            )
-
-            self.assertEqual(result.returncode, 0, result.stderr)
-            target = Path(temporary_home) / ".asoundrc"
-            self.assertTrue(target.is_symlink())
-            self.assertEqual(target.resolve(), ROOT / "dotfiles" / ".asoundrc")
 
     def test_herdr_links_repo_config(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_home:
