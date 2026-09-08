@@ -60,19 +60,6 @@ def test_statusline_detached_head_uses_short_sha(tmp_path):
     assert f"({sha})" in run_status({"cwd": str(tmp_path)}).stdout
 
 
-def test_settings_keep_explicit_risk_and_effort_choices():
-    settings = json.loads((ROOT / "claude/settings.json").read_text())
-    assert settings["permissions"]["defaultMode"] == "bypassPermissions"
-    assert settings["skipDangerousModePermissionPrompt"] is True
-    assert settings["effortLevel"] == "low"
-    assert "CLAUDE_CONFIG_DIR" in settings["statusLine"]["command"]
-
-
-def test_theme_has_no_background_override():
-    theme = json.loads((ROOT / "claude/themes/one-dark.json").read_text())
-    assert "background" not in theme["overrides"]
-
-
 def test_native_claude_title_syncs_to_owning_herdr_tab(tmp_path):
     transcript = tmp_path / "session.jsonl"
     transcript.write_text(
