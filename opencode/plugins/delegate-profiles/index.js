@@ -6,7 +6,7 @@ import { Effect } from "effect"
 // profile's opencode.json:
 //   { "presets": { "fast": { "model": "provider/model", "variant": "low" }, ... } }
 
-const profileOrder = ["fast", "standard", "deep", "inherit"]
+const profileOrder = ["fast", "standard", "deep", "advisor", "inherit"]
 
 export function parseModelRef(value, label = "model") {
   if (typeof value !== "string") throw new Error(`${label} must be a provider/model string`)
@@ -33,7 +33,7 @@ export function parseProfiles(configured) {
     throw new Error("delegate-profiles options.presets must be an object")
   }
   return Object.fromEntries(
-    profileOrder.slice(0, 3).map((profile) => {
+    profileOrder.filter((profile) => profile !== "inherit").map((profile) => {
       // V1 calls the middle tier `balanced`; V2 exposes it as `standard`.
       // Accept `standard` in a future shared settings file without requiring a
       // coordinated plugin release.
@@ -80,7 +80,7 @@ export function addModelProfile(schema, agents = [], profiles) {
       type: "string",
       enum: profileOrder,
       description: profiles
-        ? `Configured model: fast=${formatModelRef(profiles.fast)}, standard=${formatModelRef(profiles.standard)}, deep=${formatModelRef(profiles.deep)}; inherit=selected agent/parent.`
+        ? `Configured model: ${profileOrder.filter((profile) => profile !== "inherit").map((profile) => `${profile}=${formatModelRef(profiles[profile])}`).join(", ")}; inherit=selected agent/parent.`
         : "Configured model profile; inherit uses the selected agent or parent.",
     },
   }

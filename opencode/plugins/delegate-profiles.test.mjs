@@ -8,6 +8,7 @@ const settings = { presets: {
   fast: { model: "openai/luna", variant: "low" },
   balanced: { model: "openai/terra", variant: "medium" },
   deep: { model: "openai/sol", variant: "high" },
+  advisor: { model: "openai/gpt-6-astra", variant: "medium" },
 } }
 const run = (fn, native) => Effect.runPromise(Effect.scoped(Effect.gen(function* () {
   const hooks = {}, log = [], active = {}
@@ -46,29 +47,31 @@ test("profile parsing and compact cloned schema", () => {
   assert.deepEqual(parseModelRef("openai/a#low"), { providerID: "openai", id: "a", variant: "low" })
   for (const value of ["a", "openai/a#", " openai/a"]) assert.throws(() => parseModelRef(value))
   assert.equal(parseProfiles(settings).standard.id, "terra")
+  assert.deepEqual(parseProfiles(settings).advisor, { providerID: "openai", id: "gpt-6-astra", variant: "medium" })
   assert.throws(() => parseProfiles({ presets: {} }))
   const schema = { type: "object", properties: { agent: { type: "string" } }, required: ["agent"] }
   const augmented = addModelProfile(schema, [{ id: "Worker", mode: "subagent" }], parseProfiles(settings))
   assert.equal(schema.properties.model_profile, undefined)
   assert.deepEqual(augmented.properties.agent.enum, ["Worker"])
   assert.match(augmented.properties.model_profile.description, /fast=openai\/luna#low/)
-  assert.doesNotMatch(augmented.properties.model_profile.description, /When resuming with sessionID, use inherit/)
-  assert.doesNotMatch(addModelProfile(schema).properties.model_profile.description, /When resuming with sessionID, use inherit/)
+  assert.match(augmented.properties.model_profile.description, /advisor=openai\/gpt-6-astra#medium/)
+  assert.deepEqual(augmented.properties.model_profile.enum, ["fast", "standard", "deep", "advisor", "inherit"])
 })
 
-for (const background of [false, true]) test(`native forwarding and pre-admission ordering background=${background}`, () => run(function* ({ prepare, log, result }) {
-  const call = yield* prepare({ background })
+for (const profile of ["fast", "advisor"]) for (const background of [false, true]) test(`native forwarding and pre-admission ordering profile=${profile} background=${background}`, () => run(function* ({ prepare, log, result }) {
+  const call = yield* prepare({ background, model_profile: profile })
   assert.equal(call.event.input.agent, "Worker")
   assert.equal(call.event.input.model_profile, undefined)
   assert.equal(yield* call.execute(), result)
   assert.deepEqual(log.map(([name]) => name), ["role", "switch", "progress", "prompt"])
+  assert.deepEqual(log.find(([name]) => name === "switch")[1].model, parseProfiles(settings)[profile])
 }))
 
 test("resume preserves model, rejects profile changes, and replay is idempotent", () => run(function* ({ prepare, log, active, replay, tool }) {
   const execute = tool.execute
   replay(); replay()
   assert.equal(tool.execute, execute)
-  for (const profile of ["fast", "standard", "deep"]) {
+  for (const profile of ["fast", "standard", "deep", "advisor"]) {
     active.old = parseProfiles(settings)[profile]
     for (const background of [false, true]) {
       log.length = 0

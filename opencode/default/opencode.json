@@ -65,6 +65,10 @@
                     "deep": {
                         "model": "openai/gpt-5.6-sol",
                         "variant": "low"
+                    },
+                    "advisor": {
+                        "model": "openai/gpt-6-astra",
+                        "variant": "medium"
                     }
                 }
             }

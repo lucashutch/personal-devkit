@@ -47,7 +47,7 @@ Remove the plugin and its options once OpenCode regains native whitelisting.
 
 All profiles use a model-profile extension for the native `subagent` tool.
 It preserves the native executor while adding
-`fast`, `standard`, `deep`, and `inherit` through the session-context and
+`fast`, `standard`, `deep`, `advisor`, and `inherit` through the session-context and
 pre-execution hooks. See
 [DELEGATE-PROFILES.md](DELEGATE-PROFILES.md) for model settings, implementation
 details, beta dependencies, capture-proxy validation, upgrade steps, and known
@@ -56,7 +56,7 @@ limitations.
 ## Agents, commands, and skills
 
 Profiles carry the on-demand orchestration setup: General remains the primary
-agent, with Worker, WebResearcher, and Reviewer as bounded subagents. The lifecycle
+agent, with Worker, WebResearcher, Reviewer, and Advisor as bounded subagents. The lifecycle
 and orchestration skills and their slash commands are linked into every
 profile.
 

@@ -1,9 +1,24 @@
 # Delegate model profiles
 
 The default and test profiles enable `personal.delegate-profiles`. Configure
-`fast`, `standard` (also accepted as `balanced`), and `deep` presets in each
+`fast`, `standard` (also accepted as `balanced`), `deep`, and `advisor` presets in each
 profile's `opencode.json`. Each preset selects a model and optional reasoning
 variant. The parent model's reasoning level does not determine that variant.
+
+The default `advisor` preset uses `openai/gpt-6-astra` with `medium` reasoning.
+Select it with `model_profile: "advisor"`. The test profile routes it to the
+fake Astra capture model, without a reasoning variant, like its other presets.
+
+The shared `advisor` skill guides read-only second opinions and reviews using
+this tier while leaving implementation and final decisions with the primary agent.
+
+Select `agent: "Advisor"` with `model_profile: "advisor"`. The role permits only
+`read`, `glob`, and `grep`, and denies external-directory access and `.env*` reads.
+Shell, edits, network tools, skills,
+delegation, and Code Mode are denied by default. Supply short diffs and test
+results in the request. Targeted lookups and a 250-word response are prompt
+guidance, not hard step or token limits. The agent inherits model selection unless
+the caller supplies a profile; its model is not pinned separately.
 
 The plugin adds `model_profile` to the native subagent schema and wraps the
 native Effect executor. It keeps the real Worker/Reviewer agent ID. At the
