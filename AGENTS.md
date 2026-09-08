@@ -4,7 +4,6 @@
 - Do not edit raw configuration files in `~/.config/opencode`, `~/.claude`, or other linked target locations. Update their repository-managed source files here instead, unless editing the target is absolutely necessary.
 - Match the surrounding code's naming, structure, idioms, formatting, and comment density.
 - Use comments only for non-obvious constraints; do not narrate code or justify a change to reviewers.
-- Do not add tests that merely repeat configuration values, pin prompt wording, or duplicate existing coverage; each test must catch a concrete behavioral regression or integration failure worth its maintenance cost.
 - Before destructive or outward-facing actions, confirm authorization and inspect existing targets before overwriting or deleting them.
 - `~/.bashrc` is not managed by the linker, so `dotfiles/bashrc.d/` snippets only load if it sources `~/.config/bashrc.d/*.sh`. When shell helpers such as `oc2` are missing, check for that loader first and add the snippet from `docs/dotfiles.md` after confirming with the user, keeping a backup of the original file.
 
