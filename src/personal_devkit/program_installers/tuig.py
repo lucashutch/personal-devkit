@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import urllib.request
 
-from .common import STATUS_SKIPPED, error, info, should_skip_tool
+from .common import STATUS_SKIPPED, command_exists, error, info, should_skip_tool
 from .node import run_command
 
 RELEASE_URL = "https://api.github.com/repos/lucashutch/tuig/releases/latest"
@@ -15,6 +15,9 @@ REPOSITORY = "git+https://github.com/lucashutch/tuig.git"
 def install_tuig(options: object) -> int:
     if should_skip_tool("tuig", reinstall=options.reinstall):  # type: ignore[attr-defined]
         return STATUS_SKIPPED
+    if not command_exists("bun"):
+        error("bun is required to install tuig.")
+        return 1
     try:
         request = urllib.request.Request(RELEASE_URL, headers={"Accept": "application/vnd.github+json"})
         with urllib.request.urlopen(request, timeout=30) as response:
