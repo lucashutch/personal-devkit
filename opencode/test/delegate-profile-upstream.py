@@ -30,7 +30,8 @@ class Handler(BaseHTTPRequestHandler):
                     "description": "Profile routing probe",
                     "prompt": "Reply with exactly PROBE_CHILD_OK",
                     "background": False,
-                    "model_profile": "deep",
+                    "model": "sol",
+                    "effort": "high",
                 },
                 separators=(",", ":"),
             )

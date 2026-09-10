@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assert the captured V2 subagent schema and deep-profile model routing."""
+"""Assert the captured V2 subagent schema and explicit model routing."""
 
 import argparse
 import json
@@ -33,14 +33,15 @@ def main() -> None:
         if request.get("model") == "gpt-5.6-luna" and subagent(request) is not None
     )
     parameters = subagent(parent)["parameters"]
-    model_profile = parameters["properties"]["model_profile"]
-    assert model_profile["enum"] == ["fast", "standard", "deep", "inherit"]
-    assert "model_profile" in parameters["required"]
+    assert parameters["properties"]["model"]["enum"] == ["luna", "sol", "astra", "muse", "glm", "inherit"]
+    assert parameters["properties"]["effort"]["enum"] == ["low", "medium", "high"]
+    assert "model_profile" not in parameters["properties"]
+    assert not {"model", "effort"}.intersection(parameters.get("required", []))
     agent = parameters["properties"]["agent"]
     assert "Worker" in agent["enum"]
     assert "WebResearcher" not in agent["enum"]
     assert not {"fast", "standard", "deep"}.intersection(agent["enum"])
-    assert "profile names are not agent names" in subagent(parent)["description"]
+    assert "coding" in subagent(parent)["description"]
 
     child = next(request for request in captured if request.get("model") == "gpt-5.6-sol")
     messages = child["messages"]
@@ -54,13 +55,14 @@ def main() -> None:
         and any(message.get("role") == "tool" for message in request.get("messages", []))
     )
     assert any(
-        message.get("role") == "tool" and message.get("content") == "PROBE_CHILD_OK"
+        message.get("role") == "tool" and "PROBE_CHILD_OK" in str(message.get("content"))
         for message in resumed_parent["messages"]
     )
     call = next(message for message in resumed_parent["messages"] if message.get("tool_calls"))
     arguments = json.loads(call["tool_calls"][0]["function"]["arguments"])
     assert arguments["agent"] == "Worker"
-    assert arguments["model_profile"] == "deep"
+    assert arguments["model"] == "sol"
+    assert arguments["effort"] == "high"
     print("delegate profile capture validation passed")
 
 

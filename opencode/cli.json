@@ -21,9 +21,9 @@
     "input.newline": "return,shift+return,ctrl+j"
   },
   "plugins": [
-    "./plugins/limitwatch-quota",
-    "./plugins/subagent-sessions",
-    "./plugins/herdr-tui-pane"
+    "./extensions/limitwatch-quota",
+    "./extensions/subagent-sessions",
+    "./extensions/herdr-tui-pane"
   ],
   "tabs": {
     "enabled": false,

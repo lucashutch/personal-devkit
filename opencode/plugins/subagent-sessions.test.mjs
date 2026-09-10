@@ -3,24 +3,25 @@ import test from "node:test"
 import { listChildren, polledStatus, reconcileChildren } from "./subagent-sessions/reconcile.js"
 import { detailLines, requestedProfiles } from "./subagent-sessions/labels.js"
 
-test("sidebar separates role, requested tier and status from model and tokens", () => {
-  assert.deepEqual(detailLines({ role: "Reviewer", profile: "standard", status: "idle",
+test("sidebar separates role, requested model/effort and status from actual model and tokens", () => {
+  assert.deepEqual(detailLines({ role: "Reviewer", profile: "luna/high", status: "idle",
     model: "gpt-5.6-luna#xhigh", tokens: "188k" }), [
-    "Reviewer · Standard · idle", "gpt-5.6-luna#xhigh · 188k",
+    "Reviewer · Luna/high · idle", "gpt-5.6-luna#xhigh · 188k",
   ])
   assert.deepEqual(detailLines({ role: "Worker", status: "working" }), ["Worker · working", ""])
 })
 
-test("requested tiers come from child creation calls, not later resumes", () => {
+test("requested models come from creation calls, preserving historical tiers and ignoring resumes", () => {
   const call = (input, metadata) => ({ type: "tool", name: "subagent", state: { input, metadata } })
   const profiles = requestedProfiles([{ type: "assistant", content: [
-    call({ model_profile: "standard" }, { sessionID: "child" }),
-    call({ model_profile: "inherit", sessionID: "child" }, { sessionID: "child" }),
+    call({ model: "luna", effort: "high" }, { sessionID: "child" }),
+    call({ model: "sol", sessionID: "child" }, { sessionID: "child" }),
     call({ model_profile: "deep" }, { sessionID: "other" }),
     call({ model_profile: "fast" }),
     call({}, { sessionID: "unknown" }),
+    call({ model: "muse" }, { sessionID: "default-effort" }),
   ] }])
-  assert.deepEqual([...profiles], [["child", "standard"], ["other", "deep"]])
+  assert.deepEqual([...profiles], [["child", "luna/high"], ["other", "deep"], ["default-effort", "muse/medium"]])
 })
 
 test("child snapshots consume all pages before reconciliation", async () => {

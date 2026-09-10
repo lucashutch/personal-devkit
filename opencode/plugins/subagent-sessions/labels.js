@@ -8,7 +8,9 @@ export function requestedProfiles(messages) {
       const input = state?.input
       const childID = state?.metadata?.sessionID
       if (input?.sessionID || typeof childID !== "string") continue
-      if (["fast", "standard", "deep", "inherit"].includes(input?.model_profile)) {
+      if (typeof input?.model === "string" && input.model !== "inherit") {
+        profiles.set(childID, [input.model, input.effort ?? "medium"].join("/"))
+      } else if (["fast", "standard", "deep", "advisor", "inherit"].includes(input?.model_profile)) {
         profiles.set(childID, input.model_profile)
       }
     }

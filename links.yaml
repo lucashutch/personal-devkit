@@ -6,13 +6,11 @@ groups:
     - $CONFIG_HOME/opencode
     include:
     - "*.json"
-    - "plugins/**"
   - source: opencode/test
     destinations:
     - $CONFIG_HOME/opencode-test/opencode
     include:
     - "*.json"
-    - "plugins/**"
     exclude:
     - __pycache__
     - "*.pyc"
@@ -23,8 +21,11 @@ groups:
     include:
     - cli.json
     - "agents/**"
-    - "plugins/**"
     - "lib/**"
+  - source: opencode/plugins
+    destinations:
+    - $CONFIG_HOME/opencode/extensions
+    - $CONFIG_HOME/opencode-test/opencode/extensions
 
   # Skills are platform-neutral: one copy in agentic_common, linked everywhere.
   - source: agentic_common/skills

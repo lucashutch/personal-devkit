@@ -43,12 +43,15 @@ can keep a broad rule such as `*free*` while excluding one provider.
 Use `except` to re-enable specific models excluded by `deny`.
 Remove the plugin and its options once OpenCode regains native whitelisting.
 
-## Delegate model profiles
+## Delegate model selection
 
-All profiles use a model-profile extension for the native `subagent` tool.
-It preserves the native executor while adding
-`fast`, `standard`, `deep`, `advisor`, and `inherit` through the session-context and
-pre-execution hooks. See
+The linker installs local packages under `extensions/` so they load only through
+explicit configuration, not a second time through global `plugins/` discovery.
+
+All profiles extend the native `subagent` tool with model selection and uniform
+`low`, `medium`, and `high` efforts mapped per model. A configurable task-fit
+matrix guides selection; role defaults preserve Advisor's model choice.
+The extension preserves the native executor. See
 [DELEGATE-PROFILES.md](DELEGATE-PROFILES.md) for model settings, implementation
 details, dependencies, capture-proxy validation, upgrade steps, and known
 limitations.

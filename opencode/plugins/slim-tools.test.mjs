@@ -38,10 +38,16 @@ test("patches repeated nested parameter names", async () => {
   assert.equal(event.tools.question.input.properties.questions.items.properties.question.description, "Complete question")
 })
 
-test("describes every configured role and profile without changing the delegation schema or executor", async () => {
+test("describes every configured role and model/effort without changing the delegation schema or executor", async () => {
   let hook
   await plugin.setup({ session: { hook: async (_name, callback) => { hook = callback } } })
   const agents = ["Advisor", "Reviewer", "Worker"].map((id) => ({ id, mode: "subagent" }))
+  const config = { models: {
+    luna: { model: "openai/luna", efforts: { low: "low", medium: "medium", high: null },
+      scores: { coding: 9 }, description: "Fast implementation model" },
+    terra: { model: "openai/terra", efforts: { low: "low", medium: "medium", high: "xhigh" },
+      scores: { coding: 7 }, description: "Balanced research model" },
+  } }
   const input = addModelProfile({
     type: "object",
     properties: {
@@ -51,17 +57,16 @@ test("describes every configured role and profile without changing the delegatio
     },
     required: ["agent", "prompt"],
     additionalProperties: false,
-  }, agents)
+  }, agents, config)
   const original = structuredClone(input)
   const execute = () => "native executor"
   const event = { tools: { subagent: { description: "Upstream delegation instructions", input, execute } } }
 
   hook(event)
 
-  for (const name of ["agent", "model_profile"]) {
-    const parameter = event.tools.subagent.input.properties[name]
-    for (const value of parameter.enum) assert.match(parameter.description, new RegExp(`\\b${value}\\b`))
-  }
+  assert.deepEqual(event.tools.subagent.input.properties.model.enum, ["luna", "terra", "inherit"])
+  assert.deepEqual(event.tools.subagent.input.properties.effort.enum, ["low", "medium", "high"])
+  assert.deepEqual(event.tools.subagent.input.properties.agent.enum, ["Advisor", "Reviewer", "Worker"])
   const withoutDescriptions = (value) => {
     if (Array.isArray(value)) return value.map(withoutDescriptions)
     if (!value || typeof value !== "object") return value

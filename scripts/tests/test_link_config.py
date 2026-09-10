@@ -421,9 +421,10 @@ class LinkConfigTests(unittest.TestCase):
                     ROOT / "opencode" / "agents",
                 )
                 self.assertEqual(
-                    target.joinpath("plugins", "model-filter", "index.js").resolve(),
+                    target.joinpath("extensions", "model-filter", "index.js").resolve(),
                     ROOT / "opencode" / "plugins" / "model-filter" / "index.js",
                 )
+                self.assertFalse(target.joinpath("plugins").exists())
                 self.assertEqual(
                     target.joinpath("lib", "slim-tools-data.js").resolve(),
                     ROOT / "opencode" / "lib" / "slim-tools-data.js",

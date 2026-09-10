@@ -32,12 +32,12 @@ export const slimParamDescriptions = Object.freeze({
     background: "Return immediately and notify on completion; do not poll (default false)",
   },
   subagent: {
-    agent: "Role: Advisor=second opinion (use advisor profile), Reviewer=read-only review, Worker=implementation. Choose model_profile separately.",
+    agent: "Role: Advisor=second opinion (use advisor profile), Reviewer=read-only review, Worker=implementation. Choose model and effort separately.",
     description: "Short task label (3-5 words)",
     prompt: "Bounded instructions and necessary context",
-    sessionID: "Resume a child session by its returned sessionID; omit for a fresh session",
-    background: "Run independent work asynchronously; return immediately and notify on completion, do not poll (default false)",
-    model_profile: "Tier: fast, standard, deep, advisor, or inherit (agent/parent model). Resume with inherit or a profile matching the child's model and variant.",
+    background: "Run asynchronously and notify on completion",
+    model: "Configured model alias or inherit",
+    effort: "Reasoning effort: low, medium, or high; mapped per model",
   },
   execute: { code: "JavaScript to discover and call catalog tools" },
   read: {

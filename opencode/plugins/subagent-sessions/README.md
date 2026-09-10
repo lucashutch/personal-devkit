@@ -3,29 +3,30 @@
 ## Purpose
 
 Adds a `Subagents` section to the session sidebar. It lists direct child
-sessions, shows their task title, execution state, role/profile, selected model,
+sessions, shows their task title, execution state, role, requested model/effort, selected model,
 and latest-call token sum, and navigates to a child when clicked.
 
 Rows use this format:
 
 ```text
 ▎Investigate failing build
-▎ Worker · Fast · idle
+▎ Worker · Luna/low · idle
 ▎ gpt-5.6-luna#low · 88k
 ```
 
-The requested tier comes from the parent's original subagent tool call, not
-the model's reasoning level. Resumes do not replace that tier. If the call is
+The requested model/effort comes from the parent's original subagent tool call,
+not the native reasoning variant. Resumes do not replace that label. Historical
+profile calls still display their tier. If the call is
 not cached, generated agent IDs such as `Fast-Worker` and legacy
 `delegate-profile--fast--Worker` remain supported as fallbacks. Otherwise the
-tier is omitted. Each entry occupies three non-wrapping rows.
+label is omitted. Each entry occupies three non-wrapping rows.
 The model comes from the child session's
 `model` field; cached message metadata is a fallback. Token usage is the sum
 reported on the latest assistant message. It is not a context-window percentage.
 
 ## Configuration
 
-- Plugin entry: `cli.json` -> `./plugins/subagent-sessions`
+- Plugin entry: `cli.json` -> `./extensions/subagent-sessions`
 - Slot: `sidebar.content`
 - Child lookup: the TUI session cache plus session info retained from events,
   with a one-second server reconciliation filtered by `parentID`

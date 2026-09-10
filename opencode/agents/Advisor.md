@@ -1,5 +1,5 @@
 ---
-description: Bounded second opinions on plans, debugging, and correctness; use the advisor model profile
+description: Bounded second opinions on plans, debugging, and correctness
 mode: subagent
 permissions:
   - action: "*"

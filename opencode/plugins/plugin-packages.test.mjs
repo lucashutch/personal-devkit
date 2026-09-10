@@ -11,7 +11,7 @@ function configuredPackages(file) {
   return config.plugins.map((entry) => typeof entry === "string" ? entry : entry.package)
 }
 
-test("configured local plugins are directory packages", () => {
+test("configured local plugins resolve to packages outside the installed autoload directory", () => {
   const configured = [
     ...configuredPackages("default/opencode.json"),
     ...configuredPackages("test/opencode.json"),
@@ -19,8 +19,8 @@ test("configured local plugins are directory packages", () => {
   ].filter((entry) => entry.startsWith("."))
 
   for (const entry of configured) {
-    assert.ok(entry.startsWith("./plugins/"), entry)
-    const directory = path.resolve(v2, entry)
+    assert.ok(entry.startsWith("./extensions/"), entry)
+    const directory = path.resolve(v2, "plugins", entry.slice("./extensions/".length))
     assert.equal(statSync(directory).isDirectory(), true, entry)
     assert.equal(existsSync(path.join(directory, "package.json")), true, entry)
   }
