@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Smile emoji picker (prewarm)
+Comment=Load Smile hidden at login so the picker shortcut opens instantly.
+Exec=flatpak run it.mijorus.smile --start-hidden
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=5
+NoDisplay=true

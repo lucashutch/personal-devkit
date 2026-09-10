@@ -64,6 +64,12 @@ groups:
     - starship.toml
     - "ghostty/**"
     - "bashrc.d/**"
+  - source: dotfiles/autostart/smile-prewarm.desktop
+    destinations:
+    - $CONFIG_HOME/autostart/smile-prewarm.desktop
+  - source: dotfiles/bin/smile-picker
+    destinations:
+    - $HOME/.local/bin/smile-picker
   - source: dotfiles/.asoundrc
     destinations:
     - $HOME/.asoundrc
