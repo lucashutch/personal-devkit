@@ -1,9 +1,0 @@
-#!/bin/sh
-# Activating the already-running instance over D-Bus skips the Flatpak sandbox
-# and Python/GTK startup, which together cost about two seconds.
-if gdbus call --session -d it.mijorus.smile -o /it/mijorus/smile \
-    -m org.gtk.Application.Activate '{}' >/dev/null 2>&1; then
-  exit 0
-fi
-
-exec flatpak run it.mijorus.smile
