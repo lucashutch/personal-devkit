@@ -68,5 +68,16 @@
   "autoDreamEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "theme": "custom:one-dark",
-  "wheelScrollAccelerationEnabled": false
+  "wheelScrollAccelerationEnabled": false,
+  "enabledPlugins": {
+    "gitkraken-hooks@gitkraken": true
+  },
+  "extraKnownMarketplaces": {
+    "gitkraken": {
+      "source": {
+        "path": "/home/lucas/.claude/plugins/marketplaces/gitkraken",
+        "source": "directory"
+      }
+    }
+  }
 }
