@@ -4,7 +4,6 @@ import test from "node:test"
 import {
   createHerdrTuiPanePlugin,
   createPaneSync,
-  createTabRenamer,
   selectedRootSession,
   stateFromSessionStatus,
 } from "./herdr-tui-pane/tui.js"
@@ -14,7 +13,6 @@ function harness({ rootOf = (id) => id } = {}) {
   const sync = createPaneSync({
     reportSession: async (sessionID) => calls.push(["session", sessionID]),
     reportState: async (state, sessionID) => calls.push(["state", state, sessionID]),
-    renameTab: async (title) => calls.push(["rename", title]),
     rootOf,
   })
   return { calls, ...sync }
@@ -47,39 +45,12 @@ test("failed identity reports back off and settle after recovery", async () => {
   let attempts = 0
   const { syncSelection } = createPaneSync({
     reportSession: async () => { if (++attempts < 4) throw new Error("offline") },
-    reportState: async () => {}, renameTab: async () => {}, rootOf: (id) => id,
+    reportState: async () => {}, rootOf: (id) => id,
   })
   const delays = []
   for (let index = 0; index < 6; index++) delays.push(await syncSelection({ sessionID: "root" }))
   assert.deepEqual(delays, [100, 400, 1000, undefined, undefined, undefined])
   assert.equal(attempts, 4)
-})
-
-test("late tab lookup cannot rename a deselected or disposed session", async () => {
-  let release
-  let current = true
-  const calls = []
-  const rename = createTabRenamer(async (method) => {
-    calls.push(method)
-    if (method === "pane.get") return new Promise((resolve) => { release = resolve })
-  }, null)
-  const pending = rename("Old title", () => current)
-  current = false
-  release({ result: { pane: { tab_id: "tab" } } })
-  await pending
-  assert.deepEqual(calls, ["pane.get"])
-})
-
-test("protocol errors invalidate cached tab identity", async () => {
-  const calls = []
-  const rename = createTabRenamer(async (method, params) => {
-    calls.push([method, params.tab_id])
-    if (method === "pane.get") return { result: { pane: { tab_id: "new" } } }
-    return params.tab_id === "old" ? { error: "not found" } : { result: {} }
-  }, "old")
-  await assert.rejects(rename("Title"), /not found/)
-  await rename("Title")
-  assert.deepEqual(calls, [["tab.rename", "old"], ["pane.get", undefined], ["tab.rename", "new"]])
 })
 
 test("only a root session route owns the pane", () => {
@@ -89,11 +60,9 @@ test("only a root session route owns the pane", () => {
   }
   assert.deepEqual(selectedRootSession(context({ type: "session", sessionID: "root" }, sessions)), {
     sessionID: "root",
-    title: "Root",
   })
   assert.deepEqual(selectedRootSession(context({ type: "session", sessionID: "child" }, sessions)), {
     sessionID: "root",
-    title: "Root",
   })
   assert.equal(selectedRootSession(context({ type: "session", sessionID: "gone" }, sessions)), undefined)
   assert.equal(selectedRootSession(context({ type: "home" }, sessions)), undefined)
@@ -106,44 +75,24 @@ test("successful selection reports settle and coalesce", async () => {
   // eventually discovered.
   const delays = []
   for (let index = 0; index < 5; index++) {
-    delays.push(await syncSelection({ sessionID: "root", title: "Root" }))
+    delays.push(await syncSelection({ sessionID: "root" }))
   }
 
   assert.deepEqual(delays, [undefined, undefined, undefined, undefined, undefined])
   assert.deepEqual(calls.filter(([kind]) => kind === "session").length, 1)
-  assert.deepEqual(calls.filter(([kind]) => kind === "rename"), [["rename", "Root"]])
 
-  assert.equal(await syncSelection({ sessionID: "root", title: "Root" }), undefined)
+  assert.equal(await syncSelection({ sessionID: "root" }), undefined)
 })
 
-test("a late or changed title renames the tab without a new selection", async () => {
-  const { calls, syncSelection } = harness()
-
-  await syncSelection({ sessionID: "root", title: undefined })
-  await syncSelection({ sessionID: "root", title: "Generated title" })
-  await syncSelection({ sessionID: "root", title: "Generated title" })
-  await syncSelection({ sessionID: "root", title: "Renamed by hand" })
-
-  assert.deepEqual(calls.filter(([kind]) => kind === "rename"), [
-    ["rename", "Generated title"],
-    ["rename", "Renamed by hand"],
-  ])
-})
-
-test("a second root session renames its own tab", async () => {
+test("a second root session reports its own identity", async () => {
   // The bug this port fixes: a single server-side instance latched the first
   // session and silently dropped every later one.
   const { calls, syncSelection } = harness()
 
-  await syncSelection({ sessionID: "first", title: "First" })
-  await syncSelection({ sessionID: "second", title: "Second" })
+  await syncSelection({ sessionID: "first" })
+  await syncSelection({ sessionID: "second" })
 
-  assert.deepEqual(calls, [
-    ["rename", "First"],
-    ["session", "first"],
-    ["rename", "Second"],
-    ["session", "second"],
-  ])
+  assert.deepEqual(calls, [["session", "first"], ["session", "second"]])
 })
 
 test("state is reported for the selected session and its subagents", async () => {
@@ -151,7 +100,7 @@ test("state is reported for the selected session and its subagents", async () =>
   const { calls, syncSelection, handleEvent } = harness({
     rootOf: (id) => roots[id],
   })
-  await syncSelection({ sessionID: "root", title: "Root" })
+  await syncSelection({ sessionID: "root" })
   calls.length = 0
 
   await handleEvent({ type: "session.input.admitted", data: { sessionID: "root" } })
@@ -172,7 +121,7 @@ test("state is reported for the selected session and its subagents", async () =>
 test("a finished V2 turn returns the pane to idle", async () => {
   // V2 has no session.idle or session.status; only session.execution.* ends a turn.
   const { calls, syncSelection, handleEvent } = harness()
-  await syncSelection({ sessionID: "root", title: "Root" })
+  await syncSelection({ sessionID: "root" })
   calls.length = 0
 
   await handleEvent({ type: "session.execution.started", data: { sessionID: "root" } })
@@ -191,7 +140,7 @@ test("a finished V2 turn returns the pane to idle", async () => {
 test("an idle child does not hide a working sibling", async () => {
   const roots = { root: "root", one: "root", two: "root" }
   const { calls, syncSelection, handleEvent } = harness({ rootOf: (id) => roots[id] })
-  await syncSelection({ sessionID: "root", title: "Root" })
+  await syncSelection({ sessionID: "root" })
   calls.length = 0
   await handleEvent({ type: "session.execution.started", data: { sessionID: "one" } })
   await handleEvent({ type: "session.execution.started", data: { sessionID: "two" } })
@@ -203,7 +152,7 @@ test("an idle child does not hide a working sibling", async () => {
 
 test("blocked wins over working until the blocked child resumes", async () => {
   const { calls, syncSelection, handleEvent } = harness({ rootOf: () => "root" })
-  await syncSelection({ sessionID: "root", title: "Root" })
+  await syncSelection({ sessionID: "root" })
   calls.length = 0
   await handleEvent({ type: "session.execution.started", data: { sessionID: "one" } })
   await handleEvent({ type: "permission.asked", data: { sessionID: "two" } })
@@ -219,7 +168,7 @@ test("another pane's session never touches this pane", async () => {
   const { calls, syncSelection, handleEvent } = harness({
     rootOf: (id) => roots[id],
   })
-  await syncSelection({ sessionID: "root", title: "Root" })
+  await syncSelection({ sessionID: "root" })
   calls.length = 0
 
   await handleEvent({ type: "session.input.admitted", data: { sessionID: "stranger" } })
@@ -243,35 +192,6 @@ test("session status strings and objects map to pane states", () => {
   assert.equal(stateFromSessionStatus(undefined), undefined)
 })
 
-test("the tab renamer resolves a missing tab id from the pane", async () => {
-  const sent = []
-  const send = async (method, params) => {
-    sent.push([method, params])
-    return { result: { pane: { tab_id: "wJ:t9" } } }
-  }
-  // null, not undefined: a default parameter would fall back to HERDR_TAB_ID.
-  const rename = createTabRenamer(send, null)
-
-  await rename("  ")
-  await rename("Untitled")
-  await rename("Real title")
-  await rename("Another title")
-
-  assert.deepEqual(sent, [
-    ["pane.get", { pane_id: process.env.HERDR_PANE_ID }],
-    ["tab.rename", { tab_id: "wJ:t9", label: "Real title" }],
-    // The resolved tab id is reused rather than looked up again.
-    ["tab.rename", { tab_id: "wJ:t9", label: "Another title" }],
-  ])
-})
-
-test("an explicit tab id is used as-is", async () => {
-  const sent = []
-  const rename = createTabRenamer(async (method, params) => sent.push([method, params]), "wJ:t8")
-  await rename("Title")
-  assert.deepEqual(sent, [["tab.rename", { tab_id: "wJ:t8", label: "Title" }]])
-})
-
 test("the plugin stays inert outside a Herdr pane", () => {
   const plugin = createHerdrTuiPanePlugin(async () => {})
   assert.equal(plugin.id, "herdr.tui-pane")
@@ -287,24 +207,19 @@ test("the plugin stays inert outside a Herdr pane", () => {
 test("the plugin tracks the route, listens for events and disposes both", async () => {
   const sent = []
   const plugin = createHerdrTuiPanePlugin(async (method, params) => {
-    sent.push([method, params.agent_session_id ?? params.label])
+    sent.push([method, params.agent_session_id])
     return undefined
   })
   const saved = { ...process.env }
   process.env.HERDR_ENV = "1"
   process.env.HERDR_SOCKET_PATH = "/tmp/herdr-test.sock"
   process.env.HERDR_PANE_ID = "wJ:p9"
-  process.env.HERDR_TAB_ID = "wJ:t9"
   let emit
   let listening = true
-  let watching = true
   const ctx = {
     ui: { router: { current: () => ({ type: "session", sessionID: "root" }) } },
     data: {
-      session: { get: () => ({ id: "root", title: "Root" }), root: () => "root" },
-      on: () => () => {
-        watching = false
-      },
+      session: { get: () => ({ id: "root" }), root: () => "root" },
       listen: (handler) => {
         emit = handler
         return () => {
@@ -319,10 +234,9 @@ test("the plugin tracks the route, listens for events and disposes both", async 
     await new Promise((resolve) => setTimeout(resolve, 250))
     dispose()
     assert.equal(listening, false)
-    assert.equal(watching, false)
     assert.ok(
-      sent.some(([method]) => method === "tab.rename"),
-      "expected a tab rename",
+      sent.some(([method]) => method === "pane.report_agent_session"),
+      "expected an identity report",
     )
     assert.ok(
       sent.some(([method]) => method === "pane.report_agent"),
@@ -332,7 +246,7 @@ test("the plugin tracks the route, listens for events and disposes both", async 
     await new Promise((resolve) => setTimeout(resolve, 250))
     assert.equal(sent.length, settled, "the retry ladder continued after dispose")
   } finally {
-    for (const key of ["HERDR_ENV", "HERDR_SOCKET_PATH", "HERDR_PANE_ID", "HERDR_TAB_ID"]) {
+    for (const key of ["HERDR_ENV", "HERDR_SOCKET_PATH", "HERDR_PANE_ID"]) {
       delete process.env[key]
     }
     Object.assign(process.env, saved)

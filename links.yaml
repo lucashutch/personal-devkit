@@ -55,6 +55,11 @@ groups:
     - $CONFIG_HOME/herdr
     include:
     - config.toml
+  - source: herdr-auto-title
+    destinations:
+    - $CONFIG_HOME/herdr-auto-title
+    include:
+    - config.env
 
   dotfiles:
   - source: dotfiles

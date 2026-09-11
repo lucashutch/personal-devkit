@@ -7,10 +7,10 @@ Verified: 2026-09-05 against tracked paths and `pyproject.toml`.
 - `opencode/{default,test}/` — OpenCode global configs.
 - `agentic_common/skills/` — repository-managed skills linked into both hosts; OpenCode supplies its own `opencode` and `report` skills.
 - `opencode/cli.json`, `opencode/agents/`, `opencode/lib/`, `opencode/plugins/` — common sources linked into both profiles.
-- `opencode/plugins/herdr-tui-pane/tui.js` — Herdr integration, a TUI plugin because the shared service cannot know its pane.
+- `opencode/plugins/herdr-tui-pane/tui.js` — Herdr session and pane-state reporting, a TUI plugin because the shared service cannot know its pane. Tab titles are the `herdr-auto-title` plugin's job.
 - `claude/` — Claude Code settings, agents, hooks, themes, and statusline.
 - `CLAUDE.md` — symlink to `AGENTS.md`; both hosts read the same repository instructions.
-- `herdr/` — Herdr configuration.
+- `herdr/`, `herdr-auto-title/` — Herdr configuration and settings for the third-party `herdr-auto-title` plugin.
 - `dotfiles/` — Bash snippets, Ghostty configuration, and Starship theme.
 - `src/personal_devkit/` — Python implementation of installers, linking, and session migration.
 - `scripts/` — compatibility entry points and Python tests under `scripts/tests/`.

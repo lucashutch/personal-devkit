@@ -3,19 +3,20 @@
 //
 // This runs in the TUI process, not the server, and that placement is the whole
 // point. V2 shares one background service across every pane: the service
-// inherits HERDR_PANE_ID and HERDR_TAB_ID from whichever TUI happened to start
-// it, so a server plugin reports every pane's state and every tab's title to
-// that first pane. Only the TUI process knows which pane it is.
+// inherits HERDR_PANE_ID from whichever TUI happened to start it, so a server
+// plugin reports every pane's state to that first pane. Only the TUI process
+// knows which pane it is.
 //
-// One plugin owns all three reports because they answer the same question --
-// which root session this pane is showing -- and must never disagree.
+// Tab titles are not this plugin's job. The herdr-auto-title plugin names every
+// tab from the session Herdr already knows about, and a tab.rename from here
+// would read as a manual rename and stop it naming that tab again.
 import net from "node:net"
 
 const SOURCE = "herdr:opencode"
 const AGENT = "opencode"
 // A session switch is only visible in the route, and nothing reports a route
 // change, so it is polled. One second is enough: the reads are in-process and a
-// switch only has to beat the eye, while title changes emit session.renamed.
+// switch only has to beat the eye.
 const ROUTE_POLL_INTERVAL_MS = 1_000
 // Herdr may not know the session yet when the route changes, so repeat the
 // identity report a few times while the selection holds, then stay quiet.
@@ -113,51 +114,21 @@ export function stateFromSessionStatus(status) {
   return typeof kind === "string" ? STATE_BY_SESSION_STATUS.get(kind.toLowerCase()) : undefined
 }
 
-export function createTabRenamer(send = request, initialTabID = process.env.HERDR_TAB_ID) {
-  let tabId = initialTabID
-
-  return async (title, isCurrent = () => true) => {
-    const label = title?.trim()
-    if (!label || label === "Untitled" || !isCurrent()) return
-
-    if (!tabId) {
-      const response = await send("pane.get", { pane_id: process.env.HERDR_PANE_ID })
-      if (!isCurrent()) return
-      if (response?.error) throw new Error(`Herdr: ${JSON.stringify(response.error)}`)
-      tabId = response?.result?.pane?.tab_id
-      if (!tabId) throw new Error("Herdr pane has no tab")
-    }
-    if (tabId) {
-      try {
-        if (!isCurrent()) return
-        const response = await send("tab.rename", { tab_id: tabId, label })
-        if (response?.error) throw new Error(`Herdr: ${JSON.stringify(response.error)}`)
-      } catch (error) {
-        // Pane moves can invalidate the inherited tab id. Resolve it once more
-        // on the next attempt rather than permanently latching stale identity.
-        tabId = undefined
-        throw error
-      }
-    }
-  }
-}
-
 /**
- * Track the root session this pane shows, and keep Herdr's session id, pane
- * state and tab label in step with it.
+ * Track the root session this pane shows, and keep Herdr's session id and
+ * pane state in step with it.
  *
  * `selection` is pushed in by the caller: on every session event, and on a
  * slow poll for the route, which nothing announces. Repeats are cheap, since
- * an unchanged selection and title report nothing.
+ * an unchanged selection reports nothing.
  *
  * `syncSelection` returns the delay after which it wants the same selection
  * offered again, or undefined when it is settled. That is only the retry
  * ladder: Herdr may not know the session yet, and nothing re-notifies us when
  * it catches up.
  */
-export function createPaneSync({ reportSession, reportState, renameTab, rootOf, isSelected = () => true }) {
+export function createPaneSync({ reportSession, reportState, rootOf, isSelected = () => true }) {
   let selectedSessionID
-  let reportedTitle
   let retryIndex = 0
   let reportPending = false
   let reportedSession = false
@@ -179,7 +150,6 @@ export function createPaneSync({ reportSession, reportState, renameTab, rootOf, 
     const sessionID = selection?.sessionID
     if (!sessionID) {
       selectedSessionID = undefined
-      reportedTitle = undefined
       retryIndex = 0
       familyStates.clear()
       pendingRequests.clear()
@@ -189,7 +159,6 @@ export function createPaneSync({ reportSession, reportState, renameTab, rootOf, 
     }
     if (sessionID !== selectedSessionID) {
       selectedSessionID = sessionID
-      reportedTitle = undefined
       retryIndex = 0
       familyStates.clear()
       pendingRequests.clear()
@@ -201,12 +170,6 @@ export function createPaneSync({ reportSession, reportState, renameTab, rootOf, 
     if (reportPending) return undefined
     reportPending = true
     try {
-      const title = selection.title
-      if (title && title !== reportedTitle && current()) {
-        await renameTab(title, current)
-        if (!current()) return undefined
-        reportedTitle = title
-      }
       if (!current()) return undefined
       if (!reportedSession) {
         const response = await reportSession(sessionID)
@@ -263,8 +226,7 @@ export function selectedRootSession(context) {
   const session = context.data.session.get(route.sessionID)
   if (!session) return undefined
   const rootID = context.data.session.root?.(route.sessionID) ?? route.sessionID
-  const root = context.data.session.get(rootID) ?? session
-  return { sessionID: rootID, title: root.title }
+  return { sessionID: rootID }
 }
 
 export function createHerdrTuiPanePlugin(send = request) {
@@ -290,7 +252,6 @@ export function createHerdrTuiPanePlugin(send = request) {
           state,
           agent_session_id: sessionID,
         }),
-        renameTab: createTabRenamer(send),
         rootOf: (sessionID) => context.data.session.root(sessionID),
       })
 
@@ -322,8 +283,6 @@ export function createHerdrTuiPanePlugin(send = request) {
 
       run()
       const timer = setInterval(run, ROUTE_POLL_INTERVAL_MS)
-      // A title arriving or changing is an event, so do not wait for the poll.
-      const stopWatchingSessions = context.data.on("session.renamed", run)
       const stopListening = context.data.listen(({ details }) => {
         void handleEvent(details).catch(fail)
       })
@@ -332,7 +291,6 @@ export function createHerdrTuiPanePlugin(send = request) {
         disposed = true
         clearInterval(timer)
         clearTimeout(retryTimer)
-        stopWatchingSessions()
         stopListening()
       }
     },

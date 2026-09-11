@@ -9,7 +9,7 @@ Fork it or open a PR to adapt the prompts and tool descriptions to your own work
 - `agentic_common/` — platform-neutral skills and writing instructions shared by Claude Code and OpenCode
 - `opencode/` — OpenCode profiles, agents, and plugins
 - `claude/` — Claude Code settings, keybindings, statusline, and agents
-- `herdr/` — Herdr configuration
+- `herdr/` — Herdr configuration, plus `herdr-auto-title/` for the tab-title plugin's settings
 - `dotfiles/` — Bash, Ghostty, Starship, and ALSA configuration
 - `links.yaml` — source-to-destination mappings managed by the linker
 - `src/personal_devkit/` — installer, linker, and migration implementations
