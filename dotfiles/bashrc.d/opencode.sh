@@ -26,7 +26,7 @@ _opencode_test() {
     XDG_STATE_HOME="$(_opencode_profile_root "${XDG_STATE_HOME:-$HOME/.local/state}" "opencode-test")" \
     XDG_CACHE_HOME="$(_opencode_profile_root "${XDG_CACHE_HOME:-$HOME/.cache}" "opencode-test")" \
     GH_CONFIG_DIR="${GH_CONFIG_DIR:-$HOME/.config/gh}" \
-    command opencode2 "$@"
+    command opencode "$@"
 }
 
 # OpenCode profiles. The default wrapper de-nests a profile namespace exported
@@ -55,10 +55,10 @@ opencode() {
     XDG_CONFIG_HOME="$stripped_config" XDG_DATA_HOME="$stripped_data" \
       XDG_STATE_HOME="$stripped_state" XDG_CACHE_HOME="$stripped_cache" \
       GH_CONFIG_DIR="${GH_CONFIG_DIR:-$HOME/.config/gh}" \
-      command opencode2 "$@"
+      command opencode "$@"
   else
     GH_CONFIG_DIR="${GH_CONFIG_DIR:-$HOME/.config/gh}" \
-      command opencode2 "$@"
+      command opencode "$@"
   fi
 }
 oc() { opencode "$@"; }

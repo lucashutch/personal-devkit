@@ -1,4 +1,4 @@
-import { Plugin } from "@opencode-ai/plugin"
+import { Plugin } from "@opencode/plugin"
 
 const skillsBlockPattern = /Skills provide specialized[\s\S]*?<available_skills>([\s\S]*?)<\/available_skills>/
 

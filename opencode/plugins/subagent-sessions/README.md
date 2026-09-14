@@ -32,10 +32,9 @@ reported on the latest assistant message. It is not a context-window percentage.
 - Refresh: session creation, rename, model selection, deletion, and status
   events
 
-V2 plugin dependencies intentionally track the current `next` channel. Do not
-add a lockfile or pin preview builds; run `pdklink --opencode`
-after upgrading `opencode2`, which reinstalls the tree at the host's peer
-versions.
+Plugin dependencies intentionally track the CLI's release channel. Do not add a
+lockfile or pin builds; run `pdklink --opencode` after upgrading the CLI, which
+reinstalls the tree at the host's peer versions.
 
 The event handlers update a plugin-local Solid signal and then call
 `context.renderer.requestRender()`. They previously remounted the slot instead,
@@ -62,6 +61,6 @@ session events into an already-mounted external slot.
   network sync.
 - `Subagents (0)`: verify the session is the parent session and that child
   sessions have `parentID` set. Check the host data API in
-  `node_modules/@opencode-ai/plugin/dist/tui/context.d.ts` after upgrades.
+  `node_modules/@opencode/plugin/dist/tui/context.d.ts` after upgrades.
 - `Model unavailable`: inspect the child session's `model` field and confirm
   the profile plugin created the expected model-pinned alias.

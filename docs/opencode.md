@@ -15,15 +15,15 @@ The repository maintains one default profile and one isolated test profile.
 
 The non-default wrapper isolates XDG config, data, state, and cache roots, including credentials, sessions, database, services, logs, and cache. It retains the normal shared GitHub CLI configuration through `GH_CONFIG_DIR`. Project `opencode.json(c)` files layer on the selected global profile; they do not isolate credentials or sessions.
 
-Legacy aliases `opencode2`, `oc2`, and `o2t` still point at the default and test profiles. The retired V1 database is kept at `~/.local/share/opencode-v1/opencode/opencode.db` for tokscale history only.
+Legacy aliases `opencode2`, `oc2`, and `o2t` still point at the default and test profiles. The CLI itself also keeps an `opencode2` bin alias, but the wrappers call `opencode`. The retired V1 database is kept at `~/.local/share/opencode-v1/opencode/opencode.db` for tokscale history only.
 
 ## What the linker does
 
 The linker installs profile configuration, shared agents, skills, plugins, and the OpenCode desktop launcher. OpenCode slash-command adapters are intentionally omitted. OpenCode provides its own `opencode` and `report` skills. The linker does not manage runtime-generated credentials or state files.
 
-For OpenCode it also installs plugin dependencies and their optional peers in `opencode/`, without a lockfile or package scripts. The floating `beta` dependency can move independently of the CLI, and peer ranges do not guarantee exact host builds. Check both versions and validate plugins after relinking or upgrading; restart OpenCode to load changed server plugins.
+For OpenCode it also installs plugin dependencies and their optional peers in `opencode/`, without a lockfile or package scripts. The floating `latest` dependency can move independently of the CLI, and peer ranges do not guarantee exact host builds. Check both versions and validate plugins after relinking or upgrading; restart OpenCode to load changed server plugins.
 
-The default profile uses OpenCode's built-in service endpoint. The test profile uses `127.0.0.1:4099` when `opencode2` is available. To configure it manually:
+The default profile uses OpenCode's built-in service endpoint. The test profile uses `127.0.0.1:4099` when `opencode` is available. To configure it manually:
 
 ```sh
 oct service set hostname 127.0.0.1

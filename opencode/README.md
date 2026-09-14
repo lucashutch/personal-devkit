@@ -2,15 +2,15 @@
 
 ## Version
 
-- CLI channel: `@opencode-ai/cli@beta`
-- Verified: 2026-08-25
+- CLI channel: `@opencode/cli` (`latest`)
+- Verified: 2026-09-14 on 2.0.1
 
 ## Server plugins
 
 OpenCode loads the profile plugins declared in each `opencode.json`. Local plugins
 are directory packages because current builds reject configured paths to
 individual source files. They export
-`Plugin.define` from `@opencode-ai/plugin`, which resolves through the linked
+`Plugin.define` from `@opencode/plugin`, which resolves through the linked
 plugin file back into `opencode/node_modules`, so editors type the plugin
 context. Settings come from each entry's `options` object rather than a
 separate config file. The
@@ -81,12 +81,12 @@ The beta API exposes the host renderer to external plugins
 host's renderer. The Limitwatch quota and subagent-session plugins are enabled
 in `cli.json` and load from their `plugins/*` package directories.
 
-`opencode/package.json` declares only `@opencode-ai/plugin` on the `beta`
+`opencode/package.json` declares only `@opencode/plugin` on the `latest`
 channel, matching the channel the installed CLI ships on, and without a
-lockfile. `@opentui/*`, `solid-js`, and `@opencode-ai/theme`
+lockfile. `@opentui/*`, `solid-js`, and `@opencode/theme`
 are deliberately not declared: the host shares its renderer with the plugin, so
 they must satisfy the peer requirements of the matching plugin package.
-`@opencode-ai/plugin` declares those requirements but marks them optional, so
+`@opencode/plugin` declares those requirements but marks them optional, so
 npm skips them. Therefore,
 `pdklink --opencode` reads the peers off the installed package and
 installs them unsaved. No peer version is written down anywhere; a CLI upgrade

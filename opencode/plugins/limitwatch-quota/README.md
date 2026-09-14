@@ -13,9 +13,9 @@ request suppress duplicate refreshes during bursts of status events.
 - Command override: `LIMITWATCH_COMMAND`
 - Account directory override: `LIMITWATCH_CONFIG_DIR`
 
-V2 plugin dependencies intentionally track the current `next` channel. Do not
-add a lockfile or pin preview builds; run `npm install --no-package-lock` from
-`opencode` after upgrading `opencode2`.
+Plugin dependencies intentionally track the CLI's release channel. Do not add a
+lockfile or pin builds; run `npm install --no-package-lock` from `opencode`
+after upgrading the CLI.
 
 When `LIMITWATCH_CONFIG_DIR` is unset, the plugin removes the final
 `opencode-<profile>` directory from a profile-specific `XDG_CONFIG_HOME`.

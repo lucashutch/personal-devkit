@@ -1,4 +1,4 @@
-import { Plugin } from "@opencode-ai/plugin"
+import { Plugin } from "@opencode/plugin"
 import { slimDescriptions, slimParamDescriptions } from "../../lib/slim-tools-data.js"
 
 // V2's session context hook receives the final, permission-filtered tool

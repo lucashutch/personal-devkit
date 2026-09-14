@@ -80,7 +80,7 @@ class LinkConfigTests(unittest.TestCase):
             binary = Path(home) / "bin"
             binary.mkdir()
             action_log = Path(home) / "actions"
-            for name in ("opencode2", "npm"):
+            for name in ("opencode", "npm"):
                 executable = binary / name
                 executable.write_text(f"#!/bin/sh\necho {name} >> '{action_log}'\n")
                 executable.chmod(0o755)
@@ -362,7 +362,7 @@ class LinkConfigTests(unittest.TestCase):
             binary_directory = Path(temporary_home) / "bin"
             binary_directory.mkdir()
             service_log = Path(temporary_home) / "service.log"
-            executable = binary_directory / "opencode2"
+            executable = binary_directory / "opencode"
             executable.write_text(
                 "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$SERVICE_LOG\"\n"
             )

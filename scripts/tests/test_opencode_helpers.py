@@ -41,7 +41,7 @@ class OpenCodeHelperTests(unittest.TestCase):
         self.bin_dir.mkdir()
         self.log = self.home / "systemctl.log"
 
-        for name in ("opencode2",):
+        for name in ("opencode",):
             stub = self.bin_dir / name
             stub.write_text(STUB)
             stub.chmod(0o755)
@@ -145,11 +145,11 @@ class OpenCodeHelperTests(unittest.TestCase):
         self.assertEqual(result.stdout.strip(), "unset")
 
     def test_completions_are_loaded_when_binary_is_installed(self) -> None:
-        stub = self.bin_dir / "opencode2"
+        stub = self.bin_dir / "opencode"
         stub.write_text(
             "#!/usr/bin/env bash\n"
             "if [[ $1 == --completions && $2 == bash ]]; then\n"
-            "  printf '%s\\n' 'complete -W \\\"run\\\" opencode2'\n"
+            "  printf '%s\\n' 'complete -W \\\"run\\\" opencode'\n"
             "fi\n"
         )
         stub.chmod(0o755)
@@ -165,8 +165,8 @@ class OpenCodeHelperTests(unittest.TestCase):
             env={"HOME": str(self.home), "PATH": f"{self.bin_dir}:/usr/bin:/bin"},
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("complete -F _opencode2 opencode", result.stdout)
-        self.assertIn("complete -F _opencode2 oct", result.stdout)
+        self.assertIn("complete -F _opencode opencode", result.stdout)
+        self.assertIn("complete -F _opencode oct", result.stdout)
 
 
 if __name__ == "__main__":

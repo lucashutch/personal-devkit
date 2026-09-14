@@ -438,11 +438,11 @@ def execute_generated(files: list[GeneratedFile], *, dry_run: bool) -> None:
 
 
 def install_opencode_tui_dependencies(npm: str) -> list[str]:
-    """Install the TUI plugin tree from the `beta` channel.
+    """Install the TUI plugin tree from the channel `package.json` declares.
 
     The renderer is shared between host and plugin, so `@opentui` and `solid-js`
     must be the exact builds the host was compiled against, not their latest
-    releases. `@opencode-ai/plugin` publishes those builds as optional peers,
+    releases. `@opencode/plugin` publishes those builds as optional peers,
     which npm skips, so resolve them from the installed package and install them
     unsaved. Nothing here is version-pinned: an OpenCode upgrade changes the
     peers and the next run follows.
@@ -472,7 +472,7 @@ def install_opencode_tui_dependencies(npm: str) -> list[str]:
     wanted = [f"{name}@{version}" for name, version in sorted(declared.items())]
     if error := run([*base, "--no-save", *wanted], "npm install"):
         return [error]
-    manifest = directory / "node_modules/@opencode-ai/plugin/package.json"
+    manifest = directory / "node_modules/@opencode/plugin/package.json"
     try:
         peers = json.loads(manifest.read_text()).get("peerDependencies", {})
     except (OSError, json.JSONDecodeError) as detail:
@@ -492,9 +492,9 @@ def actions(dry_run: bool) -> list[str]:
         info("would configure: opencode-test service")
         info("would install: opencode-tui-dependencies")
         return []
-    errors, executable = [], shutil.which("opencode2")
+    errors, executable = [], shutil.which("opencode")
     if not executable:
-        info("skipped service configuration: opencode2 is not on PATH")
+        info("skipped service configuration: opencode is not on PATH")
     else:
         defaults = {
             "XDG_CONFIG_HOME": "CONFIG_HOME",

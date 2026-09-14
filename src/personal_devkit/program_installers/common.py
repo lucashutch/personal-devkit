@@ -17,7 +17,6 @@ SUPPORTED_TOOLS = (
     "npm",
     "bun",
     "opencode",
-    "opencode2",
     "codex",
     "claude",
     "pi",

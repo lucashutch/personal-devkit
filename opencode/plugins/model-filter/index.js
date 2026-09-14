@@ -1,4 +1,4 @@
-import { Plugin } from "@opencode-ai/plugin"
+import { Plugin } from "@opencode/plugin"
 
 // Catalog-level model filter driven by its plugin options in opencode.json,
 // mirroring how delegate-profiles reads its presets. Stopgap until V2 regains

@@ -1,6 +1,6 @@
 /** @jsxImportSource @opentui/solid */
 import { TextAttributes, type ScrollBoxRenderable } from "@opentui/core"
-import { Plugin } from "@opencode-ai/plugin/tui"
+import { Plugin } from "@opencode/plugin/tui"
 import { createEffect, createSignal, For, onCleanup, Show } from "solid-js"
 import { listChildren, polledStatus, reconcileChildren } from "./reconcile.js"
 import { detailLines, requestedProfiles } from "./labels.js"

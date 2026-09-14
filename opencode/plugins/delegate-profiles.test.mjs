@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import { Effect, Fiber, Exit } from "effect"
-import { Tool } from "@opencode-ai/schema/tool"
+import { Tool } from "@opencode/schema/tool"
 import { addModelProfile, createDelegateProfilesPlugin, parseModelRef, parseProfiles } from "./delegate-profiles/index.js"
 
 const settings = { presets: {

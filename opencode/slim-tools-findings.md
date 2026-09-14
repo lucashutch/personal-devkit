@@ -10,7 +10,7 @@ schemas, tool names, permissions, and executors.
 
 The plugin registers `ctx.session.hook("context", …)`. The hook's `tools`
 value is a record keyed by tool name, with `{ description, input }` values.
-The capture below verified this on `@opencode-ai/cli@0.0.0-beta-19271`.
+The capture below verified this on `@opencode/cli@2.0.1`.
 
 This supersedes the previous AI-SDK `language`-hook workaround. Because the
 session hook precedes both native and AI-SDK model routes, it covers the home,
@@ -102,9 +102,9 @@ This checks plugin integration and prompt size, not model task performance.
 
 ## Compatibility notes
 
-- V2 plugin APIs are beta and may change. Re-run the capture validation after
-  upgrading `@opencode-ai/cli@beta`.
+- Plugin APIs still change between releases. Re-run the capture validation
+  after upgrading `@opencode/cli`.
 - Plugin load failures are logged at
-  `~/.local/share/opencode-v2-<profile>/opencode/log/opencode.log`.
+  `~/.local/share/opencode-<profile>/opencode/log/opencode.log`.
 - V2 loads and activates external **TUI** plugins through `cli.json`. This does
   not affect this server-side tool-description plugin.

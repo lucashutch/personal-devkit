@@ -1,6 +1,6 @@
-// Shared by the V2 slim-tools plugin. Tool names and parameter names follow
-// the V2 builtin tools (shell/subagent/patch, `path` instead of `filePath`);
-// verify against proxy captures after opencode2 upgrades.
+// Shared by the slim-tools plugin. Tool names and parameter names follow the
+// builtin tools (shell/subagent/patch, `path` instead of `filePath`); verify
+// against proxy captures after opencode upgrades.
 export const slimDescriptions = Object.freeze({
   shell:
     "Execute a shell command. Quote paths containing spaces or special characters. Prefer dedicated tools for file inspection; shell pipelines are valid for transformations. Foreground waits for completion. Large output is saved to a file with a truncated preview.",
