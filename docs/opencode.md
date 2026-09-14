@@ -47,17 +47,11 @@ exit status:
 grep "failed to load plugin" ~/.local/share/opencode/log/opencode.log
 ```
 
-`uv run pdkinstall --opencode --reinstall` also upgrades the CLI, but it
-reinstalls Node.js first. That is destructive to other global npm packages: a
-new LTS moves `~/.local/share/node/current` and orphans them, and even a
-same-version reinstall replaces `lib/node_modules`. Either way `tokscale`,
-`ghui`, `druk`, and `codex` are left as dangling links in `~/.local/bin`.
-Recover by reinstalling them and the CLI:
-
-```sh
-uv run pdkinstall --tokscale --ghui --druk --codex --reinstall
-npm install --global @opencode/cli@latest
-```
+`uv run pdkinstall --opencode --reinstall` upgrades the CLI too. It no longer
+reinstalls Node.js as a side effect, so the other global npm tools survive.
+Upgrading Node itself still replaces the global `node_modules`; run
+`pdkinstall --node --reinstall` on its own and reinstall the npm-backed tools
+it reports as dangling.
 
 ## Renaming notes
 

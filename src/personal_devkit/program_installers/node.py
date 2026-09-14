@@ -169,6 +169,30 @@ def install_node(options: object) -> int:
     return 0
 
 
+def warn_orphaned_node_links() -> list[str]:
+    """Report ~/.local/bin links left dangling by a Node.js install.
+
+    Installing Node replaces the version's `lib/node_modules`, so global npm
+    tools that were not reinstalled in the same run lose their target. Name them
+    rather than leaving the breakage to be discovered at the next invocation.
+    """
+    local_bin = Path.home() / ".local" / "bin"
+    if not local_bin.is_dir():
+        return []
+    root = _install_root()
+    orphaned = sorted(
+        entry.name
+        for entry in local_bin.iterdir()
+        if entry.is_symlink() and not entry.exists() and root in entry.resolve().parents
+    )
+    if orphaned:
+        names = ", ".join(orphaned)
+        flags = " ".join(f"--{name}" for name in orphaned)
+        warn(f"Node.js replaced the global npm tree; {names} no longer resolve.")
+        warn(f"Reinstall them with: pdkinstall {flags} --reinstall")
+    return orphaned
+
+
 def prune_old_node_versions() -> None:
     """Remove version directories under the install root that 'current' does not point at."""
     root = _install_root()

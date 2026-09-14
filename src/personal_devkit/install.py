@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import platform
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from .program_installers.bun import install_bun
@@ -22,15 +22,15 @@ from .program_installers.common import (
 from .program_installers.druk import install_druk
 from .program_installers.fzf import install_fzf
 from .program_installers.ghui import install_ghui
-from .program_installers.tuig import install_tuig
 from .program_installers.glow import install_glow
 from .program_installers.glowm import install_glowm
 from .program_installers.herdr import install_herdr
-from .program_installers.node import install_node
+from .program_installers.node import install_node, warn_orphaned_node_links
 from .program_installers.opencode import install_opencode
 from .program_installers.opencode_desktop import install_opencode_desktop
 from .program_installers.starship import install_starship
 from .program_installers.tokscale import install_tokscale
+from .program_installers.tuig import install_tuig
 from .program_installers.vscode import install_vscode
 from .program_installers.wslu import install_wslu
 
@@ -267,7 +267,11 @@ def main(argv: list[str] | None = None) -> int:
         parsed.install_druk,
     )
     if parsed.install_node or any(npm_tools):
-        node_rc = run_tool(summary, "node", install_node, parsed)
+        # Reinstalling Node replaces the global node_modules, which removes every
+        # npm-backed tool this run did not select. Honour --reinstall only when
+        # Node itself was selected; an npm tool just needs it present.
+        node_options = parsed if parsed.install_node else replace(parsed, reinstall=False)
+        node_rc = run_tool(summary, "node", install_node, node_options)
     node_ready = node_rc in (0, STATUS_SKIPPED)
     if parsed.install_bun:
         run_tool(summary, "bun", install_bun, parsed)
@@ -298,6 +302,8 @@ def main(argv: list[str] | None = None) -> int:
     if parsed.install_wslu:
         run_tool(summary, "wslu", install_wslu, parsed)
 
+    if node_rc == 0:
+        warn_orphaned_node_links()
     summary.print()
     return 1 if summary.failed else 0
 

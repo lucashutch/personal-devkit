@@ -194,3 +194,23 @@ class ArchitectureTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_warn_orphaned_node_links_names_broken_global_tools(tmp_path, monkeypatch) -> None:
+    """A Node install that drops lib/node_modules must not fail silently."""
+    home = tmp_path
+    local_bin = home / ".local" / "bin"
+    local_bin.mkdir(parents=True)
+    root = home / ".local" / "share" / "node"
+    (root / "v24.0.0" / "lib" / "node_modules").mkdir(parents=True)
+    (root / "v24.0.0" / "bin").mkdir()
+    (root / "v24.0.0" / "bin" / "node").write_text("")
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: home))
+
+    (local_bin / "node").symlink_to(root / "v24.0.0" / "bin" / "node")
+    (local_bin / "tokscale").symlink_to(root / "v23.0.0" / "lib" / "node_modules" / "tokscale" / "bin.js")
+    (local_bin / "glow").symlink_to(home / "elsewhere" / "glow")
+    kept = local_bin / "herdr"
+    kept.write_text("#!/bin/sh\n")
+
+    assert node.warn_orphaned_node_links() == ["tokscale"]
