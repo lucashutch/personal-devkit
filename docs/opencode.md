@@ -15,7 +15,7 @@ The repository maintains one default profile and one isolated test profile.
 
 The non-default wrapper isolates XDG config, data, state, and cache roots, including credentials, sessions, database, services, logs, and cache. It retains the normal shared GitHub CLI configuration through `GH_CONFIG_DIR`. Project `opencode.json(c)` files layer on the selected global profile; they do not isolate credentials or sessions.
 
-Legacy aliases `opencode2`, `oc2`, and `o2t` still point at the default and test profiles. The CLI itself also keeps an `opencode2` bin alias, but the wrappers call `opencode`. The retired V1 database is kept at `~/.local/share/opencode-v1/opencode/opencode.db` for tokscale history only.
+The CLI keeps an `opencode2` bin alias, but nothing here uses it. The retired V1 database is kept at `~/.local/share/opencode-v1/opencode/opencode.db` for tokscale history only.
 
 ## Upgrading OpenCode
 

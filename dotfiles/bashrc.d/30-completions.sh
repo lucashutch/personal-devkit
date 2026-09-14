@@ -13,7 +13,7 @@ fi
 # this conditional so shells remain usable before the CLI is installed.
 if [ -n "$(type -P opencode 2>/dev/null)" ]; then
   eval "$(opencode --completions bash 2>/dev/null)"
-  # `oc`, `oct`, and the legacy names are shell wrappers, while the generated
-  # script only registers the executable name.
-  complete -F _opencode opencode oc oct opencode2 oc2 o2t
+  # `oc` and `oct` are shell wrappers, while the generated script only
+  # registers the executable name.
+  complete -F _opencode opencode oc oct
 fi

@@ -33,7 +33,7 @@ Verified: 2026-09-14 against tracked paths and `pyproject.toml`.
 
 ## Conventions & gotchas
 - Edit repository sources, never linked files under `~/.config/opencode*` or `~/.claude`.
-- Wrappers are `opencode`/`oc` (default) and `oct` (isolated test); legacy `opencode2`/`oc2`/`o2t` remain as aliases. They call the `opencode` binary from `@opencode/cli`. Only the test service endpoint is configured, and never committed.
+- Wrappers are `opencode`/`oc` (default) and `oct` (isolated test); they call the `opencode` binary from `@opencode/cli`. Only the test service endpoint is configured, and never committed.
 - Skills live once in `agentic_common/skills/` and must stay platform-neutral: describe actions rather than naming host-specific tools.
 - OpenCode slash-command adapters are intentionally not managed. Claude exposes skills as commands directly.
 - Claude Code uses its built-in agents. Repository-managed custom agents under `opencode/agents/` apply only to OpenCode.

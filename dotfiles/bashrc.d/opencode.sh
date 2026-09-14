@@ -63,8 +63,3 @@ opencode() {
 }
 oc() { opencode "$@"; }
 oct() { _opencode_test "$@"; }
-
-# Legacy aliases from the V2 namespace migration.
-opencode2() { opencode "$@"; }
-oc2() { opencode "$@"; }
-o2t() { oct "$@"; }

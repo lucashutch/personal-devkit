@@ -102,15 +102,6 @@ class OpenCodeHelperTests(unittest.TestCase):
         # gh stays shared so one login covers every profile.
         self.assertEqual(seen["gh"], f"{self.home}/.config/gh")
 
-    def test_legacy_aliases_match_the_new_names(self) -> None:
-        seen = self.run_helper("opencode2")
-        self.assertEqual(seen["config"], "")
-        seen = self.run_helper("oc2 run hello")
-        self.assertEqual(seen["argv"], ["run", "hello"])
-        self.assertEqual(seen["config"], "")
-        seen = self.run_helper("o2t")
-        self.assertEqual(seen["config"], f"{self.home}/.config/opencode-test")
-
     def test_profile_roots_do_not_nest(self) -> None:
         seen = self.run_helper(
             f'XDG_CONFIG_HOME="{self.home}/.config/opencode-test" opencode'
