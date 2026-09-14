@@ -1,7 +1,7 @@
 # Repo Map
 Purpose: Personal, repo-managed OpenCode/Claude configuration, shell dotfiles, and installer/linking utilities.
 Stack: TypeScript/TSX OpenCode plugins, JSON configuration, Python 3.11+, Bash
-Verified: 2026-09-05 against tracked paths and `pyproject.toml`.
+Verified: 2026-09-14 against tracked paths and `pyproject.toml`.
 
 ## Layout
 - `opencode/{default,test}/` — OpenCode global configs.

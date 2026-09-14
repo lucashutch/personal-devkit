@@ -3,7 +3,7 @@
 ## Version
 
 - CLI channel: `@opencode/cli` (`latest`)
-- Verified: 2026-09-14 on 2.0.1
+- Verified: 2026-09-14 on 2.0.3
 
 ## Server plugins
 
@@ -50,7 +50,7 @@ It preserves the native executor while adding
 `fast`, `standard`, `deep`, `advisor`, and `inherit` through the session-context and
 pre-execution hooks. See
 [DELEGATE-PROFILES.md](DELEGATE-PROFILES.md) for model settings, implementation
-details, beta dependencies, capture-proxy validation, upgrade steps, and known
+details, dependencies, capture-proxy validation, upgrade steps, and known
 limitations.
 
 ## Agents, commands, and skills
@@ -76,7 +76,7 @@ Claude exposes skills as commands directly.
 
 ## TUI plugins: working
 
-The beta API exposes the host renderer to external plugins
+The plugin API exposes the host renderer to external plugins
 (`context.renderer`), so plugin-local `@opentui/solid` JSX renders with the
 host's renderer. The Limitwatch quota and subagent-session plugins are enabled
 in `cli.json` and load from their `plugins/*` package directories.

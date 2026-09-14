@@ -10,7 +10,8 @@ schemas, tool names, permissions, and executors.
 
 The plugin registers `ctx.session.hook("context", …)`. The hook's `tools`
 value is a record keyed by tool name, with `{ description, input }` values.
-The capture below verified this on `@opencode/cli@2.0.1`.
+The capture below verified this on `@opencode-ai/cli@0.0.0-beta-19271`, the
+last beta before the 2.x rename. It has not been recaptured on 2.x.
 
 This supersedes the previous AI-SDK `language`-hook workaround. Because the
 session hook precedes both native and AI-SDK model routes, it covers the home,

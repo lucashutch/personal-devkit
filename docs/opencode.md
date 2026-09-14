@@ -17,6 +17,61 @@ The non-default wrapper isolates XDG config, data, state, and cache roots, inclu
 
 Legacy aliases `opencode2`, `oc2`, and `o2t` still point at the default and test profiles. The CLI itself also keeps an `opencode2` bin alias, but the wrappers call `opencode`. The retired V1 database is kept at `~/.local/share/opencode-v1/opencode/opencode.db` for tokscale history only.
 
+## Upgrading OpenCode
+
+The CLI is the global npm package `@opencode/cli`, and the plugin SDK is
+`@opencode/plugin` on the same release channel. Upgrade both, in this order:
+
+```sh
+npm install --global @opencode/cli@latest
+uv run pdklink --opencode
+```
+
+The linker step reinstalls `opencode/node_modules` and re-resolves the SDK's
+optional peers against the new build, which is what keeps the TUI plugins
+rendering with the host's renderer. Restart the service and reopen the TUI
+afterwards; server plugins are only loaded at startup.
+
+Then validate:
+
+```sh
+opencode --version
+node --test opencode/plugins/*.test.mjs
+uv run pytest scripts/tests
+```
+
+Plugin load failures are warnings, not errors, so check the log rather than the
+exit status:
+
+```sh
+grep "failed to load plugin" ~/.local/share/opencode/log/opencode.log
+```
+
+`uv run pdkinstall --opencode --reinstall` also upgrades the CLI, but it
+reinstalls Node.js first. That is destructive to other global npm packages: a
+new LTS moves `~/.local/share/node/current` and orphans them, and even a
+same-version reinstall replaces `lib/node_modules`. Either way `tokscale`,
+`ghui`, `druk`, and `codex` are left as dangling links in `~/.local/bin`.
+Recover by reinstalling them and the CLI:
+
+```sh
+uv run pdkinstall --tokscale --ghui --druk --codex --reinstall
+npm install --global @opencode/cli@latest
+```
+
+## Renaming notes
+
+OpenCode 2.0 renamed the npm scope from `@opencode-ai/*` to `@opencode/*` and
+moved from the `beta` channel to a stable `latest`. The CLI's bin is now
+`opencode`; `opencode2` survives as a bin alias, and the generated bash
+completion function is `_opencode` rather than `_opencode2`. Anything in this
+repository that referred to the old names has been updated, so a machine
+carrying an old `@opencode-ai/cli` install should remove it:
+
+```sh
+npm uninstall -g @opencode-ai/cli
+```
+
 ## What the linker does
 
 The linker installs profile configuration, shared agents, skills, plugins, and the OpenCode desktop launcher. OpenCode slash-command adapters are intentionally omitted. OpenCode provides its own `opencode` and `report` skills. The linker does not manage runtime-generated credentials or state files.

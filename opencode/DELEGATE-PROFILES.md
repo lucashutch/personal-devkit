@@ -35,7 +35,8 @@ switching each other's models.
 ## Validation and compatibility
 
 Verified new-child foreground and background routing against CLI beta-19135
-with SDK beta-19129 using a loopback fake provider. Captures confirmed the
+with SDK beta-19129, using a loopback fake provider. Those are pre-2.0 builds;
+the integration checks have not been rerun since the 2.x rename. Captures confirmed the
 selected child model, Worker prompt, and read permission. Unit tests cover
 variant selection, resume policy, concurrent calls, cancellation cleanup, and
 native result/error forwarding:
@@ -48,13 +49,12 @@ The local capture harness also verified an Astra parent sending `low` reasoning
 while Luna children sent `xhigh` and `medium`. After each standalone process
 exited, a fresh process resumed the same child with `inherit`. SQLite records
 and provider requests retained the Worker role, model, and reasoning variant,
-without creating another session. Evidence is saved under
-`/tmp/opencode/agentic-reasoning-evidence.json` on the validation machine.
+without creating another session.
 
 The awaited progress-before-prompt ordering is release-specific. Revalidate it
 after CLI upgrades. Unit tests are not substitutes for these integration checks.
 
 Keep this plugin after `slim-tools` so its schema guidance survives compaction.
-Restart the relevant service to load server-plugin changes. The linker installs
-a floating SDK beta and its declared peers; it does not guarantee a matching
-CLI build. No live provider call is required for the deterministic checks.
+Restart the relevant service to load server-plugin changes. The linker installs the
+SDK on its `latest` channel plus its declared peers; it does not guarantee a
+matching CLI build. No live provider call is required for the deterministic checks.
