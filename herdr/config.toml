@@ -26,6 +26,12 @@ delay_seconds = 1
 [ui.sound]
 enabled = true
 
+[ui.sidebar.agents]
+rows = [
+  ["state_icon", { token = "machine", fg = "#abb2bf", bold = true, dim = false, rules = [{ equals = "Local", fg = "#61afef" }, { equals = "maul", fg = "#d19a66" }, { equals = "devbox", fg = "#c678dd" }] }, "workspace", "tab"],
+  ["agent"],
+]
+
 [session]
 resume_agents_on_restore = true
 
@@ -39,3 +45,8 @@ scrollback_limit_bytes = 30000000
 [theme]
 name = "one-dark"
 auto_switch = false
+
+[theme.custom]
+# Herdr applies terminal dimming to secondary agent labels. Raise the base
+# color so those labels remain readable in Windows Terminal.
+overlay0 = "#abb2bf"
