@@ -18,6 +18,14 @@ export function requestedProfiles(messages) {
   return profiles
 }
 
+export function latestContextTokens(messages) {
+  for (const message of [...messages].reverse()) {
+    if (message.type !== "assistant" || !message.tokens) continue
+    const tokens = message.tokens
+    return tokens.input + tokens.output + tokens.cache.read + tokens.cache.write
+  }
+}
+
 export function detailLines({ role, profile, status, model, tokens, cost }) {
   const tier = profile?.includes("/")
     ? profile.split("/").at(-1)

@@ -1,15 +1,28 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import { listChildren, polledStatus, reconcileChildren } from "./subagent-sessions/reconcile.js"
-import { activityLabel, detailLines, requestedProfiles } from "./subagent-sessions/labels.js"
+import { activityLabel, detailLines, latestContextTokens, requestedProfiles } from "./subagent-sessions/labels.js"
 
 test("sidebar separates role and status from profile, cumulative usage and cost", () => {
   assert.deepEqual(detailLines({ role: "Reviewer", profile: "openai/gpt-5.6-luna#high", status: "idle",
-    model: "gpt-5.6-luna#xhigh", tokens: "188k", cost: "$0.18" }), [
-    "Reviewer · idle", "gpt-5.6-luna#high · 188k · $0.18",
+    model: "gpt-5.6-luna#xhigh", tokens: "C:88k T:188k", cost: "$0.18" }), [
+    "Reviewer · idle", "gpt-5.6-luna#high · C:88k T:188k · $0.18",
   ])
   assert.deepEqual(detailLines({ role: "Worker", status: "working", model: "gpt-5.6-luna" }),
     ["Worker · working", "gpt-5.6-luna"])
+})
+
+test("context usage comes from the latest completed assistant request", () => {
+  const tokens = (input, output, read, write, reasoning = 0) => ({
+    input, output, reasoning, cache: { read, write },
+  })
+  assert.equal(latestContextTokens([
+    { type: "assistant", tokens: tokens(100, 20, 1_000, 50, 30) },
+    { type: "user" },
+    { type: "assistant", tokens: tokens(200, 40, 2_000, 100, 60) },
+    { type: "assistant" },
+  ]), 2_340)
+  assert.equal(latestContextTokens([{ type: "user" }]), undefined)
 })
 
 test("requested models come from creation calls, preserving historical tiers and ignoring resumes", () => {

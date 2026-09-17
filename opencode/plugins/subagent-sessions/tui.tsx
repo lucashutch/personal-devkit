@@ -3,7 +3,7 @@ import { TextAttributes } from "@opentui/core"
 import { Plugin } from "@opencode/plugin/tui"
 import { createEffect, createSignal, For, onCleanup, Show } from "solid-js"
 import { listChildren, polledStatus, reconcileChildren } from "./reconcile.js"
-import { activityLabel, detailLines, requestedProfiles } from "./labels.js"
+import { activityLabel, detailLines, latestContextTokens, requestedProfiles } from "./labels.js"
 
 type ChildSession = {
   id: string
@@ -17,7 +17,7 @@ type ChildSession = {
   time?: { created?: number; updated?: number }
 }
 
-type TokenUsage = { count: number }
+type TokenUsage = { context?: number; total: number }
 type ChildWithModel = ChildSession & { modelLabel?: string; tokenUsage?: TokenUsage; profile?: string }
 type ListState = { children: ChildWithModel[]; loading: boolean; error?: string }
 
@@ -140,6 +140,7 @@ export default Plugin.define({
         if (syncedDetailIDs.has(sessionID) || syncingDetailIDs.has(sessionID)) return
         syncingDetailIDs.add(sessionID)
         void Promise.all([
+          context.data.session.message.sync(sessionID),
           context.data.session.permission.sync(sessionID),
           context.data.session.form.sync(sessionID, context.location),
           context.data.session.pending.sync(sessionID),
@@ -176,7 +177,7 @@ export default Plugin.define({
               changed = true
             }
 
-            const tokenCount = tokenUsage(session.id)?.count ?? 0
+            const tokenCount = tokenUsage(session.id)?.total ?? 0
             if (observedTokenCounts.get(session.id) !== tokenCount) {
               observedTokenCounts.set(session.id, tokenCount)
               changed = true
@@ -223,8 +224,9 @@ export default Plugin.define({
       function tokenUsage(sessionID: string): TokenUsage | undefined {
         const tokens = context.data.session.get(sessionID)?.tokens
         if (!tokens) return undefined
-        const count = tokens.input + tokens.output + tokens.reasoning + tokens.cache.read + tokens.cache.write
-        return { count }
+        const total = tokens.input + tokens.output + tokens.reasoning + tokens.cache.read + tokens.cache.write
+        const contextTokens = latestContextTokens(context.data.session.message.list(sessionID) ?? [])
+        return { context: contextTokens, total }
       }
 
       createEffect(() => {
@@ -303,7 +305,8 @@ export default Plugin.define({
                   const tokenLabel = () => {
                     const current = usage()
                     if (!current) return undefined
-                    return formatTokens(current.count)
+                    const contextLabel = current.context === undefined ? undefined : `C:${formatTokens(current.context)}`
+                    return [contextLabel, `T:${formatTokens(current.total)}`].filter(Boolean).join(" ")
                   }
                   const costLabel = () => formatCost(context.data.session.cost(child.id))
                   const lines = () => detailLines({ role: role(), profile: child.profile ?? label()?.profile,

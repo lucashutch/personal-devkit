@@ -11,7 +11,7 @@ Rows use this format:
 ```text
 ▎Investigate failing build
 ▎ Worker · idle
-▎ Luna:low · 88k · ~$0.06
+▎ Luna:low · C:88k T:188k · ~$0.06
 ```
 
 The requested model and variant come from the parent's original subagent tool
@@ -21,9 +21,12 @@ not cached, generated agent IDs such as `Fast-Worker` and legacy
 `delegate-profile--fast--Worker` remain supported as fallbacks. Otherwise the
 label is omitted. The selected model's short name is the fallback when no
 requested profile is available. Each entry occupies three non-wrapping rows.
-Token usage and cost are cumulative session values. Costs use `~` because they
-are pricing estimates rather than billing records. The section heading shows
-the aggregate cost of the locally cached session family.
+`C` is the latest request's context usage: input, output, cache-read, and
+cache-write tokens. `T` is cumulative session usage and also includes reasoning
+tokens. While a request is running, `C` retains the latest request that reported
+usage. Costs are cumulative session values and use `~` because they are pricing
+estimates rather than billing records. The section heading shows the aggregate
+cost of the locally cached session family.
 
 Pending permissions and forms appear as `blocked: permission` and `blocked:
 question`. Failed and interrupted outcomes remain visible after execution ends.
