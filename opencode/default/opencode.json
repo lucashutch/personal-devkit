@@ -21,6 +21,7 @@
     "warming": false,
     "plugins": [
         "opencode-chatgpt-websearch@0.1.1",
+        "./extensions/estimated-api-costs",
         {
             "package": "./extensions/model-filter",
             "options": {

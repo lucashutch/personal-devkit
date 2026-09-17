@@ -1,0 +1,6 @@
+{
+  "name": "estimated-api-costs",
+  "private": true,
+  "type": "module",
+  "exports": "./index.js"
+}

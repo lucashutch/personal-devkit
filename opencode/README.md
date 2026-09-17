@@ -42,6 +42,16 @@ can keep a broad rule such as `*free*` while excluding one provider.
 Use `except` to re-enable specific models excluded by `deny`.
 Remove the plugin and its options once OpenCode regains native whitelisting.
 
+## Estimated API costs
+
+OpenAI subscription-backed models can report zero spend even though their
+models.dev catalog entries include API pricing. The
+`personal.estimated-api-costs` plugin copies that normalized catalog pricing
+onto zero-priced OpenAI models. Existing nonzero pricing is preserved, and
+subscription-only `-fast` aliases use their base model's price. These values are
+API-equivalent estimates, not subscription charges, and apply only to usage
+recorded after the plugin loads.
+
 ## Subagent model selection
 
 The linker installs local packages under `extensions/` so they load only through

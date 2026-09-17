@@ -66,7 +66,7 @@ function formatTokens(value: number) {
 }
 
 function formatCost(value: number) {
-  return `$${value.toFixed(value < 0.01 ? 3 : 2)}`
+  return `~$${value.toFixed(value < 0.01 ? 3 : 2)}`
 }
 
 export default Plugin.define({
