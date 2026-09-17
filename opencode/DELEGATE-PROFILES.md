@@ -3,8 +3,8 @@
 The default and test profiles enable `personal.delegate-profiles`. Configure
 `models` and optional role `defaults` in the plugin options in each profile's
 `opencode.json`. The plugin exposes separate `model` and `effort` arguments on
-the native subagent tool. Model aliases are `luna`, `sol`, `astra`, `muse`, and
-`glm`; efforts are always `low`, `medium`, and `high`.
+the native subagent tool. Model aliases are `luna`, `sol`, `astra`, and `muse`;
+efforts are always `low`, `medium`, and `high`.
 
 Each model defines an explicit mapping for all three efforts. Several efforts
 may map to the same native variant. A `null` mapping selects the model's default
@@ -26,8 +26,7 @@ child's variant.
 ```
 
 The default configuration maps Luna, Sol, Astra, and Muse directly to native
-`low`/`medium`/`high`. GLM maps to native `low`/`high`/`max`, matching the catalog
-available on 2026-09-10. These mappings are editable independently of tool inputs.
+`low`/`medium`/`high`. These mappings are editable independently of tool inputs.
 The test profile maps all efforts to `null` on local fake models.
 
 The tool description contains a task-fit matrix generated from `scores`.

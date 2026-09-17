@@ -1,6 +1,7 @@
 ---
-description: Bounded second opinions on plans, debugging, and correctness
+description: Difficult questions, architectural decisions, debugging dead ends, and independent second opinions
 mode: subagent
+model: openai/gpt-6-astra#medium
 permissions:
   - action: "*"
     resource: "*"

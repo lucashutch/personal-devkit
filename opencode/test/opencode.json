@@ -46,12 +46,6 @@
             "efforts": { "low": null, "medium": null, "high": null },
             "description": "Deterministic Muse capture route.",
             "scores": { "coding": 8 }
-          },
-          "glm": {
-            "model": "prompt-capture-openai/glm-5.3-flash",
-            "efforts": { "low": null, "medium": null, "high": null },
-            "description": "Deterministic GLM capture route.",
-            "scores": { "coding": 7 }
           }
         },
         "defaults": {
@@ -90,9 +84,6 @@
       "models": {
         "muse-spark-1.3": {
           "name": "Fake Muse Spark 1.3 (capture)"
-        },
-        "glm-5.3-flash": {
-          "name": "Fake GLM-5.3 Flash (capture)"
         },
         "gpt-6-astra": {
           "name": "Fake GPT-6 Astra (capture)"
