@@ -1,5 +1,3 @@
-import { Plugin } from "@opencode/plugin"
-
 function hasPrice(cost) {
   return cost?.some((tier) => tier.input > 0 || tier.output > 0 || tier.cache?.read > 0 || tier.cache?.write > 0)
 }
@@ -23,12 +21,12 @@ export function applyEstimatedCosts(editor, providerID = "openai") {
 }
 
 export function createEstimatedApiCostsPlugin() {
-  return Plugin.define({
+  return {
     id: "personal.estimated-api-costs",
     setup: async (context) => {
       await context.model.transform((editor) => applyEstimatedCosts(editor))
     },
-  })
+  }
 }
 
 export default createEstimatedApiCostsPlugin()
