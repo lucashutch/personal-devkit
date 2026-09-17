@@ -59,7 +59,7 @@ const run = (fn, native) => Effect.runPromise(Effect.scoped(Effect.gen(function*
       { id: "Hidden", mode: "subagent", hidden: true },
       { id: "Primary", mode: "primary" },
     ] }) },
-    catalog: { model: { list: () => Effect.succeed({ data: catalog }) } },
+    model: { list: () => Effect.succeed({ data: catalog }) },
     session: {
       hook: register,
       get: ({ sessionID }) => Effect.succeed({ id: sessionID, model: active[sessionID] }),

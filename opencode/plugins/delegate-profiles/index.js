@@ -337,7 +337,7 @@ export function createDelegateProfilesPlugin() {
           return yield* fail(error.message)
         }
         if (request.model) {
-          const catalog = (yield* ctx.catalog.model.list()).data
+          const catalog = (yield* ctx.model.list()).data
           const model = catalog.find((entry) => entry.providerID === request.model.providerID && entry.id === request.model.id)
           if (!model?.enabled) return yield* fail(`model unavailable: ${formatModelRef(request.model)}`)
           if (request.model.variant && !availableVariant(model, request.model.variant)) {
