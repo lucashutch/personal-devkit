@@ -12,7 +12,7 @@
         "openrouter": {
             "body": {
                 "provider": {
-                    "order": ["together", "modal", "z-ai"],
+                    "order": ["inception", "together", "modal", "z-ai"],
                     "allow_fallbacks": false
                 }
             }
