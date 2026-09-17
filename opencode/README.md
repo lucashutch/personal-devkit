@@ -32,8 +32,7 @@ OpenCode currently has no native provider/model whitelist, and per-model `disabl
 blocklists in `opencode.json` rot as providers add models (new entries appear
 enabled until hand-blocked). Until whitelist support returns, the shared
 `personal.model-filter` plugin (`plugins/model-filter`) applies the
-rules from its plugin `options` at the catalog level, following the same
-per-profile pattern as delegate profiles. Rules are `provider/model`
+rules from its plugin `options` at the catalog level. Rules are `provider/model`
 strings with `*` glob wildcards (`provider/*` matches all models of a
 provider); a model-only glob such as `*free*` matches free-named models from
 every provider. Rules operate in one of two modes:
@@ -43,18 +42,15 @@ can keep a broad rule such as `*free*` while excluding one provider.
 Use `except` to re-enable specific models excluded by `deny`.
 Remove the plugin and its options once OpenCode regains native whitelisting.
 
-## Delegate model selection
+## Subagent model selection
 
 The linker installs local packages under `extensions/` so they load only through
 explicit configuration, not a second time through global `plugins/` discovery.
 
-All profiles extend the native `subagent` tool with model selection and uniform
-`low`, `medium`, and `high` efforts mapped per model. A configurable task-fit
-matrix guides selection; role defaults preserve Advisor's model choice.
-The extension preserves the native executor. See
-[DELEGATE-PROFILES.md](DELEGATE-PROFILES.md) for model settings, implementation
-details, dependencies, capture-proxy validation, upgrade steps, and known
-limitations.
+OpenCode's native `subagent` tool accepts an exact model and optional variant.
+The `slim-tools` description includes a compact cost and capability matrix to
+guide model selection without wrapping the native executor. Advisor declares
+its Astra medium default in its agent configuration.
 
 ## Agents, commands, and skills
 

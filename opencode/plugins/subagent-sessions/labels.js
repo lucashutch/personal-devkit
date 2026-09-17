@@ -8,8 +8,8 @@ export function requestedProfiles(messages) {
       const input = state?.input
       const childID = state?.metadata?.sessionID
       if (input?.sessionID || typeof childID !== "string") continue
-      if (typeof input?.model === "string" && input.model !== "inherit") {
-        profiles.set(childID, [input.model, input.effort ?? "medium"].join(":"))
+      if (typeof input?.model === "string") {
+        profiles.set(childID, input.model)
       } else if (["fast", "standard", "deep", "advisor", "inherit"].includes(input?.model_profile)) {
         profiles.set(childID, input.model_profile)
       }
@@ -19,7 +19,9 @@ export function requestedProfiles(messages) {
 }
 
 export function detailLines({ role, profile, status, model, tokens, cost }) {
-  const tier = profile ? profile[0].toUpperCase() + profile.slice(1) : undefined
+  const tier = profile?.includes("/")
+    ? profile.split("/").at(-1)
+    : profile ? profile[0].toUpperCase() + profile.slice(1) : undefined
   return [
     [role, status].filter(Boolean).join(" · "),
     [tier ?? model, tokens, cost].filter(Boolean).join(" · "),

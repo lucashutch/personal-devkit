@@ -4,9 +4,9 @@ import { listChildren, polledStatus, reconcileChildren } from "./subagent-sessio
 import { activityLabel, detailLines, requestedProfiles } from "./subagent-sessions/labels.js"
 
 test("sidebar separates role and status from profile, cumulative usage and cost", () => {
-  assert.deepEqual(detailLines({ role: "Reviewer", profile: "luna:high", status: "idle",
+  assert.deepEqual(detailLines({ role: "Reviewer", profile: "openai/gpt-5.6-luna#high", status: "idle",
     model: "gpt-5.6-luna#xhigh", tokens: "188k", cost: "$0.18" }), [
-    "Reviewer · idle", "Luna:high · 188k · $0.18",
+    "Reviewer · idle", "gpt-5.6-luna#high · 188k · $0.18",
   ])
   assert.deepEqual(detailLines({ role: "Worker", status: "working", model: "gpt-5.6-luna" }),
     ["Worker · working", "gpt-5.6-luna"])
@@ -15,14 +15,14 @@ test("sidebar separates role and status from profile, cumulative usage and cost"
 test("requested models come from creation calls, preserving historical tiers and ignoring resumes", () => {
   const call = (input, metadata) => ({ type: "tool", name: "subagent", state: { input, metadata } })
   const profiles = requestedProfiles([{ type: "assistant", content: [
-    call({ model: "luna", effort: "high" }, { sessionID: "child" }),
+    call({ model: "openai/gpt-5.6-luna#high" }, { sessionID: "child" }),
     call({ model: "sol", sessionID: "child" }, { sessionID: "child" }),
     call({ model_profile: "deep" }, { sessionID: "other" }),
     call({ model_profile: "fast" }),
     call({}, { sessionID: "unknown" }),
-    call({ model: "muse" }, { sessionID: "default-effort" }),
+    call({ model: "opencode/muse-spark-1.3-contributor-free" }, { sessionID: "default-model" }),
   ] }])
-  assert.deepEqual([...profiles], [["child", "luna:high"], ["other", "deep"], ["default-effort", "muse:medium"]])
+  assert.deepEqual([...profiles], [["child", "openai/gpt-5.6-luna#high"], ["other", "deep"], ["default-model", "opencode/muse-spark-1.3-contributor-free"]])
 })
 
 test("blocked and exceptional states take precedence over ordinary activity", () => {

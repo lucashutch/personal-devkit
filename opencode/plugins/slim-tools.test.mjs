@@ -1,7 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import plugin from "./slim-tools/index.js"
-import { addModelProfile } from "./delegate-profiles/index.js"
 
 test("patches refs and nested schemas while preserving originals and unknown tools", async () => {
   let hook
@@ -38,35 +37,31 @@ test("patches repeated nested parameter names", async () => {
   assert.equal(event.tools.question.input.properties.questions.items.properties.question.description, "Complete question")
 })
 
-test("describes every configured role and model/effort without changing the delegation schema or executor", async () => {
+test("adds routing guidance without changing the native delegation schema or executor", async () => {
   let hook
   await plugin.setup({ session: { hook: async (_name, callback) => { hook = callback } } })
-  const agents = ["Advisor", "Reviewer", "Worker"].map((id) => ({ id, mode: "subagent" }))
-  const config = { models: {
-    luna: { model: "openai/luna", efforts: { low: "low", medium: "medium", high: null },
-      scores: { coding: 9 }, description: "Fast implementation model" },
-    terra: { model: "openai/terra", efforts: { low: "low", medium: "medium", high: "xhigh" },
-      scores: { coding: 7 }, description: "Balanced research model" },
-  } }
-  const input = addModelProfile({
+  const input = {
     type: "object",
     properties: {
       agent: { type: "string" },
       prompt: { type: "string" },
+      model: { type: "string" },
       sessionID: { type: "string", pattern: "^ses", description: "Continue a previous session" },
+      background: { type: "boolean" },
     },
     required: ["agent", "prompt"],
     additionalProperties: false,
-  }, agents, config)
+  }
   const original = structuredClone(input)
   const execute = () => "native executor"
   const event = { tools: { subagent: { description: "Upstream delegation instructions", input, execute } } }
 
   hook(event)
 
-  assert.deepEqual(event.tools.subagent.input.properties.model.enum, ["luna", "terra", "inherit"])
-  assert.deepEqual(event.tools.subagent.input.properties.effort.enum, ["low", "medium", "high"])
-  assert.deepEqual(event.tools.subagent.input.properties.agent.enum, ["Advisor", "Reviewer", "Worker"])
+  assert.match(event.tools.subagent.description, /\| Model \| Cost ↓ \| Code ↑ \| Reasoning ↑ \| UI ↑ \|/)
+  assert.match(event.tools.subagent.description, /Advisor defaults to Astra medium/)
+  assert.equal(event.tools.subagent.input.properties.model.type, "string")
+  assert.equal(event.tools.subagent.input.properties.effort, undefined)
   const withoutDescriptions = (value) => {
     if (Array.isArray(value)) return value.map(withoutDescriptions)
     if (!value || typeof value !== "object") return value

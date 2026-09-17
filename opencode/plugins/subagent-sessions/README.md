@@ -3,7 +3,7 @@
 ## Purpose
 
 Adds a `Subagents` section to the session sidebar. It lists direct child
-sessions, shows their task title, execution state, role, requested model/effort,
+sessions, shows their task title, execution state, role, requested model,
 cumulative tokens, and cost, and navigates to a child when clicked.
 
 Rows use this format:
@@ -11,12 +11,12 @@ Rows use this format:
 ```text
 ▎Investigate failing build
 ▎ Worker · idle
-▎ Luna:low · 88k · $0.06
+▎ gpt-5.6-luna#low · 88k · $0.06
 ```
 
-The requested model/effort comes from the parent's original subagent tool call,
-not the native reasoning variant. Resumes do not replace that label. Historical
-profile calls still display their tier. If the call is
+The requested model and variant come from the parent's original subagent tool
+call. Resumes do not replace that label. Historical profile calls still display
+their tier. If the call is
 not cached, generated agent IDs such as `Fast-Worker` and legacy
 `delegate-profile--fast--Worker` remain supported as fallbacks. Otherwise the
 label is omitted. The selected model's short name is the fallback when no

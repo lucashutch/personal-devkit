@@ -48,41 +48,7 @@
             }
         },
         "./extensions/slim-tools",
-        "./extensions/slim-skills",
-        {
-            "package": "./extensions/delegate-profiles",
-            "options": {
-                "models": {
-                    "luna": {
-                        "model": "openai/gpt-5.6-luna",
-                        "efforts": { "low": "low", "medium": "medium", "high": "high" },
-                        "description": "Cost-conscious routine coding, tests, and extraction.",
-                        "scores": { "coding": 7, "complex": 6, "debugging": 6, "review": 6, "research": 6, "long_tasks": 6, "visual": 6 }
-                    },
-                    "sol": {
-                        "model": "openai/gpt-5.6-sol",
-                        "efforts": { "low": "low", "medium": "medium", "high": "high" },
-                        "description": "Demanding implementation and difficult debugging; prefer Luna for routine work.",
-                        "scores": { "coding": 9, "complex": 9, "debugging": 9, "review": 8, "research": 8, "long_tasks": 8, "visual": 8 }
-                    },
-                    "astra": {
-                        "model": "openai/gpt-6-astra",
-                        "efforts": { "low": "low", "medium": "medium", "high": "high" },
-                        "description": "Escalation for the hardest end-to-end coding and reasoning tasks.",
-                        "scores": { "coding": 9, "complex": 9, "debugging": 9, "review": 9, "research": 9, "long_tasks": 9, "visual": 9 }
-                    },
-                    "muse": {
-                        "model": "opencode/muse-spark-1.3-contributor-free",
-                        "efforts": { "low": "low", "medium": "medium", "high": "high" },
-                        "description": "Muse Spark 1.3: free Contributor route for sustained coding and detailed multi-step instructions.",
-                        "scores": { "coding": 8, "complex": 8, "debugging": 7, "review": 7, "research": 8, "long_tasks": 9, "visual": 8 }
-                    }
-                },
-                "defaults": {
-                    "Advisor": { "model": "astra", "effort": "medium" }
-                }
-            }
-        }
+        "./extensions/slim-skills"
     ],
     "websearch": {
         "provider": "chatgpt"

@@ -5,7 +5,18 @@ export const slimDescriptions = Object.freeze({
   shell:
     "Execute a shell command. Quote paths containing spaces or special characters. Prefer dedicated tools for file inspection; shell pipelines are valid for transformations. Foreground waits for completion. Large output is saved to a file with a truncated preview.",
   subagent:
-    "Delegate a bounded supporting task, not the user's primary judgment. New sessions have fresh context: send needed facts and constraints, not the transcript. Foreground waits for the final response.",
+    `Delegate a bounded supporting task, not the user's primary judgment. New sessions have fresh context, so include the necessary facts, constraints, and expected output rather than the transcript. Foreground waits for the final response. Background returns immediately and notifies on completion.
+
+Choose the agent role independently from the model. Advisor defaults to Astra medium. Respect a model explicitly requested by the user. Otherwise use the matrix to select the least expensive model that fits the task. Pass an exact provider/model or provider/model#variant. Use the models catalog to resolve names and verify availability. When resuming, omit model unless the user explicitly asks to change it.
+
+| Model | Cost ↓ | Code ↑ | Reasoning ↑ | UI ↑ |
+| --- | ---: | ---: | ---: | ---: |
+| Luna | 3 | 7 | 6 | 6 |
+| Sol | 6 | 9 | 9 | 8 |
+| Astra | 9 | 9 | 10 | 9 |
+| Muse | 1 | 8 | 8 | 8 |
+
+Relative routing guidance, not benchmarks. Arrows show the preferred direction.`,
   execute:
     "Run JavaScript in confined Code Mode. Discover tools with search, then use exact catalog paths and signatures. No imports, direct filesystem/network access, processes, or timers. Await calls and return results.",
   read:
@@ -32,12 +43,12 @@ export const slimParamDescriptions = Object.freeze({
     background: "Return immediately and notify on completion; do not poll (default false)",
   },
   subagent: {
-    agent: "Role: Advisor=second opinion (use advisor profile), Reviewer=read-only review, Worker=implementation. Choose model and effort separately.",
+    agent: "Role to run. Advisor handles difficult questions and second opinions, Reviewer performs read-only review, and Worker implements a bounded task.",
     description: "Short task label (3-5 words)",
     prompt: "Bounded instructions and necessary context",
-    background: "Run asynchronously and notify on completion",
-    model: "Configured model alias or inherit",
-    effort: "Reasoning effort: low, medium, or high; mapped per model",
+    model: "Exact provider/model or provider/model#variant. Respect explicit requests; otherwise use the routing matrix and choose the least expensive model that fits.",
+    sessionID: "Continue a specific previous subagent conversation; omit for a fresh session",
+    background: "Run asynchronously and notify on completion; do not poll",
   },
   execute: { code: "JavaScript to discover and call catalog tools" },
   read: {

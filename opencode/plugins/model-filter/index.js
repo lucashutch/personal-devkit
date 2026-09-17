@@ -1,7 +1,7 @@
 import { Plugin } from "@opencode/plugin"
 
-// Catalog-level model filter driven by its plugin options in opencode.json,
-// mirroring how delegate-profiles reads its presets. Stopgap until V2 regains
+// Catalog-level model filter driven by its plugin options in opencode.json.
+// Stopgap until V2 gains
 // native whitelist support; per-model `disabled` blocklists rot as providers
 // add models, so profiles declare a small allowlist instead.
 //

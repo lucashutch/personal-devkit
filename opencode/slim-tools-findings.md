@@ -21,12 +21,11 @@ work, and test profiles and does not require a capture-provider package rename.
 
 The descriptions are not minimized for token count alone. They retain search
 and timeout defaults, PDF support, line-prefix handling, exact edit
-constraints, background notifications without polling, subagent roles and
-model profiles, explicit user-named skills, and question UI conventions. The
-shell timeout documents the upstream defaults without inventing a maximum.
-Subagent resumes explicitly require `inherit` or a profile matching the child's
-model and variant. The patch-language instructions are unchanged, as is
-`slim-skills`.
+constraints, background notifications without polling, subagent roles and the
+model routing matrix, explicit user-named skills, and question UI conventions.
+The shell timeout documents the upstream defaults without inventing a maximum.
+Subagent resumes preserve the child's model unless the user explicitly asks to
+change it. The patch-language instructions are unchanged, as is `slim-skills`.
 
 ## Token measurements
 
@@ -88,9 +87,8 @@ Run the plugin tests alongside a capture:
 node --test opencode/plugins/*.test.mjs
 ```
 
-They cover every configured delegation role and profile, preservation of the
-delegation schema and executor, retention of upstream patch grammar, and the
-absence of an invented shell timeout cap.
+They cover preservation of the native delegation schema and executor, retention
+of upstream patch grammar, and the absence of an invented shell timeout cap.
 
 ## Compatibility notes
 
