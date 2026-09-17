@@ -59,15 +59,13 @@ export function createModelFilterPlugin() {
     id: "personal.model-filter",
     setup: async (ctx) => {
       const { allow, deny, except } = parseRules(ctx.options)
-      await ctx.catalog.transform((catalog) => {
-        for (const record of catalog.provider.list()) {
-          for (const model of record.models.values()) {
-            const exception = matches(except, model.providerID, model.id)
-            const allowed = allow.length === 0 || matches(allow, model.providerID, model.id)
-            // Exceptions bypass filtering, but never revive a model disabled by
-            // the provider or another plugin before this transform.
-            model.enabled = model.enabled !== false && (exception || (allowed && !matches(deny, model.providerID, model.id)))
-          }
+      await ctx.model.transform((editor) => {
+        for (const model of editor.list()) {
+          const exception = matches(except, model.providerID, model.id)
+          const allowed = allow.length === 0 || matches(allow, model.providerID, model.id)
+          // Exceptions bypass filtering, but never revive a model disabled by
+          // the provider or another plugin before this transform.
+          model.enabled = model.enabled !== false && (exception || (allowed && !matches(deny, model.providerID, model.id)))
         }
       })
     },

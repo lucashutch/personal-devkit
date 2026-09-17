@@ -27,7 +27,7 @@ test("exceptions do not revive an already disabled model", async () => {
   const models = [{ providerID: "openai", id: "off", enabled: false }]
   await createModelFilterPlugin().setup({
     options: { deny: ["openai/*"], except: ["openai/*"] },
-    catalog: { transform: async (fn) => fn(fakeCatalog(models)) },
+    model: fakeModelDomain(models),
   })
   assert.equal(models[0].enabled, false)
 })
@@ -47,11 +47,9 @@ test("matches model IDs containing a slash", () => {
   assert.equal(matches(allow, "openrouter", "z-ai/glm-5.3-flash"), true)
 })
 
-function fakeCatalog(models) {
+function fakeModelDomain(models) {
   return {
-    provider: {
-      list: () => [{ models: new Map(models.map((m) => [m.id, m])) }],
-    },
+    transform: async (fn) => fn({ list: () => models }),
   }
 }
 
@@ -63,7 +61,7 @@ test("setup applies allowlist mode across the catalog", async () => {
   ]
   await createModelFilterPlugin().setup({
     options: { allow: ["openai/gpt-5.6-sol"] },
-    catalog: { transform: async (fn) => fn(fakeCatalog(models)) },
+    model: fakeModelDomain(models),
   })
   assert.deepEqual(models.map((m) => m.enabled), [true, false, false])
 })
@@ -76,7 +74,7 @@ test("setup applies denylist mode without touching other models", async () => {
   ]
   await createModelFilterPlugin().setup({
     options: { deny: ["opencode/*"] },
-    catalog: { transform: async (fn) => fn(fakeCatalog(models)) },
+    model: fakeModelDomain(models),
   })
   assert.deepEqual(models.map((m) => m.enabled), [true, false, true])
 })
@@ -89,7 +87,7 @@ test("setup applies denylist exclusions after an allowlist", async () => {
   ]
   await createModelFilterPlugin().setup({
     options: { allow: ["*free*"], deny: ["openrouter/*"], except: ["openrouter/glm-5.3-flash"] },
-    catalog: { transform: async (fn) => fn(fakeCatalog(models)) },
+    model: fakeModelDomain(models),
   })
   assert.deepEqual(models.map((m) => m.enabled), [true, false, true])
 })
