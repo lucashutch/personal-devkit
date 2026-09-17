@@ -1,9 +1,9 @@
 /** @jsxImportSource @opentui/solid */
-import { TextAttributes, type ScrollBoxRenderable } from "@opentui/core"
+import { TextAttributes } from "@opentui/core"
 import { Plugin } from "@opencode/plugin/tui"
 import { createEffect, createSignal, For, onCleanup, Show } from "solid-js"
 import { listChildren, polledStatus, reconcileChildren } from "./reconcile.js"
-import { detailLines, requestedProfiles } from "./labels.js"
+import { activityLabel, detailLines, requestedProfiles } from "./labels.js"
 
 type ChildSession = {
   id: string
@@ -11,6 +11,9 @@ type ChildSession = {
   agent?: string
   model?: { providerID?: string; id?: string; variant?: string }
   parentID?: string
+  cost?: number
+  tokens?: { input: number; output: number; reasoning: number; cache: { read: number; write: number } }
+  outcome?: "succeeded" | "failed" | "interrupted"
   time?: { created?: number; updated?: number }
 }
 
@@ -62,6 +65,10 @@ function formatTokens(value: number) {
   return `${(value / 1_000_000).toFixed(1)}M`
 }
 
+function formatCost(value: number) {
+  return `$${value.toFixed(value < 0.01 ? 3 : 2)}`
+}
+
 export default Plugin.define({
   id: "subagent-sessions-plugin",
   setup(context) {
@@ -89,6 +96,19 @@ export default Plugin.define({
     const disposeCreated = context.data.on("session.created", rememberSession)
     const disposeRenamed = context.data.on("session.renamed", refreshSessions)
     const disposeModelSelected = context.data.on("session.model.selected", refreshSessions)
+    const disposeUsage = context.data.on("session.usage.updated", refreshSessions)
+    const disposePermissionAsked = context.data.on("permission.asked", refreshSessions)
+    const disposePermissionReplied = context.data.on("permission.replied", refreshSessions)
+    const disposeFormCreated = context.data.on("form.created", refreshSessions)
+    const disposeFormReplied = context.data.on("form.replied", refreshSessions)
+    const disposeFormCancelled = context.data.on("form.cancelled", refreshSessions)
+    const disposeInboxEnqueued = context.data.on("session.inbox.enqueued", refreshSessions)
+    const disposeInboxDelivered = context.data.on("session.inbox.delivered", refreshSessions)
+    const disposeInboxCancelled = context.data.on("session.inbox.cancelled", refreshSessions)
+    const disposeInboxDelivery = context.data.on("session.inbox.delivery.changed", refreshSessions)
+    const disposeExecutionSucceeded = context.data.on("session.execution.succeeded", refreshSessions)
+    const disposeExecutionFailed = context.data.on("session.execution.failed", refreshSessions)
+    const disposeExecutionInterrupted = context.data.on("session.execution.interrupted", refreshSessions)
     const disposeDeleted = context.data.on("session.deleted", (event) => {
       observedSessions.delete(event.data.sessionID)
       observedStatuses.delete(event.data.sessionID)
@@ -108,11 +128,26 @@ export default Plugin.define({
     function SubagentSessions(props: { sessionID: string }) {
       const [state, setState] = createSignal<ListState>({ children: [], loading: true })
       const [open, setOpen] = createSignal(true)
-      let scrollbox: ScrollBoxRenderable | undefined
+      let scrollbox: { scrollHeight: number; scrollTo(value: number): void } | undefined
       let request = 0
       let disposed = false
       let polling = false
       let knownChildIDs = new Set<string>()
+      const syncedDetailIDs = new Set<string>()
+      const syncingDetailIDs = new Set<string>()
+
+      const syncDetails = (sessionID: string) => {
+        if (syncedDetailIDs.has(sessionID) || syncingDetailIDs.has(sessionID)) return
+        syncingDetailIDs.add(sessionID)
+        void Promise.all([
+          context.data.session.permission.sync(sessionID),
+          context.data.session.form.sync(sessionID, context.location),
+          context.data.session.pending.sync(sessionID),
+        ]).then(() => {
+          syncedDetailIDs.add(sessionID)
+          refreshSessions()
+        }).catch(() => {}).finally(() => syncingDetailIDs.delete(sessionID))
+      }
 
       const refreshRemote = async () => {
         if (polling || disposed) return
@@ -161,9 +196,12 @@ export default Plugin.define({
       const load = (parentID: string) => {
         // The collection cache can lag behind session events. Retain the info
         // carried by those events so a new child is renderable immediately.
-        const sessions = new Map<string, ChildSession>(
-          context.data.session.list().map((session) => [session.id, session]),
-        )
+        const sessions = new Map<string, ChildSession>()
+        for (const id of context.data.session.family(parentID)) {
+          const session = context.data.session.get(id)
+          if (session) sessions.set(id, session)
+        }
+        // family() is cache-backed and can lag behind creation events.
         for (const [id, session] of observedSessions) sessions.set(id, session)
         const children = [...sessions.values()]
           .filter((session) => session.parentID === parentID && !absentRemoteIDs.has(session.id))
@@ -171,6 +209,7 @@ export default Plugin.define({
 
         const profiles = requestedProfiles(context.data.session.message.list(parentID) ?? [])
         return children.map((child) => {
+          syncDetails(child.id)
           const model = child.model
             ? modelLabel(child.model)
             : [...(context.data.session.message.list(child.id) ?? [])].reverse()
@@ -182,11 +221,8 @@ export default Plugin.define({
       }
 
       function tokenUsage(sessionID: string): TokenUsage | undefined {
-        const assistant = [...(context.data.session.message.list(sessionID) ?? [])]
-          .reverse()
-          .find((message) => message.type === "assistant" && message.tokens)
-        if (!assistant || assistant.type !== "assistant" || !assistant.tokens) return undefined
-        const tokens = assistant.tokens
+        const tokens = context.data.session.get(sessionID)?.tokens
+        if (!tokens) return undefined
         const count = tokens.input + tokens.output + tokens.reasoning + tokens.cache.read + tokens.cache.write
         return { count }
       }
@@ -217,25 +253,34 @@ export default Plugin.define({
 
       const listHeight = () => Math.max(1, Math.min(MAX_VISIBLE_ROWS, state().children.length * 3))
 
-      const activity = (sessionID: string) =>
-        (observedStatuses.get(sessionID) ?? context.data.session.status(sessionID)) === "retry"
-          ? { label: "retrying", color: theme.text.feedback.warning.default }
-          : (observedStatuses.get(sessionID) ?? context.data.session.status(sessionID)) === "running"
-          ? { label: "working", color: theme.text.feedback.warning.default }
-          : { label: "idle", color: theme.text.subdued }
+      const activity = (sessionID: string) => {
+        const session = context.data.session.get(sessionID)
+        const status = observedStatuses.get(sessionID) ?? context.data.session.status(sessionID)
+        const permission = (context.data.session.permission.list(sessionID)?.length ?? 0) > 0
+        const question = (context.data.session.form.list(sessionID, context.location)?.length ?? 0) > 0
+        const queued = context.data.session.pending.list(sessionID).length
+        const label = activityLabel({ permission, question, outcome: session?.outcome,
+          retry: status === "retry", running: status === "running", queued })
+        const color = permission || question || status === "retry"
+          ? theme.text.feedback.warning.default
+          : session?.outcome === "failed"
+            ? theme.text.feedback.error.default
+            : status === "running" ? theme.text.feedback.warning.default : theme.text.subdued
+        return { label, color }
+      }
 
       return (
         <box flexDirection="column" marginTop={1}>
           <box flexDirection="row" onMouseDown={() => setOpen((value) => !value)}>
             <text fg={theme.text.subdued}>{open() ? "▼ " : "▶ "}</text>
-            <text attributes={TextAttributes.BOLD}>{`Subagents (${state().children.length})`}</text>
+            <text attributes={TextAttributes.BOLD}>{`Subagents (${state().children.length}) · ${formatCost(context.data.session.cost(props.sessionID))}`}</text>
           </box>
           <Show when={open()}>
             <scrollbox
               height={listHeight()}
               stickyScroll={true}
               stickyStart="bottom"
-              ref={(element: ScrollBoxRenderable) => { scrollbox = element }}
+              ref={(element) => { scrollbox = element }}
               verticalScrollbarOptions={{
                 trackOptions: {
                   backgroundColor: theme.background.default,
@@ -260,8 +305,9 @@ export default Plugin.define({
                     if (!current) return undefined
                     return formatTokens(current.count)
                   }
+                  const costLabel = () => formatCost(context.data.session.cost(child.id))
                   const lines = () => detailLines({ role: role(), profile: child.profile ?? label()?.profile,
-                    status: current().label, model: modelName(model()), tokens: tokenLabel() })
+                    status: current().label, model: modelName(model()), tokens: tokenLabel(), cost: costLabel() })
                   return (
                     <box
                       flexDirection="row"
@@ -296,6 +342,19 @@ export default Plugin.define({
       disposeCreated()
       disposeRenamed()
       disposeModelSelected()
+      disposeUsage()
+      disposePermissionAsked()
+      disposePermissionReplied()
+      disposeFormCreated()
+      disposeFormReplied()
+      disposeFormCancelled()
+      disposeInboxEnqueued()
+      disposeInboxDelivered()
+      disposeInboxCancelled()
+      disposeInboxDelivery()
+      disposeExecutionSucceeded()
+      disposeExecutionFailed()
+      disposeExecutionInterrupted()
       disposeDeleted()
       disposeStatus()
       disposeSlot()

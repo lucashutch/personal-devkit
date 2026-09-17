@@ -1,14 +1,15 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import { listChildren, polledStatus, reconcileChildren } from "./subagent-sessions/reconcile.js"
-import { detailLines, requestedProfiles } from "./subagent-sessions/labels.js"
+import { activityLabel, detailLines, requestedProfiles } from "./subagent-sessions/labels.js"
 
-test("sidebar separates role, requested model/effort and status from actual model and tokens", () => {
-  assert.deepEqual(detailLines({ role: "Reviewer", profile: "luna/high", status: "idle",
-    model: "gpt-5.6-luna#xhigh", tokens: "188k" }), [
-    "Reviewer · Luna/high · idle", "gpt-5.6-luna#xhigh · 188k",
+test("sidebar separates role and status from profile, cumulative usage and cost", () => {
+  assert.deepEqual(detailLines({ role: "Reviewer", profile: "luna:high", status: "idle",
+    model: "gpt-5.6-luna#xhigh", tokens: "188k", cost: "$0.18" }), [
+    "Reviewer · idle", "Luna:high · 188k · $0.18",
   ])
-  assert.deepEqual(detailLines({ role: "Worker", status: "working" }), ["Worker · working", ""])
+  assert.deepEqual(detailLines({ role: "Worker", status: "working", model: "gpt-5.6-luna" }),
+    ["Worker · working", "gpt-5.6-luna"])
 })
 
 test("requested models come from creation calls, preserving historical tiers and ignoring resumes", () => {
@@ -21,7 +22,17 @@ test("requested models come from creation calls, preserving historical tiers and
     call({}, { sessionID: "unknown" }),
     call({ model: "muse" }, { sessionID: "default-effort" }),
   ] }])
-  assert.deepEqual([...profiles], [["child", "luna/high"], ["other", "deep"], ["default-effort", "muse/medium"]])
+  assert.deepEqual([...profiles], [["child", "luna:high"], ["other", "deep"], ["default-effort", "muse:medium"]])
+})
+
+test("blocked and exceptional states take precedence over ordinary activity", () => {
+  assert.equal(activityLabel({ permission: true, question: true, retry: true, running: true }), "blocked: permission")
+  assert.equal(activityLabel({ question: true, retry: true, running: true }), "blocked: question")
+  assert.equal(activityLabel({ retry: true, running: true }), "retrying")
+  assert.equal(activityLabel({ outcome: "failed", running: false }), "failed")
+  assert.equal(activityLabel({ outcome: "interrupted", running: false }), "interrupted")
+  assert.equal(activityLabel({ running: true, queued: 2 }), "working · 2 queued")
+  assert.equal(activityLabel({ running: false, queued: 1 }), "queued")
 })
 
 test("child snapshots consume all pages before reconciliation", async () => {

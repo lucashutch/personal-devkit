@@ -9,7 +9,7 @@ export function requestedProfiles(messages) {
       const childID = state?.metadata?.sessionID
       if (input?.sessionID || typeof childID !== "string") continue
       if (typeof input?.model === "string" && input.model !== "inherit") {
-        profiles.set(childID, [input.model, input.effort ?? "medium"].join("/"))
+        profiles.set(childID, [input.model, input.effort ?? "medium"].join(":"))
       } else if (["fast", "standard", "deep", "advisor", "inherit"].includes(input?.model_profile)) {
         profiles.set(childID, input.model_profile)
       }
@@ -18,10 +18,20 @@ export function requestedProfiles(messages) {
   return profiles
 }
 
-export function detailLines({ role, profile, status, model, tokens }) {
+export function detailLines({ role, profile, status, model, tokens, cost }) {
   const tier = profile ? profile[0].toUpperCase() + profile.slice(1) : undefined
   return [
-    [role, tier, status].filter(Boolean).join(" · "),
-    [model, tokens].filter(Boolean).join(" · "),
+    [role, status].filter(Boolean).join(" · "),
+    [tier ?? model, tokens, cost].filter(Boolean).join(" · "),
   ]
+}
+
+export function activityLabel({ permission, question, outcome, retry, running, queued = 0 }) {
+  if (permission) return "blocked: permission"
+  if (question) return "blocked: question"
+  if (retry) return "retrying"
+  if (!running && outcome === "failed") return "failed"
+  if (!running && outcome === "interrupted") return "interrupted"
+  const status = running ? "working" : queued ? "queued" : "idle"
+  return running && queued ? `${status} · ${queued} queued` : status
 }

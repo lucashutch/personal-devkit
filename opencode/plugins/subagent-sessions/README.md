@@ -3,15 +3,15 @@
 ## Purpose
 
 Adds a `Subagents` section to the session sidebar. It lists direct child
-sessions, shows their task title, execution state, role, requested model/effort, selected model,
-and latest-call token sum, and navigates to a child when clicked.
+sessions, shows their task title, execution state, role, requested model/effort,
+cumulative tokens, and cost, and navigates to a child when clicked.
 
 Rows use this format:
 
 ```text
 ▎Investigate failing build
-▎ Worker · Luna/low · idle
-▎ gpt-5.6-luna#low · 88k
+▎ Worker · idle
+▎ Luna:low · 88k · $0.06
 ```
 
 The requested model/effort comes from the parent's original subagent tool call,
@@ -19,16 +19,20 @@ not the native reasoning variant. Resumes do not replace that label. Historical
 profile calls still display their tier. If the call is
 not cached, generated agent IDs such as `Fast-Worker` and legacy
 `delegate-profile--fast--Worker` remain supported as fallbacks. Otherwise the
-label is omitted. Each entry occupies three non-wrapping rows.
-The model comes from the child session's
-`model` field; cached message metadata is a fallback. Token usage is the sum
-reported on the latest assistant message. It is not a context-window percentage.
+label is omitted. The selected model's short name is the fallback when no
+requested profile is available. Each entry occupies three non-wrapping rows.
+Token usage and cost are cumulative session values. The section heading shows
+the aggregate cost of the locally cached session family.
+
+Pending permissions and forms appear as `blocked: permission` and `blocked:
+question`. Failed and interrupted outcomes remain visible after execution ends.
+Queued inbox work appears as `queued`, or as a count next to a working state.
 
 ## Configuration
 
 - Plugin entry: `cli.json` -> `./extensions/subagent-sessions`
 - Slot: `sidebar.content`
-- Child lookup: the TUI session cache plus session info retained from events,
+- Child lookup: `data.session.family()` plus session info retained from events,
   with a one-second server reconciliation filtered by `parentID`
 - Refresh: session creation, rename, model selection, deletion, and status
   events
@@ -48,6 +52,10 @@ cache can still contain `running` when the event announcing `idle` triggers a
 refresh, so rereading only that cache leaves completed subagents looking busy.
 The one-second reconciliation also compares each child's cached status and
 refreshes when it changes. Retry status is displayed separately from idle.
+
+Permission, form, and pending-inbox caches are synchronized once when each
+child is discovered, then refreshed through their typed events. Pending inbox
+items are queued work; permission and form caches determine blocked state.
 
 V2's `data.session.list()` is a local cache and can lag behind a newly created
 child. Session events include the complete session info, so the plugin retains
