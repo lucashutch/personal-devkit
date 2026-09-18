@@ -4,6 +4,7 @@ Tests must protect meaningful behavior or integration boundaries, not implementa
 
 # Writing
 
+- Use ASD-STE100 principles for technical writing.
 - Write plainly and specifically. Preserve the intended meaning and tone when editing text.
 - Prefer concrete facts, instructions, examples, and measurements over mood or abstraction. Cut sentences that could apply unchanged to any project.
 - Use active voice when the actor matters. Split sentences that make the reader backtrack.
