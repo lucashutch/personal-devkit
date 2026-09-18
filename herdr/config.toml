@@ -6,6 +6,15 @@ onboarding = false
 # Leave ctrl+b free for the agent CLIs' own background shortcut.
 prefix = "ctrl+space"
 
+# Herdr 0.9.1 downgrades modified Enter to a bare CR for panes that have not
+# requested enhanced key encoding, so ctrl+enter reaches agent CLIs as a plain
+# newline. Re-send it as alt+enter, which needs no enhanced encoding.
+[[keys.command]]
+key = "ctrl+enter"
+type = "shell"
+command = "$HERDR_BIN_PATH pane send-keys $HERDR_ACTIVE_PANE_ID alt+enter"
+description = "submit prompt (ctrl+enter shim)"
+
 [terminal]
 shell_mode = "auto"
 new_cwd = "follow"
