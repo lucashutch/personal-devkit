@@ -97,11 +97,14 @@ Both settings live in `service.json` under the profile config directory. The lin
 
 ## Herdr
 
-Herdr uses the TUI package at `opencode/plugins/herdr-tui-pane/`, registered in `opencode/cli.json`, because the shared background service cannot reliably identify the originating pane from a server-side plugin.
+Herdr owns its OpenCode and Claude integration files. Install them after linking the repository configuration:
 
-The plugin reports which session the pane holds and whether that session family is idle, working, or blocked. It polls the route to detect session switches; the shared server cannot attribute a route change to a particular pane.
+```sh
+herdr integration install opencode
+herdr integration install claude
+```
 
-Claude's Herdr hook is managed at `claude/hooks/herdr-agent-state.sh` and in `claude/settings.json`; link it with `pdklink --claude`.
+The generated integration implementations are not tracked here. Herdr can replace them during updates without creating repository changes. `opencode/cli.json` and `claude/settings.json` retain the entries that load the installed integrations.
 
 Tab titles come from the [herdr-auto-title](https://github.com/kryptamine/herdr-auto-title) plugin, not from this repository. Install it with `herdr plugin install kryptamine/herdr-auto-title` and then `herdr server stop`, which is what starts it. Its settings are managed at `herdr-auto-title/config.env` and linked by `pdklink --herdr`; a change only takes effect after another `herdr server stop`.
 

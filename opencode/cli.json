@@ -23,7 +23,7 @@
   "plugins": [
     "./extensions/limitwatch-quota",
     "./extensions/subagent-sessions",
-    "./extensions/herdr-tui-pane"
+    "./herdr-opencode"
   ],
   "tabs": {
     "enabled": false,

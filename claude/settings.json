@@ -35,11 +35,11 @@
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "*",
+        "matcher": "^(startup|resume|clear|compact|fork)$",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/herdr-agent-state.sh\" session",
+            "command": "bash '/home/lucas/.claude/hooks/herdr-agent-state.sh' session",
             "timeout": 10
           }
         ]
