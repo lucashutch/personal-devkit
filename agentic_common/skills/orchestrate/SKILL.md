@@ -17,7 +17,7 @@ Read-only, analysis, and review requests leave no artifacts. Keep plans in the r
 ## Execute
 
 1. Inspect relevant code; use `repo-map` for read-only orientation if needed.
-2. Write `plan.md` using the format below. Use at most five phases unless justified. Leave it uncommitted and remove on completion unless retention is required.
+2. Write `plan.md` using the format below. Use at most five phases unless justified. Leave it uncommitted and remove it after successful verification and merge.
 3. Before parallel implementation, verify shared assumptions with one end-to-end check when practical. Delegate isolated phases to Worker; parallelize only disjoint edits. Supply the objective, acceptance criteria, constraints, necessary context, owned files, and validation. Request `done` or `blocked`, changed paths, exact results, and caveats. Never send full transcripts or plans. Research tasks are read-only and return sources, retrieval dates, and uncertainties.
 4. Verify each diff and validation result before advancing dependencies. Only the primary updates status. Preserve completed work when replanning unless invalidated. Reassess blockers before redispatching; never repeat unchanged instructions.
 5. Review as below, then run final quality gates. The primary owns all Git, conflict, and PR operations.
