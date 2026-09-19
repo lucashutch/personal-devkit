@@ -31,8 +31,8 @@ export function detailLines({ role, profile, status, model, tokens, cost }) {
     ? profile.split("/").at(-1)
     : profile ? profile[0].toUpperCase() + profile.slice(1) : undefined
   return [
-    [role, status].filter(Boolean).join(" · "),
-    [tier ?? model, tokens, cost].filter(Boolean).join(" · "),
+    [role, status, cost].filter(Boolean).join(" · "),
+    [tier ?? model, tokens].filter(Boolean).join(" · "),
   ]
 }
 

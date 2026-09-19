@@ -3,10 +3,10 @@ import test from "node:test"
 import { listChildren, polledStatus, reconcileChildren } from "./subagent-sessions/reconcile.js"
 import { activityLabel, detailLines, latestContextTokens, requestedProfiles } from "./subagent-sessions/labels.js"
 
-test("sidebar separates role and status from profile, cumulative usage and cost", () => {
+test("sidebar shows cost with role and status on the second display line", () => {
   assert.deepEqual(detailLines({ role: "Reviewer", profile: "openai/gpt-5.6-luna#high", status: "idle",
     model: "gpt-5.6-luna#xhigh", tokens: "C:88k T:188k", cost: "$0.18" }), [
-    "Reviewer · idle", "gpt-5.6-luna#high · C:88k T:188k · $0.18",
+    "Reviewer · idle · $0.18", "gpt-5.6-luna#high · C:88k T:188k",
   ])
   assert.deepEqual(detailLines({ role: "Worker", status: "working", model: "gpt-5.6-luna" }),
     ["Worker · working", "gpt-5.6-luna"])
