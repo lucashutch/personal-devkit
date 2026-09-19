@@ -60,6 +60,11 @@ test("adds routing guidance without changing the native delegation schema or exe
 
   assert.match(event.tools.subagent.description, /\| Model \| Cost ↓ \| Code ↑ \| Reasoning ↑ \| UI ↑ \|/)
   assert.match(event.tools.subagent.description, /Advisor defaults to Astra medium/)
+  assert.match(event.tools.subagent.description, /Query the models catalog only when/)
+  assert.match(event.tools.subagent.description, /reuse catalog results for the current batch/)
+  assert.match(event.tools.subagent.input.properties.agent.description, /Exact case-sensitive agent ID/)
+  assert.match(event.tools.subagent.input.properties.agent.description, /Advisor, Reviewer, and Worker/)
+  assert.match(event.tools.subagent.input.properties.model.description, /Omit when the configured or inherited model fits/)
   assert.equal(event.tools.subagent.input.properties.model.type, "string")
   assert.equal(event.tools.subagent.input.properties.effort, undefined)
   const withoutDescriptions = (value) => {
@@ -72,6 +77,17 @@ test("adds routing guidance without changing the native delegation schema or exe
   assert.deepEqual(withoutDescriptions(event.tools.subagent.input), withoutDescriptions(original))
   assert.deepEqual(input, original)
   assert.equal(event.tools.subagent.execute, execute)
+})
+
+test("makes grep regex behavior explicit", async () => {
+  let hook
+  await plugin.setup({ session: { hook: async (_name, callback) => { hook = callback } } })
+  const event = { tools: { grep: { description: "upstream", input: { properties: { pattern: { type: "string" }, literal: { type: "boolean" } } } } } }
+
+  hook(event)
+
+  assert.match(event.tools.grep.description, /literal=true/)
+  assert.match(event.tools.grep.description, /Escape regex metacharacters/)
 })
 
 test("preserves upstream patch grammar while shortening the patch parameter", async () => {

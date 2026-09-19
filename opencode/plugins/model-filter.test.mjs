@@ -1,7 +1,22 @@
 import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
+import path from "node:path"
 import test from "node:test"
+import { fileURLToPath } from "node:url"
 
 import { createModelFilterPlugin, matches, parseRules } from "./model-filter/index.js"
+
+const opencodeRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
+
+test("allows the configured Advisor model", () => {
+  const config = JSON.parse(readFileSync(path.join(opencodeRoot, "default/opencode.json"), "utf8"))
+  const advisor = readFileSync(path.join(opencodeRoot, "agents/Advisor.md"), "utf8")
+  const configuredModel = advisor.match(/^model:\s*([^#\s]+)(?:#\S+)?$/m)?.[1]
+
+  assert.ok(configuredModel, "Advisor must declare a model")
+  assert.ok(config.plugins.find((entry) => entry?.package === "./extensions/model-filter")
+    .options.allow.includes(configuredModel), `${configuredModel} must be allowed by model-filter`)
+})
 
 test("parseRules accepts an allowlist", () => {
   const { allow, deny } = parseRules({ allow: ["openai/gpt-5.6-sol", "opencode/*", "*free*"] })

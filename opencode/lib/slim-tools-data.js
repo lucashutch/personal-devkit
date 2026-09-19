@@ -7,7 +7,7 @@ export const slimDescriptions = Object.freeze({
   subagent:
     `Delegate a bounded supporting task, not the user's primary judgment. New sessions have fresh context, so include the necessary facts, constraints, and expected output rather than the transcript. Foreground waits for the final response. Background returns immediately and notifies on completion.
 
-Choose the agent role independently from the model. Advisor defaults to Astra medium. Respect a model explicitly requested by the user. Otherwise use the matrix to select the least expensive model that fits the task. Pass an exact provider/model or provider/model#variant. Use the models catalog to resolve names and verify availability. When resuming, omit model unless the user explicitly asks to change it.
+Choose the agent role independently from the model. Advisor defaults to Astra medium; other standard roles inherit the parent model. Respect a model explicitly requested by the user. Otherwise omit model when the role default or inherited parent model fits. Use the matrix only when an override is useful. Query the models catalog only when the exact override is unknown or a launch reports that a model is unavailable, and reuse catalog results for the current batch. Pass an exact provider/model or provider/model#variant. When resuming, omit model unless the user explicitly asks to change it.
 
 | Model | Cost ↓ | Code ↑ | Reasoning ↑ | UI ↑ |
 | --- | ---: | ---: | ---: | ---: |
@@ -26,7 +26,7 @@ Relative routing guidance, not benchmarks. Arrows show the preferred direction.`
   write:
     "Create or fully overwrite a file, creating missing parent directories. Inspect existing files first; use edit for partial changes.",
   glob: "Find file paths by glob pattern.",
-  grep: "Search file contents with ripgrep regex or literal text. Returns file paths, line numbers, and previews.",
+  grep: "Search file contents with a ripgrep regex, or set literal=true for exact text. Escape regex metacharacters such as (, [, and ?. Returns file paths, line numbers, and previews.",
   skill:
     "Load a skill's instructions and resources when its description matches the task or the user names it. Follow the user's scope and read-only constraints.",
   question:
@@ -43,10 +43,10 @@ export const slimParamDescriptions = Object.freeze({
     background: "Return immediately and notify on completion; do not poll (default false)",
   },
   subagent: {
-    agent: "Role to run. Advisor handles difficult questions and second opinions, Reviewer performs read-only review, and Worker implements a bounded task.",
+    agent: "Exact case-sensitive agent ID. Standard IDs are Advisor, Reviewer, and Worker. Advisor handles difficult questions and second opinions, Reviewer performs read-only review, and Worker implements a bounded task.",
     description: "Short task label (3-5 words)",
     prompt: "Bounded instructions and necessary context",
-    model: "Exact provider/model or provider/model#variant. Respect explicit requests; otherwise use the routing matrix and choose the least expensive model that fits.",
+    model: "Exact provider/model or provider/model#variant override. Omit when the configured or inherited model fits; query the catalog only when an exact override is unknown or unavailable.",
     sessionID: "Continue a specific previous subagent conversation; omit for a fresh session",
     background: "Run asynchronously and notify on completion; do not poll",
   },
