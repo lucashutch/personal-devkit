@@ -15,6 +15,15 @@
     "markdown": "rendered",
     "grouping": "auto"
   },
+  "mini": {
+    "tools": "show",
+    "shell_output": "hide",
+    "thinking": "hide",
+    "turn_summary": "show",
+    "footer": "show",
+    "replay": true,
+    "replay_limit": 200
+  },
   "animations": true,
   "keybinds": {
     "input.submit": "ctrl+return,ctrl+s,alt+return",
