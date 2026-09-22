@@ -264,17 +264,17 @@ export default Plugin.define({
         const label = activityLabel({ permission, question, outcome: session?.outcome,
           retry: status === "retry", running: status === "running", queued })
         const color = permission || question || status === "retry"
-          ? theme.text.feedback.warning.default
+          ? theme.text.feedback.warning.base
           : session?.outcome === "failed"
-            ? theme.text.feedback.error.default
-            : status === "running" ? theme.text.feedback.warning.default : theme.text.subdued
+            ? theme.text.feedback.error.base
+            : status === "running" ? theme.text.feedback.warning.base : theme.text.muted
         return { label, color }
       }
 
       return (
         <box flexDirection="column" marginTop={1}>
           <box flexDirection="row" onMouseDown={() => setOpen((value) => !value)}>
-            <text fg={theme.text.subdued}>{open() ? "▼ " : "▶ "}</text>
+            <text fg={theme.text.muted}>{open() ? "▼ " : "▶ "}</text>
             <text attributes={TextAttributes.BOLD}>{`Subagents (${state().children.length}) · ${formatCost(context.data.session.cost(props.sessionID))}`}</text>
           </box>
           <Show when={open()}>
@@ -285,15 +285,15 @@ export default Plugin.define({
               ref={(element) => { scrollbox = element }}
               verticalScrollbarOptions={{
                 trackOptions: {
-                  backgroundColor: theme.background.default,
-                  foregroundColor: theme.scrollbar.default,
+                  backgroundColor: theme.background.base,
+                  foregroundColor: theme.scrollbar.base,
                 },
               }}
             >
               <For each={state().children} fallback={
-                state().loading ? <text fg={theme.text.subdued}>Loading sessions…</text>
-                  : state().error ? <text fg={theme.text.feedback.error.default}>Subagents unavailable</text>
-                    : <text fg={theme.text.subdued}>No subagent sessions</text>
+                state().loading ? <text fg={theme.text.muted}>Loading sessions…</text>
+                  : state().error ? <text fg={theme.text.feedback.error.base}>Subagents unavailable</text>
+                    : <text fg={theme.text.muted}>No subagent sessions</text>
               }>
                 {(child) => {
                   const live = () => context.data.session.get(child.id) ?? child
@@ -323,8 +323,8 @@ export default Plugin.define({
                         <text height={1} wrapMode="none">{truncate(
                           live().title || "Untitled subagent",
                         )}</text>
-                        <text height={1} wrapMode="none" fg={theme.text.subdued}>{` ${lines()[0]}`}</text>
-                        <text height={1} wrapMode="none" fg={theme.text.subdued}>{` ${lines()[1]}`}</text>
+                        <text height={1} wrapMode="none" fg={theme.text.muted}>{` ${lines()[0]}`}</text>
+                        <text height={1} wrapMode="none" fg={theme.text.muted}>{` ${lines()[1]}`}</text>
                       </box>
                     </box>
                   )

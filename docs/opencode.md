@@ -40,6 +40,12 @@ node --test opencode/plugins/*.test.mjs
 uv run pytest scripts/tests
 ```
 
+Theme tokens are not covered by those tests. A renamed token resolves to
+`undefined`, which `fg` accepts silently but the scrollbar options reject,
+stopping the renderer and leaving an empty session pane. Compare every
+`context.theme` path in `opencode/plugins/*/tui.tsx` against
+`opencode/node_modules/@opencode/theme/dist/tui/types.d.ts` after an upgrade.
+
 Plugin load failures are warnings, not errors, so check the log rather than the
 exit status:
 

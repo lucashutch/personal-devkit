@@ -77,3 +77,9 @@ session events into an already-mounted external slot.
   `node_modules/@opencode/plugin/dist/tui/context.d.ts` after upgrades.
 - `Model unavailable`: inspect the child session's `model` field and confirm
   the profile plugin created the expected model-pinned alias.
+- Empty session pane with the sidebar still drawn: a theme token resolved to
+  `undefined` and the scrollbar options rejected it, which stops the host
+  renderer. Colour props such as `fg` accept `undefined` and hide the error, so
+  check every `context.theme` path against
+  `node_modules/@opencode/theme/dist/tui/types.d.ts` after upgrades. The
+  token names are `base` and `muted`, not `default` and `subdued`.

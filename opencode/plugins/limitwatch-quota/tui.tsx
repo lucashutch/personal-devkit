@@ -342,18 +342,18 @@ const plugin = Plugin.define({
         <box flexDirection="column">
           <text attributes={TextAttributes.BOLD}>Quotas</text>
           {lines().map((line) => typeof line === "string" ? (
-            <text fg={theme.text.subdued}>{line}</text>
+            <text fg={theme.text.muted}>{line}</text>
           ) : (
             <box flexDirection="row">
-              <text fg={theme.text.subdued}>{line.name}:</text>
+              <text fg={theme.text.muted}>{line.name}:</text>
               <box flexGrow={1} />
-              <text fg={theme.text.subdued}>{line.value}</text>
+              <text fg={theme.text.muted}>{line.value}</text>
             </box>
           ))}
           {stamp() ? (
             <box flexDirection="row">
               <box flexGrow={1} />
-              <text fg={theme.text.subdued}>{stamp()}</text>
+              <text fg={theme.text.muted}>{stamp()}</text>
             </box>
           ) : null}
         </box>
