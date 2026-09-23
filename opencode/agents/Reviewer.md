@@ -25,6 +25,7 @@ Review the supplied work without editing or expanding scope.
 3. Prioritize concrete failures over speculative improvements; state the trigger and impact. Consolidate findings by requirement/file. Use `Incomplete` for missing evidence/validation and `Blocked` for unavailable context/files/commands; never approve either.
 
 ## Output
+Keep the report under 300 words.
 ```text
 Verdict: Approve | Request Changes | Incomplete | Blocked
 Summary: [brief assessment and unverified areas]

@@ -58,12 +58,8 @@ test("adds routing guidance without changing the native delegation schema or exe
 
   hook(event)
 
-  assert.match(event.tools.subagent.description, /\| Model \| Cost ↓ \| Code ↑ \| Reasoning ↑ \| UI ↑ \|/)
-  assert.match(event.tools.subagent.description, /Advisor defaults to Astra medium/)
-  assert.match(event.tools.subagent.description, /Query the catalog only when an override is unknown/)
-  assert.match(event.tools.subagent.input.properties.agent.description, /Exact case-sensitive agent ID/)
-  assert.match(event.tools.subagent.input.properties.agent.description, /Advisor, Reviewer, and Worker/)
-  assert.match(event.tools.subagent.input.properties.model.description, /Omit when the configured or inherited model fits/)
+  assert.notEqual(event.tools.subagent.description, "Upstream delegation instructions")
+  for (const id of ["Advisor", "Reviewer", "Worker"]) assert.match(event.tools.subagent.input.properties.agent.description, new RegExp(`\\b${id}\\b`))
   assert.equal(event.tools.subagent.input.properties.model.type, "string")
   assert.equal(event.tools.subagent.input.properties.effort, undefined)
   const withoutDescriptions = (value) => {

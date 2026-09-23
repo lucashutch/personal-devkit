@@ -5,18 +5,15 @@ export const slimDescriptions = Object.freeze({
   shell:
     "Execute a shell command. Quote paths containing spaces or special characters. Prefer dedicated tools for file inspection; shell pipelines are valid for transformations. Foreground waits for completion. Large output is saved to a file with a truncated preview.",
   subagent:
-    `Delegate a bounded supporting task, not the user's primary judgment. New sessions have fresh context, so include the necessary facts, constraints, and expected output rather than the transcript. Foreground waits for the final response. Background returns immediately and notifies on completion.
+    `Delegate a bounded supporting task; keep the user's primary judgment. Fresh sessions see no transcript, so supply the facts, constraints, and expected output.
 
-Pick the role independently of the model. Advisor defaults to Astra medium; other roles inherit the parent. Honour an explicit user request; otherwise omit model when the default fits. Use the matrix to override: stronger for ambiguous reasoning, cheaper for bounded work with clear checks. Prefer Sol for interactive and agentic coding; reserve Astra for tasks that need its deeper reasoning. Query the catalog only when an override is unknown or reported unavailable, then reuse it. Pass provider/model or provider/model#variant. On resume, omit model unless asked to change it.
+Choose the role, then the model. Advisor defaults to Astra medium; other roles inherit the parent. Use a model the user names; otherwise omit model unless an override clearly fits: stronger for ambiguous reasoning, cheaper for bounded work with clear checks. Prefer Sol for agentic coding and keep Astra for deep reasoning. Query the catalog only if an ID below fails. On resume, omit model unless asked.
 
-| Model | Cost ↓ | Code ↑ | Reasoning ↑ | UI ↑ |
-| --- | ---: | ---: | ---: | ---: |
-| Luna | 3 | 6 | 6 | 6 |
-| Sol | 6 | 8 | 9 | 8 |
-| Astra | 9 | 9 | 10 | 9 |
-| Muse | 1 | 7 | 8 | 8 |
-
-Relative routing guidance, not benchmarks. Arrows show the preferred direction.`,
+Models (cost/code/reasoning/UI, relative 1-10):
+- Luna openai/gpt-6-luna 3/6/6/6
+- Sol openai/gpt-6-sol 6/8/9/8
+- Astra openai/gpt-6-astra 9/9/10/9
+- Muse meta/muse-spark-1.3 1/7/8/8`,
   execute:
     "Run JavaScript in confined Code Mode. Discover tools with search, then use exact catalog paths and signatures. No imports, direct filesystem/network access, processes, or timers. Await calls and return results.",
   read:
@@ -43,12 +40,12 @@ export const slimParamDescriptions = Object.freeze({
     background: "Return immediately and notify on completion; do not poll (default false)",
   },
   subagent: {
-    agent: "Exact case-sensitive agent ID. Standard IDs are Advisor, Reviewer, and Worker. Advisor handles difficult questions and second opinions, Reviewer performs read-only review, and Worker implements a bounded task.",
+    agent: "Case-sensitive agent ID: Advisor (hard questions, second opinions), Reviewer (read-only review), or Worker (bounded implementation)",
     description: "Short task label (3-5 words)",
     prompt: "Bounded instructions and necessary context",
-    model: "Exact provider/model or provider/model#variant override. Omit when the configured or inherited model fits; query the catalog only when an exact override is unknown or unavailable.",
-    sessionID: "Continue a specific previous subagent conversation; omit for a fresh session",
-    background: "Run asynchronously and notify on completion; do not poll",
+    model: "provider/model or provider/model#variant override",
+    sessionID: "Continue a previous subagent session; omit for a fresh one",
+    background: "Return immediately and notify on completion; do not poll",
   },
   execute: { code: "JavaScript to discover and call catalog tools" },
   read: {
