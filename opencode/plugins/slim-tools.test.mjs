@@ -60,8 +60,7 @@ test("adds routing guidance without changing the native delegation schema or exe
 
   assert.match(event.tools.subagent.description, /\| Model \| Cost ↓ \| Code ↑ \| Reasoning ↑ \| UI ↑ \|/)
   assert.match(event.tools.subagent.description, /Advisor defaults to Astra medium/)
-  assert.match(event.tools.subagent.description, /Query the models catalog only when/)
-  assert.match(event.tools.subagent.description, /reuse catalog results for the current batch/)
+  assert.match(event.tools.subagent.description, /Query the catalog only when an override is unknown/)
   assert.match(event.tools.subagent.input.properties.agent.description, /Exact case-sensitive agent ID/)
   assert.match(event.tools.subagent.input.properties.agent.description, /Advisor, Reviewer, and Worker/)
   assert.match(event.tools.subagent.input.properties.model.description, /Omit when the configured or inherited model fits/)

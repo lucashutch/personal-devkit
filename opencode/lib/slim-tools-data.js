@@ -7,14 +7,14 @@ export const slimDescriptions = Object.freeze({
   subagent:
     `Delegate a bounded supporting task, not the user's primary judgment. New sessions have fresh context, so include the necessary facts, constraints, and expected output rather than the transcript. Foreground waits for the final response. Background returns immediately and notifies on completion.
 
-Choose the agent role independently from the model. Advisor defaults to Astra medium; other standard roles inherit the parent model. Respect a model explicitly requested by the user. Otherwise omit model when the role default or inherited parent model fits. Use the matrix only when an override is useful. Query the models catalog only when the exact override is unknown or a launch reports that a model is unavailable, and reuse catalog results for the current batch. Pass an exact provider/model or provider/model#variant. When resuming, omit model unless the user explicitly asks to change it.
+Pick the role independently of the model. Advisor defaults to Astra medium; other roles inherit the parent. Honour an explicit user request; otherwise omit model when the default fits. Use the matrix to override: stronger for ambiguous reasoning, cheaper for bounded work with clear checks. Prefer Sol for interactive and agentic coding; reserve Astra for tasks that need its deeper reasoning. Query the catalog only when an override is unknown or reported unavailable, then reuse it. Pass provider/model or provider/model#variant. On resume, omit model unless asked to change it.
 
 | Model | Cost ↓ | Code ↑ | Reasoning ↑ | UI ↑ |
 | --- | ---: | ---: | ---: | ---: |
-| Luna | 3 | 7 | 6 | 6 |
-| Sol | 6 | 9 | 9 | 8 |
+| Luna | 3 | 6 | 6 | 6 |
+| Sol | 6 | 8 | 9 | 8 |
 | Astra | 9 | 9 | 10 | 9 |
-| Muse | 1 | 8 | 8 | 8 |
+| Muse | 1 | 7 | 8 | 8 |
 
 Relative routing guidance, not benchmarks. Arrows show the preferred direction.`,
   execute:
