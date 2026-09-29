@@ -65,7 +65,8 @@ class LinkConfigTests(unittest.TestCase):
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual((destination / "settings.json").resolve(), ROOT / "claude/settings.json")
-            self.assertEqual((destination / "skills").resolve(), ROOT / "agentic_common/skills")
+            self.assertFalse((destination / "skills").is_symlink())
+            self.assertEqual((destination / "skills/advisor").resolve(), ROOT / "agentic_common/skills/advisor")
             self.assertFalse((Path(home) / ".claude").exists())
 
     def test_claude_config_directory_defaults_to_home(self) -> None:

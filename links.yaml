@@ -43,9 +43,17 @@ groups:
     - $CLAUDE_CONFIG_DIR
     include:
     - "**"
+  # Per-skill links keep Claude Code's synced account skills out of the repo.
   - source: agentic_common/skills
     destinations:
     - $CLAUDE_CONFIG_DIR/skills
+    include:
+    - advisor/**
+    - orchestrate/**
+    - pr-description/**
+    - repo-map/**
+    - ship/**
+    - start/**
   - source: agentic_common/user-instructions.md
     destinations:
     - $CLAUDE_CONFIG_DIR/CLAUDE.md

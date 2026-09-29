@@ -46,3 +46,5 @@ installed CLI build; see [upgrading OpenCode](opencode.md#upgrading-opencode).
 Directory entries can use `include` and `exclude` globs. Patterns support `*`, `**`, and `?`; exclusions win. A directory without filters is linked as one directory. Set `optional: true` for a source that may not exist. `--manifest PATH` checks a custom manifest whose sources remain relative to this repository.
 
 Use `uv run pdklink` from a checkout, or install the checkout with `uv tool install .` to make `pdklink` available on `PATH`. The command locates the checkout from the current directory. `scripts/link-config.py` remains a compatibility wrapper.
+
+The Claude group links each skill in `agentic_common/skills/` separately, because Claude Code writes synced account skills into `$CLAUDE_CONFIG_DIR/skills`. Add an `include` entry to `links.yaml` for each new skill.
