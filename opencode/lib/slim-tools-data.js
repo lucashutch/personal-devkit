@@ -10,8 +10,8 @@ export const slimDescriptions = Object.freeze({
 Choose the role, then the model. Advisor defaults to Astra medium; other roles inherit the parent. Use a model the user names; otherwise omit model unless an override clearly fits: stronger for ambiguous reasoning, cheaper for bounded work with clear checks. Prefer Sol for agentic coding and keep Astra for deep reasoning. Query the catalog only if an ID below fails. On resume, omit model unless asked.
 
 Models (cost/code/reasoning/UI, relative 1-10):
-- Luna openai/gpt-6-luna 3/6/6/6
-- Sol openai/gpt-6-sol 6/8/9/8
+- Luna openai/gpt-6-luna-fast 3/6/6/6
+- Sol openai/gpt-6.1-sol 6/8/9/8
 - Astra openai/gpt-6-astra 9/9/10/9
 - Muse meta/muse-spark-1.3 1/7/8/8`,
   execute:
