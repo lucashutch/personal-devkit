@@ -112,7 +112,7 @@ herdr integration install claude
 
 The generated integration implementations are not tracked here. Herdr can replace them during updates without creating repository changes. `opencode/cli.json` and `claude/settings.json` retain the entries that load the installed integrations.
 
-Tab titles come from the [herdr-auto-title](https://github.com/kryptamine/herdr-auto-title) plugin, not from this repository. Install it with `herdr plugin install kryptamine/herdr-auto-title` and then `herdr server stop`, which is what starts it. Its settings are managed at `herdr-auto-title/config.env` and linked by `pdklink --herdr`; a change only takes effect after another `herdr server stop`.
+Tab titles come from the local plugin at `herdr/plugins/auto-title/`. A tab shows the session name of the agent in its first pane. Without an agent, it shows the running program, or the directory name at a prompt. Register it with `herdr plugin link "$PWD/herdr/plugins/auto-title"` and then run `herdr server stop`, which is what starts it. Changes to `auto-title.sh` take effect after another `herdr server stop`.
 
 For plugin compatibility, model profiles, and validation notes, see the [extension compatibility guide](../opencode/README.md).
 

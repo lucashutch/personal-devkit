@@ -1,0 +1,12 @@
+# Tab titles for herdr, managed by personal-devkit.
+
+id = "local.auto-title"
+name = "Auto Title"
+version = "0.1.0"
+min_herdr_version = "0.9.0"
+description = "Titles each tab with its agent session name, running program, or directory"
+platforms = ["linux", "macos"]
+
+[[startup]]
+platforms = ["linux", "macos"]
+command = ["./auto-title.sh"]

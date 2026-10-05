@@ -9,7 +9,7 @@ Verified: 2026-09-14 against tracked paths and `pyproject.toml`.
 - `opencode/cli.json`, `opencode/agents/`, `opencode/lib/`, `opencode/plugins/` — common sources linked into both profiles.
 - `claude/` — Claude Code settings, agents, hooks, themes, and statusline.
 - `CLAUDE.md` — symlink to `AGENTS.md`; both hosts read the same repository instructions.
-- `herdr/`, `herdr-auto-title/` — Herdr configuration and settings for the third-party `herdr-auto-title` plugin.
+- `herdr/` — Herdr configuration and the local `auto-title` tab-title plugin.
 - `dotfiles/` — Bash snippets, Ghostty configuration, and Starship theme.
 - `src/personal_devkit/` — Python implementation of installers, linking, and session migration.
 - `scripts/` — compatibility entry points and Python tests under `scripts/tests/`.
