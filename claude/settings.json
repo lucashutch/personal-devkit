@@ -68,8 +68,9 @@
   "autoUpdatesChannel": "latest",
   "autoMemoryEnabled": false,
   "autoDreamEnabled": false,
-  "remoteControlAtStartup": true,
   "skipDangerousModePermissionPrompt": true,
   "theme": "custom:one-dark",
-  "wheelScrollAccelerationEnabled": false
+  "wheelScrollAccelerationEnabled": false,
+  "remoteControlAtStartup": true,
+  "agentPushNotifEnabled": true
 }
