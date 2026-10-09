@@ -7,7 +7,7 @@ Verified: 2026-09-14 against tracked paths and `pyproject.toml`.
 - `opencode/{default,test}/` — OpenCode global configs.
 - `agentic_common/skills/` — repository-managed skills linked into both hosts; OpenCode supplies its own `opencode` and `report` skills.
 - `opencode/cli.json`, `opencode/agents/`, `opencode/lib/`, `opencode/plugins/` — common sources linked into both profiles.
-- `claude/` — Claude Code settings, agents, hooks, themes, and statusline.
+- `claude/` — Claude Code settings, rules, agents, hooks, themes, and statusline.
 - `CLAUDE.md` — symlink to `AGENTS.md`; both hosts read the same repository instructions.
 - `herdr/` — Herdr configuration and the local `auto-title` tab-title plugin.
 - `dotfiles/` — Bash snippets, Ghostty configuration, and Starship theme.
