@@ -1,7 +1,8 @@
 {
   "env": {
     "ENABLE_TOOL_SEARCH": "true",
-    "CLAUDE_CODE_SCROLL_SPEED": "2"
+    "CLAUDE_CODE_SCROLL_SPEED": "2",
+    "CLAUDE_CODE_PLUGIN_DIRS": "/home/lucas/.claude/mods/subagent-panel"
   },
   "attribution": {
     "commit": "",

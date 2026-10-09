@@ -1,0 +1,6 @@
+{
+  "name": "subagent-panel",
+  "version": "0.1.0",
+  "description": "A sidebar pane that lists subagents with their state, tokens and tool calls, like the opencode Subagents section.",
+  "types": "./types/index.d.ts"
+}
