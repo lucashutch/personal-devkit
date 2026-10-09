@@ -10,9 +10,11 @@
   },
   "permissions": {
     "deny": [
+      "Agent(Plan)",
+      "Agent(statusline-setup)",
+      "Agent(Explore)",
       "Artifact",
       "Workflow",
-      "ReportFindings",
       "ScheduleWakeup",
       "ShareOnboardingGuide",
       "PowerShell",
@@ -25,13 +27,30 @@
       "CronList",
       "NotebookEdit",
       "Monitor",
-      "SendMessage"
+      "SendMessage",
+      "ListAgents",
+      "ReportFindings"
     ],
     "defaultMode": "bypassPermissions"
   },
-  "model": "sonnet",
+  "model": "opus",
   "disableClaudeAiConnectors": true,
-  "disableBundledSkills": true,
+  "skillOverrides": {
+    "code-review": "user-invocable-only",
+    "simplify": "user-invocable-only",
+    "security-review": "user-invocable-only",
+    "plugin-authoring": "off",
+    "dataviz": "off",
+    "update-config": "off",
+    "run": "off",
+    "loop": "off",
+    "schedule": "off",
+    "workflow-authoring": "off",
+    "keybindings-help": "off",
+    "fewer-permission-prompts": "off",
+    "claude-api": "off",
+    "init": "off"
+  },
   "hooks": {
     "SessionStart": [
       {
@@ -68,6 +87,7 @@
   "autoUpdatesChannel": "latest",
   "autoMemoryEnabled": false,
   "autoDreamEnabled": false,
+  "syncClaudeAiSkills": false,
   "skipDangerousModePermissionPrompt": true,
   "theme": "custom:one-dark",
   "wheelScrollAccelerationEnabled": false,

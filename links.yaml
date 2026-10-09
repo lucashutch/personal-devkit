@@ -48,12 +48,8 @@ groups:
     destinations:
     - $CLAUDE_CONFIG_DIR/skills
     include:
-    - advisor/**
-    - orchestrate/**
     - pr-description/**
-    - repo-map/**
-    - ship/**
-    - start/**
+    - reportfindings/**
   - source: agentic_common/user-instructions.md
     destinations:
     - $CLAUDE_CONFIG_DIR/CLAUDE.md
