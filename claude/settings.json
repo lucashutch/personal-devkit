@@ -2,7 +2,8 @@
   "env": {
     "ENABLE_TOOL_SEARCH": "true",
     "CLAUDE_CODE_SCROLL_SPEED": "2",
-    "CLAUDE_CODE_PLUGIN_DIRS": "/home/lucas/.claude/mods/subagent-panel"
+    "CLAUDE_CODE_PLUGIN_DIRS": "/home/lucas/.claude/mods/subagent-panel",
+    "CLAUDE_CODE_FORK_SUBAGENT": "0"
   },
   "attribution": {
     "commit": "",
@@ -14,6 +15,7 @@
       "Agent(Plan)",
       "Agent(statusline-setup)",
       "Agent(Explore)",
+      "Agent(claude-code-guide)",
       "Artifact",
       "Workflow",
       "ScheduleWakeup",
@@ -35,6 +37,7 @@
     "defaultMode": "bypassPermissions"
   },
   "model": "opus",
+  "advisorModel": "opus",
   "disableClaudeAiConnectors": true,
   "skillOverrides": {
     "code-review": "user-invocable-only",
