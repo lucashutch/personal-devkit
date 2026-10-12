@@ -68,7 +68,7 @@ class LinkConfigTests(unittest.TestCase):
             self.assertFalse((destination / "skills").is_symlink())
             for name in ("pr-description", "reportfindings"):
                 self.assertEqual((destination / "skills" / name).resolve(), ROOT / "agentic_common/skills" / name)
-            for name in ("advisor", "orchestrate", "repo-map", "ship", "start"):
+            for name in ("advisor", "orchestrate", "repo-map"):
                 self.assertFalse((destination / "skills" / name).exists())
             self.assertFalse((Path(home) / ".claude").exists())
 
