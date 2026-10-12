@@ -37,7 +37,9 @@
                     "meta/muse-wonder-1.0",
                     "opencode/muse-wonder*",
                     "opencode/claude-haiku-5-5",
-                    "opencode/claude-sonnet-5-5"
+                    "opencode/claude-sonnet-5-5",
+                    "opencode/gpt-6-luna",
+                    "opencode/gpt-6.1-sol"
                 ],
                 "deny": [
                     "openrouter/*"
