@@ -37,7 +37,6 @@
     "defaultMode": "bypassPermissions"
   },
   "model": "opus",
-  "advisorModel": "opus",
   "disableClaudeAiConnectors": true,
   "skillOverrides": {
     "code-review": "user-invocable-only",
