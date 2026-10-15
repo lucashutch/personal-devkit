@@ -2,7 +2,7 @@
   "env": {
     "ENABLE_TOOL_SEARCH": "true",
     "CLAUDE_CODE_SCROLL_SPEED": "2",
-    "CLAUDE_CODE_PLUGIN_DIRS": "/home/lucas/.claude/mods/subagent-panel",
+    "CLAUDE_CODE_PLUGIN_DIRS": "/home/lucas/.claude/mods/subagent-panel:/home/lucas/.claude/mods/tps-meter",
     "CLAUDE_CODE_FORK_SUBAGENT": "0"
   },
   "attribution": {

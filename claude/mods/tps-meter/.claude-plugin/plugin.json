@@ -1,0 +1,6 @@
+{
+  "name": "tps-meter",
+  "version": "0.1.0",
+  "description": "Shows the main model's output tokens per second for the last turn at the end of the hint line under the prompt.",
+  "types": "./types/index.d.ts"
+}

@@ -8,7 +8,7 @@ Fork it or open a PR to adapt the prompts and tool descriptions to your own work
 
 - `agentic_common/` — platform-neutral skills and writing instructions shared by Claude Code and OpenCode
 - `opencode/` — OpenCode profiles, agents, and plugins
-- `claude/` — Claude Code settings, rules, statusline, and agents, plus `claude/mods/subagent-panel/`, the subagents sidebar mod
+- `claude/` — Claude Code settings, rules, statusline, and agents, plus `claude/mods/subagent-panel/`, the subagents sidebar mod, and `claude/mods/tps-meter/`, the output speed mod
 - `herdr/` — Herdr configuration, plus `herdr/plugins/auto-title/`, the tab-title plugin
 - `dotfiles/` — Bash, Ghostty, Starship, and ALSA configuration
 - `links.yaml` — source-to-destination mappings managed by the linker
