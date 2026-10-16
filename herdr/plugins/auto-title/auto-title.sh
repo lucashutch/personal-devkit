@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Title each herdr tab from its first pane:
-#   agent pane   -> the agent session name (the title the agent sets on its terminal)
+#   agent pane   -> the agent session name (the title the agent sets on its terminal,
+#                   or the Claude Code transcript title while a resumed session is quiet)
 #   other pane   -> the foreground program, or the directory name at a prompt
 
 set -u
@@ -30,6 +31,21 @@ foreground_program() {
       | cut'
 }
 
+# Print the last title Claude Code saved for a session. A resumed session sets
+# no terminal title until its first turn, so read the transcript instead.
+transcript_title() {
+  local file
+  for file in "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/projects/*/"$1".jsonl; do
+    [[ -f $file ]] || continue
+    tail -c 262144 "$file" |
+      jq -R -r 'fromjson? | select(.type == "custom-title" or .type == "ai-title")
+        | (.customTitle // .aiTitle // empty)' |
+      tail -n 1 |
+      jq -R -r --argjson max "$MAX_LENGTH" "$CUT"'select(. != "") | gsub("[[:cntrl:]]"; " ") | cut'
+    return
+  done
+}
+
 while :; do
   if ! panes=$("$HERDR" pane list 2>/dev/null) || [[ -z $panes ]]; then
     ((++failures >= MAX_FAILURES)) && exit 1
@@ -41,9 +57,14 @@ while :; do
   failures=0
 
   # One jq pass for every tab. Each line holds the first pane of a tab in
-  # `pane list` order, as four fields separated by the ASCII unit separator:
-  # tab id, pane id, agent title (empty for a non-agent pane), directory name.
-  while IFS=$'\x1f' read -r tab_id pane_id title dir_name; do
+  # `pane list` order, as six fields separated by the ASCII unit separator:
+  # tab id, pane id, agent terminal title, directory name, Claude Code session
+  # id, agent name. The last two are empty for a non-agent pane.
+  while IFS=$'\x1f' read -r tab_id pane_id title dir_name session_id agent; do
+    if [[ -z $title && -n $agent ]]; then
+      [[ -n $session_id ]] && title=$(transcript_title "$session_id")
+      [[ -z $title ]] && title=$agent
+    fi
     if [[ -z $title ]]; then
       title=$(foreground_program "$pane_id")
       [[ -z $title ]] && title=$dir_name
@@ -57,11 +78,11 @@ while :; do
     | unique_by(.tab_id)[]
     | [ .tab_id,
         .pane_id,
-        (if .agent
-          then ([.terminal_title_stripped, .agent] | map(select(. != null and . != "")) | .[0])
-          else "" end
+        ((if .agent then .terminal_title_stripped else null end // "")
          | gsub("[[:cntrl:]]"; " ") | cut),
-        ((.foreground_cwd // .cwd // "") | split("/") | last | cut)
+        ((.foreground_cwd // .cwd // "") | split("/") | last | cut),
+        (if .agent == "claude" then .agent_session.value // "" else "" end),
+        (.agent // "")
       ]
     | join("\u001f")' <<<"$panes")
 
