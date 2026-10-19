@@ -49,6 +49,8 @@ groups:
     - $CLAUDE_CONFIG_DIR/skills
     include:
     - pr-description/**
+    - pr-feedback/**
+    - pr-review/**
     - reportfindings/**
   - source: agentic_common/user-instructions.md
     destinations:
