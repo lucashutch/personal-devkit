@@ -1,4 +1,5 @@
 {
+  "syncClaudeAiSkills": false,
   "env": {
     "ENABLE_TOOL_SEARCH": "true",
     "CLAUDE_CODE_SCROLL_SPEED": "2",
@@ -85,12 +86,16 @@
     }
   },
   "effortLevel": "low",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "low"
+    }
+  },
   "promptSuggestionEnabled": false,
   "awaySummaryEnabled": false,
   "autoUpdatesChannel": "latest",
   "autoMemoryEnabled": false,
   "autoDreamEnabled": false,
-  "syncClaudeAiSkills": false,
   "skipDangerousModePermissionPrompt": true,
   "theme": "custom:one-dark",
   "wheelScrollAccelerationEnabled": false,
