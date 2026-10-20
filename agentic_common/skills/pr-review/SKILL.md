@@ -28,4 +28,11 @@ Delegate fetching to a subagent on the cheapest model. Keep raw diffs and logs o
 Format findings with the `reportfindings` skill. Then add:
 
 - A one-line verdict: approve, approve with nits, or request changes.
-- A draft comment for each finding, one to three sentences, written to the PR author. Write a question when you are not sure the finding is a defect.
+- A draft comment for each finding, one to three sentences, written to the PR author.
+
+## Comment tone
+
+- When you are not sure the behavior is a defect, ask whether it is intended. For example: "Is it intended that a timeout here returns an empty list instead of an error? Callers in `sync.py` seem to treat empty as success."
+- Describe the code and its effect, not the author. Write "this returns early before the lock is released", not "you forgot to release the lock".
+- Do not use words that assign blame or imply carelessness, such as "wrong", "obviously", "should have", "forgot", or "missed".
+- State confirmed defects directly and neutrally, with the evidence and a suggested fix.
