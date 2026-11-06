@@ -17,9 +17,7 @@
       "Agent(statusline-setup)",
       "Agent(Explore)",
       "Agent(claude-code-guide)",
-      "Artifact",
       "Workflow",
-      "ScheduleWakeup",
       "ShareOnboardingGuide",
       "PowerShell",
       "RemoteTrigger",
@@ -30,9 +28,6 @@
       "CronDelete",
       "CronList",
       "NotebookEdit",
-      "Monitor",
-      "SendMessage",
-      "ListAgents",
       "ReportFindings"
     ],
     "defaultMode": "bypassPermissions"
@@ -85,6 +80,7 @@
       }
     }
   },
+  "feedbackDrafts": "off",
   "effortLevel": "low",
   "modelSettings": {
     "claude-opus-5-5": {
@@ -100,5 +96,6 @@
   "theme": "custom:one-dark",
   "wheelScrollAccelerationEnabled": false,
   "remoteControlAtStartup": true,
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "switchModelsOnFlag": true
 }
